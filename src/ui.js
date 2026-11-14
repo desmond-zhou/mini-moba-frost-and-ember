@@ -76,7 +76,11 @@ export function createUI(isTouch, audio) {
     const note = ['直接购买', '由一件凡器炼成', '由两件灵器合成，每种只能持有一件'];
     el.shopGrid.innerHTML = ITEM_TIERS.map((ids, t) => `<h3>${TIER_NAME[t + 1]}<small>${note[t]}</small></h3><div class="tier t${t + 1}">${ids.map(tile).join('')}</div>`).join('');
     shopTiles = [...el.shopGrid.querySelectorAll('.item')].map(b => ({ b, k: b.dataset.k, em: b.querySelector('em'), parts: [...b.querySelectorAll('.parts i')] }));
-    el.shopGrid.onclick = e => { const c = e.target.closest('.item'); if (c) G.buy(c.dataset.k); };
+    // on a phone the tiles show only icon, name and price; a tap selects and shows the full line below, a second tap (or 买) buys
+    let sel = null; const info = el.shop.querySelector('#shopInfo') || el.shop.appendChild(Object.assign(document.createElement('div'), { id: 'shopInfo' }));
+    const showInfo = () => { if (!sel) { info.innerHTML = '<span class="hint">点一下法器看说明，再点一下购买</span>'; return; } const it = ITEMS[sel], t = shopTiles.find(q => q.k === sel); info.innerHTML = `<i style="background-image:url(${itemIcon(it)})"></i><div><b>${it.name}<em>${t ? t.em.textContent : it.cost + ' 灵石'}</em></b><span>${it.tip}${it.parts ? '　· ' + it.parts.map(q => ITEMS[q].name).join(' + ') : ''}</span></div><button type="button">买</button>`; info.querySelector('button').onclick = () => { G.buy(sel); setTimeout(showInfo, 30); }; };
+    showInfo();
+    el.shopGrid.onclick = e => { const c = e.target.closest('.item'); if (!c) return; if (!isTouch || sel === c.dataset.k) { G.buy(c.dataset.k); if (isTouch) setTimeout(showInfo, 30); return; } sel = c.dataset.k; for (const t of shopTiles) t.b.classList.toggle('sel', t.k === sel); showInfo(); };
     const ros = (box, team) => { const hs = G.heroes.filter(h => h.team === team); box.innerHTML = hs.map(h => `<i style="background-image:url(${faceOf(h)})"${h.isPlayer ? ' class="me"' : ''}><b></b><u></u></i>`).join(''); return hs.map((h, i) => ({ h, e: box.children[i], lv: box.children[i].querySelector('b'), dead: box.children[i].querySelector('u') })); };
     roster = [...ros(el.rosF, FROST), ...ros(el.rosE, EMBER)];
     el.shopBtn.onclick = () => ui.toggleShop(); el.shopX.onclick = () => ui.toggleShop(false);
