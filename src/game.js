@@ -1,5 +1,5 @@
 // game.js — rules of the match: units, combat, abilities, minion waves, towers, jungle camps, economy, bot AI.
-import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, POS, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
+import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, nearestLane, POS, SEATS, SEAT_FIT, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
 import { clamp, dist, dist2, angLerp, lerp } from './util.js';
 import * as THREE from 'three';
 import { createVfx } from './vfx.js';
@@ -32,6 +32,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     G.fog = { w: fw, h: fh, data: cur, plane };
     paintFog = () => {
       want.fill(0); const mine = G.player.team;
+      const stamp = (ux, uz, R0) => { const cx = (ux + MAP.hx) / CELL, cz = (uz + MAP.hz) / CELL, rc = R0 / CELL, x0 = Math.max(0, Math.floor(cx - rc)), x1 = Math.min(fw - 1, Math.ceil(cx + rc)), z0 = Math.max(0, Math.floor(cz - rc)), z1 = Math.min(fh - 1, Math.ceil(cz + rc)); for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) { const d = Math.hypot(x + 0.5 - cx, z + 0.5 - cz) / rc; if (d < 1) { const v = d < 0.62 ? 1 : (1 - d) / 0.38, i = z * fw + x; if (v > want[i]) want[i] = v; } } };
+      { const f = POS.fountain(mine), c = POS.core(mine); stamp(f.x, f.z, 30); stamp(c.x, c.z, 30); }   // home is never in the dark
       for (const u of G.units) {
         if (!u.alive || u.team !== mine) continue; const R0 = T.sight[u.kind]; if (!R0) continue;
         const cx = (u.x + MAP.hx) / CELL, cz = (u.z + MAP.hz) / CELL, rc = R0 / CELL, x0 = Math.max(0, Math.floor(cx - rc)), x1 = Math.min(fw - 1, Math.ceil(cx + rc)), z0 = Math.max(0, Math.floor(cz - rc)), z1 = Math.min(fh - 1, Math.ceil(cz + rc));
@@ -148,22 +150,18 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     [mine, ...allies].forEach((k, i) => { const h = makeHero(k, FROST, i === 0, i === 0 ? 1 : i === 1 ? 0 : 2); if (i === 0) G.player = h; });
     foes.forEach((k, i) => makeHero(k, EMBER, false, i));
   } else {                                                           // 三路: five positions a side; the two sides may field the same cultivator
-    // 镇关 (top), 中军 (mid), 养剑 and 护法 (bottom, together), 巡山 (for now walks the top lane with 镇关)
-    const SEATS = [
-      { pos: '镇关', lane: 0, off: -1.4, pool: ['warden', 'keeper', 'berserker', 'bloodlord'] },
-      { pos: '中军', lane: 1, off: 0, pool: ['mage', 'cryo', 'storm'] },
-      { pos: '养剑', lane: 2, off: -1.4, pool: ['ranger', 'archer', 'gunner'] },
-      { pos: '护法', lane: 2, off: 1.4, pool: ['healer', 'keeper', 'cryo'] },
-      { pos: '巡山', lane: 0, off: 1.4, pool: ['shade', 'berserker', 'bloodlord', 'warden'] },
-    ];
-    const draft = fixed => {
+    // Seats come from config. Whoever is fixed (the player, with or without a chosen seat) is placed first; the rest of the side
+    // is filled seat by seat with someone who suits it and is not already on the team.
+    const fits = i => HERO_ORDER.filter(k => SEAT_FIT[k].includes(i)).sort((x, y) => SEAT_FIT[x].indexOf(i) - SEAT_FIT[y].indexOf(i));
+    const draft = (fixed, seat) => {
       const seats = SEATS.map(() => null), used = new Set();
-      if (fixed) { let k = SEATS.findIndex(q => q.pool[0] === fixed); if (k < 0) k = SEATS.findIndex(q => q.pool.includes(fixed)); seats[k] = fixed; used.add(fixed); }
-      SEATS.forEach((q, i) => { if (seats[i]) return; const c = shuffle(q.pool.filter(k => !used.has(k)))[0] || shuffle(HERO_ORDER.filter(k => !used.has(k)))[0]; seats[i] = c; used.add(c); });
+      if (fixed) { const k = seat >= 0 && seat < SEATS.length ? seat : SEAT_FIT[fixed][0]; seats[k] = fixed; used.add(fixed); }
+      SEATS.forEach((q, i) => { if (seats[i]) return; const pool = fits(i).filter(k => !used.has(k)), best = pool.filter(k => SEAT_FIT[k][0] === i); const c = shuffle(best.length ? best : pool)[0] || shuffle(HERO_ORDER.filter(k => !used.has(k)))[0]; seats[i] = c; used.add(c); });
       return seats;
     };
-    draft(mine).forEach((k, i) => { const h = makeHero(k, FROST, k === mine, i, SEATS[i].lane, SEATS[i].off); h.seat = SEATS[i].pos; if (k === mine) G.player = h; });
-    draft(null).forEach((k, i) => { const h = makeHero(k, EMBER, false, i, SEATS[i].lane, SEATS[i].off); h.seat = SEATS[i].pos; });
+    const seatUp = (k, i, team, me) => { const h = makeHero(k, team, me, i, SEATS[i].lane, SEATS[i].off); h.seat = SEATS[i].pos; h.ai.home = SEATS[i].lane; h.ai.jungler = !!SEATS[i].jungle; if (h.ai.jungler) h.ai.jungleAt = 8; return h; };
+    draft(mine, opts.seat ?? -1).forEach((k, i) => { const h = seatUp(k, i, FROST, k === mine); if (k === mine) G.player = h; });
+    draft(null, -1).forEach((k, i) => seatUp(k, i, EMBER, false));
   }
   G.focus.x = G.player.x; G.focus.z = G.player.z;
 
@@ -587,6 +585,13 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // ---------------- bots ----------------
   function botThink(h, dtT) {
     const ai = h.ai, team = h.team, dir = team === FROST ? 1 : -1, f = POS.fountain(team), hpF = h.hp / h.maxHp;
+    if (LANES.length > 1) {
+      const plan = G.plan[team], g = ai.gank;
+      if (g && (G.t > g.until || !g.u.alive || hpF < 0.4 || (g.u.hid && G.t - g.seen > 4))) ai.gank = null; else if (g && !g.u.hid) g.seen = G.t;
+      const grouped = plan.mode === 'group' && ai.state !== 'retreat';
+      if (grouped && (ai.state === 'jungle' || ai.state === 'ambush')) ai.state = 'lane';
+      ai.lane = ai.gank ? ai.gank.lane : grouped ? plan.lane : ai.jungler ? (ai.help ?? ai.home) : ai.home;
+    }
     if (h.sp > 0) for (const i of [3, ...[0, 1, 2].filter(k => h.ranks[k] === 0), 0, 2, 1]) if (learn(h, i)) break;   // the ultimate first, then one rank in everything, then depth
     if (h.gold >= 300) botShop(h);
     let eh = null, ehD = 1e9, em = null, emD = 1e9, nEH = 0, nAH = 0, nEM = 0, front = dir > 0 ? -1e9 : 1e9, hasFront = false;
@@ -622,10 +627,32 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     // the woods: when the lane is quiet and holding, one of the side slips off to clear a camp on its own half
     const campUp = c => c.units.some(u => u.alive), holding = hasFront && dir * (front - sOf(ownS)) > 8;
     if (ai.state === 'lane' && G.t > ai.jungleAt) {
-      ai.jungleAt = G.t + 25 + Math.random() * 25;
-      if (hpF > 0.7 && !eh && h.level >= 2 && h.def.id !== 'healer' && holding && !G.heroes.some(o => o !== h && o.team === team && o.alive && o.ai.state === 'jungle')) {
-        let best = null, bd = 48; for (const c of G.camps) { if (c.c.kind === 'guardian' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } }
-        if (best) { ai.state = 'jungle'; ai.camp = best; ai.jungleUntil = G.t + 28; G.botStat.jungle++; }
+      const nearestCamp = far => { let best = null, bd = far; for (const c of G.camps) { if (c.c.kind === 'guardian' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } } return best; };
+      if (ai.jungler) {                                                // 巡山: camp after camp; when they are all down, help on the lane until one is back
+        ai.jungleAt = G.t + 2.5;
+        // a gank, when a lane offers one: someone seen on our half of it or already hurt, away from their tower, with one of ours there
+        if (!ai.gank && h.level >= 3 && hpF > 0.6 && G.t > (ai.gankAt || 0) && G.plan[team].mode !== 'group') {
+          let best = null, bs = 0.85;
+          for (const e of G.heroes) {
+            if (e.team === team || !e.alive || e.hid) continue; const ln = nearestLane(e.x, e.z), Lg = LANES[ln]; if (Lg.dist(e.x, e.z) > 12) continue;
+            const tw = frontStruct(1 - team, ln); if (tw.kind === 'tower' && dist(e, tw) < tw.range + 5) continue;
+            const pals = G.heroes.filter(o => o.team === team && o.alive && o !== h && dist(o, e) < 17).length; if (!pals) continue;
+            const over = dir * ((Lg.s0 + Lg.s1) / 2 - Lg.proj(e.x, e.z)) / 28, sc = over + (1 - e.hp / e.maxHp) * 1.3 + pals * 0.25 - dist(h, e) / 110; if (sc > bs) { bs = sc; best = { u: e, lane: ln }; }
+          }
+          if (best) { ai.gank = { ...best, until: G.t + 18, seen: G.t }; ai.gankAt = G.t + 32; ai.lane = best.lane; G.botStat.gank++; }
+        }
+        if (!ai.gank && G.plan[team].mode !== 'group') {
+          const best = hpF > 0.5 && !(eh && ehD < 9) ? nearestCamp(999) : null;
+          if (best) { ai.state = 'jungle'; ai.camp = best; ai.jungleUntil = G.t + 40; G.botStat.jungle++; }
+          else {                                                       // nothing to clear: stand with the lane that is most outnumbered
+            let need = -9; for (let ln = 0; ln < LANES.length; ln++) { let foes = 0, mine = 0; for (const o of G.heroes) { if (!o.alive || o === h) continue; if (o.team !== team) { if (!o.hid && nearestLane(o.x, o.z) === ln) foes++; } else if (o.ai.lane === ln) mine++; } const v = foes - mine + (ln === ai.home ? 0.1 : 0); if (v > need) { need = v; ai.help = ln; } }
+          }
+        }
+      } else {
+        ai.jungleAt = G.t + 25 + Math.random() * 25;
+        if (hpF > 0.7 && !eh && h.level >= 2 && h.def.id !== 'healer' && holding && !G.heroes.some(o => o !== h && o.team === team && o.alive && (o.ai.state === 'jungle' || o.ai.jungler))) {
+          const best = nearestCamp(48); if (best) { ai.state = 'jungle'; ai.camp = best; ai.jungleUntil = G.t + 28; G.botStat.jungle++; }
+        }
       }
     }
     // the 血海残魂: once everyone is 金丹, healthy and the lane is safe, the whole side goes for it together
@@ -637,7 +664,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         if (team === G.player.team && !G.autoPlay) { ui.toast('同门正在围剿血海残魂'); G.pings.push({ x: gc.c.x, z: gc.c.z, t: G.t }); audio.play('ping'); }
       }
     }
-    if (ai.state === 'jungle' && (G.t > ai.jungleUntil || eh || !campUp(ai.camp) || hpF < 0.4)) ai.state = 'lane';
+    if (ai.state === 'jungle' && (G.t > ai.jungleUntil || (eh && (!ai.jungler || ehD < 9)) || !campUp(ai.camp) || hpF < 0.4)) ai.state = 'lane';
     if (ai.state === 'guardian' && (G.t > ai.jungleUntil || !campUp(ai.camp) || hpF < 0.35 || (eh && outnum))) ai.state = 'lane';
     const woods = ai.state === 'jungle' || ai.state === 'guardian';
     // What the leader has asked for. It is weighed, not obeyed: nobody walks into a tower that has no disciples to shoot at,
@@ -681,6 +708,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       }
       else if (outnum && eh && ehD < 12 && dist(h, ownS) > 8 && !(eh.hp / eh.maxHp < 0.25 && ehD < h.range + 2)) { const q = at(sOf(ownS) + dir * 3); h.order = { type: 'move', x: q.x, z: q.z }; }
       else if (woods && !eh) { let t = null, bd = 1e9; for (const u of ai.camp.units) if (u.alive) { const d = dist(h, u); if (d < bd) { bd = d; t = u; } } if (t) { h.order = { type: 'attack', target: t }; em = t; emD = bd; nEM = 3; } }
+      else if (ai.gank && !ai.gank.u.hid && (!danger(ai.gank.u) || diveOK) && !outnum) h.order = { type: 'attack', target: ai.gank.u };   // the gank itself
       else if (hunt) { if (!sn.counted) { sn.counted = true; G.botStat.hunt++; } const b = brushAt(sn.x, sn.z, 3.5), gx = b >= 0 ? BRUSH[b].x : sn.x, gz = b >= 0 ? BRUSH[b].z : sn.z; h.order = { type: 'move', x: gx, z: gz }; }
       else if (ambush) { h.order = dist(h, ai.amb) > 1.3 ? { type: 'move', x: ai.amb.x, z: ai.amb.z } : null; }
       else if (danger(h) && !diveOK) { const q = at(es - dir * (twR + 4)); h.order = { type: 'move', x: q.x, z: q.z }; }
@@ -723,6 +751,22 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       }
       if (aim) { cast(h, i, aim.x, aim.z); ai.castLock = (0.5 + Math.random() * 0.8) * (team === EMBER ? diff.react : 1); return; }
     }
+  }
+
+  // ---------------- the side's plan ----------------
+  // Once a second each side decides whether to keep to its lanes or gather. Past T.groupAt it gathers to push the lane where
+  // the enemy has given most ground, holds that for a while, goes back to the lanes to farm, and gathers again — the rests
+  // getting shorter as the match ages. Three or more of them seen at one of our inner towers and everyone goes there instead.
+  function teamThink(team) {
+    const tp = G.plan[team]; if (G.t < tp.next) return; tp.next = G.t + 1; const en = 1 - team;
+    let siege = -1; for (let ln = 0; ln < LANES.length; ln++) { const tw = frontStruct(team, ln); if (tw.kind === 'tower' && tw.tier === 1) continue; let c = 0; for (const e of G.heroes) if (e.team === en && e.alive && !e.hid && dist(e, tw) < 24) c++; if (c >= 3) siege = ln; }
+    if (siege >= 0) { tp.mode = 'group'; tp.lane = siege; tp.until = Math.max(tp.until, G.t + 10); return; }
+    if (tp.mode === 'group') { if (G.t > tp.until) { tp.mode = 'rest'; tp.until = G.t + clamp(34 - (G.t - T.groupAt) / 25, 10, 34); } return; }
+    if (G.t < T.groupAt || G.t < tp.until) return;
+    if (G.heroes.filter(h => h.team === team && h.alive).length < 4) { tp.until = G.t + 6; return; }       // not while people are down
+    let best = 0, bs = -1e9; for (let ln = 0; ln < LANES.length; ln++) { const tw = frontStruct(en, ln), fallen = G.structs[en].lanes[ln].filter(t => !t.alive).length, sc = fallen * 1.2 + (tw.kind === 'tower' ? 1 - tw.hp / tw.maxHp : 2) + Math.random() * 0.6; if (sc > bs) { bs = sc; best = ln; } }
+    tp.mode = 'group'; tp.lane = best; tp.until = G.t + 42; G.botStat.group++;
+    if (team === G.player.team && !G.autoPlay) { const q = frontStruct(en, best); ui.toast(`同门集结 · 合推${LANES[best].name}`); G.pings.push({ x: q.x, z: q.z, t: G.t, type: 'attack' }); audio.play('ping'); }
   }
 
   // ---------------- minions, neutrals, towers ----------------
@@ -795,7 +839,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.cmdDir = (dx, dz) => { const h = P(); if (!h.alive) return; if (dx === 0 && dz === 0) { if (h.order && h.order.type === 'dir') h.order = null; } else h.order = { type: 'dir', dx, dz }; };
   G.cmdStop = () => { const h = P(); h.order = null; h.target = null; h.windT = -1; stopRecall(h); };
   G.recall = () => { const h = P(); if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在山门内，万宝阁开着'); return ok; };
-  G.pings = []; G.recalls = 0; G.gCall = [0, 0]; G.botStat = { ambush: 0, hunt: 0, hide: 0, shop: 0, jungle: 0, guardian: 0 }; let pingAt = -9;
+  G.pings = []; G.recalls = 0; G.gCall = [0, 0]; G.botStat = { ambush: 0, hunt: 0, hide: 0, shop: 0, jungle: 0, guardian: 0, gank: 0, group: 0 };
+  G.plan = [0, 1].map(() => ({ mode: 'rest', lane: 0, until: 0, next: 0 })); let pingAt = -9;
   // Signals: 集合 (come here), 进攻 (take this), 撤退 (fall back). A mark on the ground and the map, a sound, and every allied
   // bot in earshot weighs it (see botThink). unit = what was pointed at, for 进攻.
   let sigId = 0;
@@ -862,6 +907,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       }
       for (let i = G.spawnQ.length - 1; i >= 0; i--) if (G.spawnQ[i].t <= G.t) { const q = G.spawnQ[i]; G.spawnQ.splice(i, 1); spawnMinion(q.team, q.type, q.off, q.lane); }
       for (const c of G.camps) if (c.respawnT > 0) { c.respawnT -= dt; if (c.respawnT <= 0) spawnCamp(c); }
+      if (LANES.length > 1) { teamThink(FROST); teamThink(EMBER); }
       for (const team of [FROST, EMBER]) { if (G.buffT[team] > 0) G.buffT[team] -= dt; let n = 0, sum = 0; for (const h of G.heroes) if (h.team === team) { n++; sum += h.level; } G.avgLvl[team] = sum / n; }
       for (const e of G.units) { e.brush = !e.alive || isStruct(e) ? -1 : brushAt(e.x, e.z); if (e.revealT > 0) e.revealT -= dt; }
       // who can be seen. Brush hides you from anyone not in it with you; in a mode with fog you must also be within sight of

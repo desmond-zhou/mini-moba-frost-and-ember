@@ -56,7 +56,7 @@ export const MODES = {
     tune: {},
   },
   tri: {
-    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。开发中：电脑还只会各守一路。',
+    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。开发中：电脑会分路、打野抓人、后期集结，但还比较初级。',
     // frost holds the lower-left corner, ember the upper-right (the camera looks north, so -z is up the screen)
     map: { hx: 80, hz: 80, ax: Math.SQRT1_2, az: -Math.SQRT1_2, biome: 1.24, mini: [168, 168], base: 25, baseF: 13 },   // base: radius of each sect's precinct
     core: t => ({ x: sideSign(t) * 56, z: -sideSign(t) * 56 }), fountain: t => ({ x: sideSign(t) * 68, z: -sideSign(t) * 68 }),
@@ -76,8 +76,30 @@ export const MODES = {
       { x: -47, z: -31, r: 3.3 }, { x: -22, z: -8, r: 3.2 },
     ]),
     // 三路's own numbers. Everything not named here falls back to the shared table.
-    tune: { waveEvery: 28, coreHp: 5200, lateAt: 720, lateK: 0.3, respawnK: 1.15, startGold: 300 },
+    tune: {
+      waveEvery: 28, coreHp: 5200, lateAt: 720, lateK: 0.3, respawnK: 1.15, startGold: 300,
+      groupAt: 600,                                                    // from here on the bots gather to push a lane together, again and again
+      // a full-time jungler lives off these, so each camp pays less and comes back slower than in 一路
+      neutral: {
+        golem: { hp: 520, ad: 26, range: 2.2, period: 1.2, wind: 0.35, ms: 6, r: 1.3, h: 3.4, gold: 26, xp: 40, respawn: 62 },
+        guardian: { hp: 2600, ad: 70, range: 3.4, period: 1.4, wind: 0.45, ms: 5.5, r: 2.5, h: 6.6, gold: 90, xp: 220, respawn: 100 },
+      },
+    },
   },
+};
+
+// 三路's five seats: where each one goes and how it behaves. (Which cultivators suit which seat is in SEAT_FIT below.)
+export const SEATS = [
+  { pos: '镇关', lane: 0, off: 0, note: '上路单人，扛线' },
+  { pos: '中军', lane: 1, off: 0, note: '中路单人' },
+  { pos: '养剑', lane: 2, off: -1.4, note: '下路，主输出' },
+  { pos: '护法', lane: 2, off: 1.4, note: '下路，护着养剑位' },
+  { pos: '巡山', lane: 0, off: 1.4, jungle: true, note: '清野区，看哪路有机会就去抓人，哪路吃紧去哪路' },
+];
+// Best seats first, per cultivator — from 720 simulated matches (docs/打位演算.md). Rerun `node seats.mjs` when the bots change.
+export const SEAT_FIT = {
+  warden: [3, 4], keeper: [0], bloodlord: [1], berserker: [0], shade: [1, 4], archer: [1, 4], ranger: [1], gunner: [2],
+  mage: [2], cryo: [2, 0], storm: [0], healer: [3],
 };
 
 export let MODE = MODES.single;
@@ -289,7 +311,7 @@ export const RANK = {
 };
 
 const T_BASE = {
-  lateAt: 360, lateK: 0.4, respawnK: 1,
+  lateAt: 360, lateK: 0.4, respawnK: 1, groupAt: 1e9,
   sight: { hero: 20, minion: 13, neutral: 0, tower: 17, core: 20 },      // how far each kind of unit sees, where the mode has fog                               // when waves start to snowball, and how fast; respawn scale
   maxLevel: 12, xpNeed: L => 90 + 55 * L,
   waveFirst: 6, waveEvery: 24,

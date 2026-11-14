@@ -162,7 +162,7 @@ const groundPars = () => `
     alb = mix(alb, alb * 0.5 + vec3(0.3, 0.42, 0.48), gMetal);
     h = mix(h, (w1 + w2) * 0.11 + w3 * 0.035, water);
 
-    float ob = smoothstep(0.0, 9.0, max(abs(p.x) - 81.0, abs(p.y) - 49.0));
+    float ob = smoothstep(0.0, 9.0, max(abs(p.x) - ${F(MAP.hx + 1)}, abs(p.y) - ${F(MAP.hz + 1)}));       // beyond the edge of the map
     alb = mix(alb, vec3(0.008, 0.011, 0.016), ob); emis *= 1.0 - ob;
 
     gAlb = alb; gEmis = emis; gRough = rough; gH = h;
@@ -388,6 +388,7 @@ export function createWorld(R) {
   const lists = { leaf: [], pine: [], char: [] }, placed = [];
   const tryTree = (x, z, border) => {
     const t = border ? terrain(x, z) : clear(x, z, 2.2);   // keep canopies from overhanging the lane
+    if (border && MODE.id !== 'single') for (const tm of [FROST, EMBER]) { const f = POS.fountain(tm); if (Math.hypot(x - f.x, z - f.z) < 24) return; }   // in the corner maps, no forest crowding the fountains with evening shadow
     if (!t || (!border && (brushAt(x, z, 3.2) >= 0 || brushAt(x, z - 3.5, 3.4) >= 0))) return;   // nor over the brush, seen from the camera's side
     for (const p of placed) if (Math.abs(p.x - x) < 5 && Math.abs(p.z - z) < 5 && Math.hypot(p.x - x, p.z - z) < 5) return;
     if (!border && vnoise(x * 0.09 + 5, z * 0.09 + 9) < 0.42) return;
@@ -412,7 +413,7 @@ export function createWorld(R) {
     const geo = build(L), bush = { leaf: [], ember: [], pine: [] };
     for (let i = 0; i < 2400; i++) {
       const x = (rand() * 2 - 1) * (MAP.hx + 6), z = (rand() * 2 - 1) * (MAP.hz + 6), t = terrain(x, z);
-      if (t.dl < 7.5 || t.dr < 5.4 || t.dPl < 17 || t.camp < 0.5 || vnoise(x * 0.13 + 3, z * 0.13) < 0.5) continue;
+      if (t.dl < 7.5 || t.dr < 5.4 || t.dPl < Math.max(17, MAP.base + 1.5) || t.camp < 0.5 || vnoise(x * 0.13 + 3, z * 0.13) < 0.5) continue;
       const v = 0.7 + rand() * 0.5, list = t.em > 0.6 ? (rand() < 0.35 ? bush.ember : null) : t.fr > 0.6 ? (rand() < 0.4 ? bush.pine : null) : bush.leaf;
       if (list) list.push({ x, z, s: 0.7 + rand() * 0.8, ry: rand() * 6.28, c: [v, v, v] });
     }

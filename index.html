@@ -133,6 +133,9 @@ body.touch #sig { top: calc(var(--mh, 126px) + 64px + var(--sat)); } body.touch 
 #modeSel button { min-width: 230px; padding: 9px 16px; text-align: left; color: var(--bone); background: var(--panel); border: 1px solid var(--line-soft); }
 #modeSel button b { display: block; font: 900 17px var(--f-display); letter-spacing: .08em; } #modeSel button span { font-size: 11.5px; color: var(--dim); }
 #modeSel button.on { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass) inset; } #modeSel button.on b { color: var(--brass); }
+#seatSel { display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; margin: -4px 0 12px; font-size: 12.5px; color: var(--dim); } #seatSel[hidden] { display: none; }
+#seatSel button { padding: 5px 11px; font-size: 13px; color: var(--bone); background: var(--panel); border: 1px solid var(--line-soft); } #seatSel button.on { border-color: var(--brass); color: var(--brass); box-shadow: 0 0 0 1px var(--brass) inset; }
+#seatSel button.fit::after { content: ' ★'; color: #e9c46a; font-size: 11px; } #seatSel em { flex-basis: 100%; text-align: center; font-style: normal; font-size: 11.5px; }
 .credit { margin-top: 18px; font-size: 11.5px; letter-spacing: .08em; color: var(--dim); text-align: center; }
 .ver { position: absolute; right: var(--gr); bottom: calc(8px + var(--sab)); font-size: 11px; letter-spacing: .1em; color: var(--dim); opacity: .7; }
 #mSkills { list-style: none; margin: 6px 0 2px; padding: 8px 0 0; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 8px; }
@@ -276,7 +279,8 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
   <div id="title" class="screen" hidden>
     <h1 class="mark">霜烬之争</h1>
     <div class="sub" id="sub">十二位修士 · 3V3 · 摧毁敌方阵眼</div>
-    <div id="modeSel"></div><div class="ver">v1.1.0-alpha.3</div>
+    <div id="modeSel"></div>
+    <div id="seatSel" hidden></div><div class="ver">v1.1.0-alpha.4</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div class="row"><div class="seg" id="diff"></div><button class="go" id="goBtn" type="button">出战</button></div>

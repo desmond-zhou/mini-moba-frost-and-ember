@@ -2,7 +2,7 @@
 
 单文件修仙迷你 MOBA。three.js + 全程序化生成：没有任何图片、模型或音频文件，贴图、人物、图标、头像、音乐、音效都是代码在加载时画出来、合成出来的。打包后是一个约 900 KB 的 HTML。
 
-当前版本 **v1.1.0-alpha.3**。两个模式，开局选择：
+当前版本 **v1.1.0-alpha.4**。两个模式，开局选择：
 
 - **一路 · 速战**：3v3，约 15 分钟。数值平衡已冻结（v1.0.x）。
 - **三路 · 宗门大战**：王者式地图，5v5，战争迷雾，约 20 分钟。开发中，电脑目前只会各守一路。
@@ -26,6 +26,7 @@ npm run build      # 发布：dist/frostember.html（双击即玩）和 dist/art
 | `node test.mjs "<query>" out.png <模拟秒数> [宽] [高] ["<js>"] [等待ms]` | 冒烟测试 + 截图，打印对局状态和报错。`BASE=file://…/dist/frostember.html` 可测打包产物 |
 | `node batch.mjs <局数> <偏移> <最长秒数> [难度] [模式]` | 批量电脑对打，每局一行 JSON。默认难度 `mirror`（双方数值完全对称），一局约 2 秒 |
 | `node analyze.mjs runs/*.jsonl` | 汇总：各修士胜率 / KDA / 每分钟伤害，一边倒与势均力敌的比例，对局时长 |
+| `node batch.mjs <局数> <偏移> <秒> mirror tri <位置0-4>` 加 `node seats.mjs runs/seat*.jsonl` | 位置演算：把被跟踪的修士固定在某个位置，比较各人在各位置的表现 |
 | `node audiotest.mjs` | 逐个播放所有音效，报告峰值和 RMS，用来对齐音量、抓报错 |
 | `node perf.mjs "<query>"` | 渲染各环节的帧耗时 |
 

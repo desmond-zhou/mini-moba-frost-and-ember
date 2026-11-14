@@ -28,18 +28,18 @@ function boot() {
   let G = null, state = 'title', time = 0, last = performance.now(), frames = 0;
   const focus = { x: 0, z: 0 }, cam = R.camera;
   let lastPick = ['mage', 'normal'];
-  function start(hero, difficulty, mode = MODE.id) {
-    lastPick = [hero, difficulty, mode]; ui.toggleMenu(false);
+  function start(hero, difficulty, mode = MODE.id, seat = -1) {
+    lastPick = [hero, difficulty, mode, seat]; ui.toggleMenu(false);
     if (MODES[mode] && mode !== MODE.id) { W.dispose(); setMode(mode); W = createWorld(R); R.sun = W.sun; W.setShadowSize(R.quality.shadow); }   // other ground: build that world
     M.reset(); fx.reset();
-    G = createGame(R, W, M, fx, audio, ui, { hero, difficulty });
+    G = createGame(R, W, M, fx, audio, ui, { hero, difficulty, seat });
     G.autoPlay = qs.get('bot') === '1'; input.G = G; ui.bind(G, input); state = 'playing'; audio.init();
     focus.x = G.focus.x; focus.z = G.focus.z;
   }
   const toTitle = () => { state = 'title'; G = null; input.G = null; M.reset(); fx.reset(); ui.showTitle(start); };
-  ui.onMenu = { restart: () => start(lastPick[0], lastPick[1], lastPick[2]), quit: () => toTitle() };
+  ui.onMenu = { restart: () => start(lastPick[0], lastPick[1], lastPick[2], lastPick[3]), quit: () => toTitle() };
   ui.showTitle(start);
-  if (qs.get('auto')) { ui.el.title.hidden = true; start(qs.get('auto'), qs.get('diff') || 'normal', MODE.id); }
+  if (qs.get('auto')) { ui.el.title.hidden = true; start(qs.get('auto'), qs.get('diff') || 'normal', MODE.id, qs.has('seat') ? +qs.get('seat') : -1); }
 
   function frame(now) {
     const raw = now - last; last = now;
