@@ -315,7 +315,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     h.xp += x;
     while (h.level < T.maxLevel && h.xp >= T.xpNeed(h.level)) {
       h.xp -= T.xpNeed(h.level); h.level++; if (h.ranks[0] + h.ranks[1] + h.ranks[2] + h.ranks[3] + h.sp < 12) h.sp++; recalc(h);
-      if (h.level === 5 || h.level === 9) { tribulation(h); say(h, 'up'); }
+      if (h.level === 5 || h.level === 9) { tribulation(h, h.level === 9); say(h, 'up'); }
       { const t = INSIGHT_LVL.indexOf(h.level); if (t >= 0) { h.insPend.push(t); if (!h.isPlayer || G.autoPlay) takeInsight(h, pickInsight(h)); } }
       if (h.alive && near(h)) { fx.ringWave(h.x, h.z, 7, GOLD, 0.6); fx.burst(h.x, 1.5, h.z, GOLD, { n: 18, speed: 3, up: 9, life: 0.8, size: 0.5, grav: 4 }); }
       if (h.isPlayer) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至小成', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 绝招可至大成', 'good'); }
@@ -323,14 +323,15 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   }
   // 雷劫. Breaking through to 金丹 or 元婴 roots you for a breath inside a ward while the sky gathers, then lightning falls
   // around you: enemies caught in it are hurt and held. Everyone can see it coming.
-  // 雷劫: ten breaths under a closed sky. The one crossing is held for five and given 罡气; nine bolts come down about a second apart,
-  // each on someone nearby — friend, foe or the one crossing — with a closing ring to say where. They hurt, none of them a great deal.
-  const TRIB = { dur: 10, bolts: 9, hold: 5, every: 1.0, first: 0.9, warn: 0.9, r: 2.8, reach: 11 };
-  function tribulation(h) {
-    if (!h.alive || h.dash) { h.tribDue = true; return; }
-    h.tribDue = false; stopRecall(h); h.stunT = Math.max(h.stunT, TRIB.hold); h.windT = -1; h.order = null;
-    const sh = h.maxHp * 0.5; h.shield = Math.max(h.shield, sh); h.shieldT = TRIB.dur + 1;
-    G.tribs.push({ h, x: h.x, z: h.z, t: 0, n: 0, next: TRIB.first, dmg: sh / TRIB.bolts });   // all nine together come to exactly the 罡气: crossing alone cannot kill you
+  // 雷劫: the sky closes over, the one crossing is held and given 罡气, and bolts come down about a second apart, each on someone nearby —
+  // friend, foe or the one crossing — with a closing ring to say where. 结丹 (5): five bolts worth a third of their health between them;
+  // 成婴 (9): nine worth two thirds. The 罡气 is exactly that much, so crossing alone cannot kill you.
+  const TRIB = { every: 1.0, first: 0.9, warn: 0.9, r: 2.8, reach: 11, small: { bolts: 5, part: 1 / 3, hold: 3 }, big: { bolts: 9, part: 2 / 3, hold: 5 } };
+  function tribulation(h, big = h.tribBig) {
+    if (!h.alive || h.dash) { h.tribDue = true; h.tribBig = big; return; }
+    h.tribDue = false; const K = big ? TRIB.big : TRIB.small, dur = TRIB.first + K.bolts * TRIB.every + 0.2, sh = h.maxHp * K.part;
+    stopRecall(h); h.stunT = Math.max(h.stunT, K.hold); h.windT = -1; h.order = null; h.shield = Math.max(h.shield, sh); h.shieldT = dur + 1;
+    G.tribs.push({ h, x: h.x, z: h.z, t: 0, n: 0, next: TRIB.first, bolts: K.bolts, dur, dmg: sh / K.bolts });
     if (near(h)) V.tribStart(h);
     if (!h.isPlayer && dist(h, G.player) < 30) ui.toast(`${h.name}在渡雷劫，离远些`);
   }
@@ -338,14 +339,14 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     let k = 0;
     for (let i = G.tribs.length - 1; i >= 0; i--) {
       const q = G.tribs[i]; q.t += dt;
-      while (q.n < TRIB.bolts && q.t >= q.next) {
+      while (q.n < q.bolts && q.t >= q.next) {
         const near9 = G.heroes.filter(e => e.alive && dist2(e.x, e.z, q.x, q.z) < TRIB.reach), pool = near9.includes(q.h) ? [...near9, q.h] : near9, who = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;   // the one crossing counts twice: the sky is looking at them
         const a = Math.random() * 6.283, d = who ? Math.random() * 1.4 : 2 + Math.random() * 5, bx = (who ? who.x : q.x) + Math.cos(a) * d, bz = (who ? who.z : q.z) + Math.sin(a) * d;
         G.bolts.push({ x: bx, z: bz, t: 0, dmg: q.dmg }); if (near({ x: bx, z: bz })) V.tribWarn(bx, bz, TRIB.r, TRIB.warn);
         q.n++; q.next += TRIB.every;
       }
-      if (q.t >= TRIB.dur) { G.tribs.splice(i, 1); continue; }
-      const d = dist2(q.x, q.z, G.focus.x ?? q.x, G.focus.z ?? q.z); if (d < 34) k = Math.max(k, Math.min(1, q.t / 0.7, (TRIB.dur - q.t) / 1.5) * (d < 22 ? 1 : (34 - d) / 12));
+      if (q.t >= q.dur) { G.tribs.splice(i, 1); continue; }
+      const d = dist2(q.x, q.z, G.focus.x ?? q.x, G.focus.z ?? q.z); if (d < 34) k = Math.max(k, Math.min(1, q.t / 0.7, (q.dur - q.t) / 1.5) * (d < 22 ? 1 : (34 - d) / 12));
     }
     G.tribK = k;                                                       // how much of the sky and the camera it takes (main.js)
     for (let i = G.bolts.length - 1; i >= 0; i--) {
