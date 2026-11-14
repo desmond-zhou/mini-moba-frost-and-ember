@@ -232,6 +232,15 @@ body.touch #toast { bottom: calc(210px + var(--sab)); }
 body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bottom: auto; top: calc(var(--mh, 126px) + 22px + var(--sat)); } body.touch #sys small { display: none; }
 @media (max-width: 760px) { body.touch #sys { top: calc(var(--mh, 82px) + 22px + var(--sat)); } }
 @media (prefers-reduced-motion: reduce) { #feed div { animation: none; } }
+/* ---- the reckoning: one screen, nothing cut off ---- */
+#endTable { max-width: 100%; } #endTable td, #endTable th { white-space: nowrap; } #endTable u { text-decoration: none; color: var(--brass); font-weight: 700; } #endTable .rn { display: none; }
+#endTable tr.tf td:nth-child(2) { box-shadow: inset 3px 0 var(--frost); } #endTable tr.te td:nth-child(2) { box-shadow: inset 3px 0 var(--ember); } #endTable tr.te:first-of-type td, #endTable tr.tf + tr.te td { border-top: 2px solid var(--line); }
+#end .row { position: sticky; bottom: 0; padding: 8px 0 calc(6px + var(--sab)); width: 100%; justify-content: center; background: linear-gradient(transparent, rgba(5, 8, 13, .92) 35%); }
+@media (max-width: 760px), (max-height: 520px) {
+  #end { padding-top: calc(10px + var(--sat)); } #end .mark { font-size: clamp(34px, 9vw, 54px); margin-top: 0; } #end .sub { font-size: 11px; letter-spacing: .12em; margin-bottom: 2px; }
+  #endTable { font-size: 12px; width: 100%; } #endTable td, #endTable th { padding: 3px 4px; } #endTable .c-team, #endTable .c-gold, #endTable .rl { display: none; } #endTable .rn { display: inline; } #endTable .fp { width: 24px; height: 24px; } #endTable td:nth-child(3) { text-align: left; } #endTable .tag { margin-left: 4px; padding: 0 4px; font-size: 10px; }
+}
+@media (max-height: 520px) { #end .mark { font-size: 28px; display: inline; } #endTable td, #endTable th { padding: 1px 6px; } #endTable .fp { width: 18px; height: 18px; } #endTable .c-gold { display: table-cell; } }
 /* ---- small motion ---- */
 #shopBtn.can { animation: canBuy 1.6s ease-in-out infinite; border-color: var(--brass); } @keyframes canBuy { 50% { box-shadow: 0 0 14px rgba(223, 189, 120, .7), 0 0 0 1px var(--brass) inset; } }
 body.touch .skill:active, body.touch #atkBtn:active, body.touch #sig button:active, body.touch #recallBtn:active, body.touch #shopBtn:active { transform: scale(.9); filter: brightness(1.35); } body.touch .skill, body.touch #atkBtn, body.touch #sig button { transition: transform .08s; }
