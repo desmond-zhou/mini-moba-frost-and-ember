@@ -366,30 +366,30 @@ export const HEROES = {
     ],
   },
 };
-// 感悟: at 金丹巅峰 (8) and 元婴巅峰 (12) a cultivator takes one of two turnings for the 绝招 — only ever the 绝招 (the author's rule).
+// 感悟: once, on reaching 元婴初期 (9), a cultivator takes one of two turnings for the 绝招 — only ever the 绝招, only this once (the author's rule).
 // Each is [name, what it does, multipliers, additions, kind]. `dmg` scales what the move deals or heals; `slowT` / `slowP` lengthen
 // or deepen its slow. `kind` is what the turning is good against, which is how a bot picks (see pickInsight in game.js):
 // area · cc · fast · dmg · exec · cd · range · dur · sustain · spread.
-export const INSIGHT_LVL = [8, 12];
+export const INSIGHT_LVL = [9];
 export const INSIGHT = {
-  warden: [[['崩山', '镇关落地的范围更大', { radius: 1.3 }, {}, 'area'], ['封喉', '镇关的定身更久', {}, { stun: 0.5 }, 'cc']], [['千钧', '镇关伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['连镇', '镇关调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  keeper: [[['广阵', '静时阵范围更大', { radius: 1.3 }, {}, 'area'], ['急阵', '静时阵成阵更快', { delay: 0.55 }, {}, 'fast']], [['久阵', '静时阵定身更久', {}, { stun: 0.5 }, 'cc'], ['连阵', '静时阵调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  peiji: [[['天网', '镇渊范围更大', { radius: 1.25 }, {}, 'area'], ['重判', '镇渊的定身更久', {}, { stun: 0.5 }, 'cc']], [['严刑', '镇渊伤害 +30%', { dmg: 1.3 }, {}, 'dmg'], ['疾令', '镇渊调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  bloodlord: [[['血潮', '血海范围更大', { radius: 1.3 }, {}, 'area'], ['血沸', '血海伤害 +25%', { dmg: 1.25 }, {}, 'dmg']], [['血涌不绝', '血海多持续两秒', {}, { dur: 2 }, 'dur'], ['再起血海', '血海调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  berserker: [[['开山', '断岳伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['追命', '断岳跳得更远', { range: 1.3 }, {}, 'range']], [['裂地', '断岳落地的范围更大', { radius: 1.3 }, {}, 'area'], ['再来', '断岳调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  qingya: [[['穿云', '一剑清正穿得更远', { range: 1.3 }, {}, 'range'], ['绝命', '一剑清正对残血更狠', {}, { exec: 0.12 }, 'exec']], [['剑阔', '一剑清正扫得更宽', { hitR: 1.4 }, {}, 'area'], ['归鞘', '一剑清正调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  shade: [[['夺魄', '噬魂伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['无踪', '噬魂调息 -30%', { cd: 0.7 }, {}, 'cd']], [['追魂', '噬魂够得更远', { range: 1.35 }, {}, 'range'], ['索命', '噬魂对残血更狠', {}, { exec: 0.12 }, 'exec']]],
-  wenren: [[['焚野', '焚脉范围更大', { radius: 1.3 }, {}, 'area'], ['锁脉', '焚脉的定身更久', {}, { stun: 0.5 }, 'cc']], [['爆脉', '焚脉伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['逆流', '焚脉调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  archer: [[['燎原', '焚天炸得更广', { splash: 1.4 }, {}, 'area'], ['灼魂', '焚天的定身更久', {}, { stun: 0.5 }, 'cc']], [['烈焰', '焚天伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['不熄', '焚天调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  linshuang: [[['千里', '冰封三百年射得更远', { range: 1.35 }, {}, 'range'], ['彻骨', '冰封三百年对残血更狠', {}, { exec: 0.3 }, 'exec']], [['重箭', '冰封三百年伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['连弦', '冰封三百年调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  ranger: [[['横断', '万剑听雪更宽', { width: 1.4 }, {}, 'area'], ['连斩', '万剑听雪调息 -30%', { cd: 0.7 }, {}, 'cd']], [['霜重', '万剑听雪伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['及远', '万剑听雪斩得更远', { range: 1.3 }, {}, 'range']]],
-  gunner: [[['覆野', '万符齐发范围更大', { radius: 1.25 }, {}, 'area'], ['连爆', '万符齐发多炸两轮', {}, { dur: 1 }, 'dur']], [['重火', '万符齐发伤害 +20%', { dmg: 1.2 }, {}, 'dmg'], ['备符', '万符齐发调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  mage: [[['陨野', '星落范围更大', { radius: 1.25 }, {}, 'area'], ['疾星', '星落落得更快', { delay: 0.6 }, {}, 'fast']], [['巨星', '星落伤害 +20%', { dmg: 1.2 }, {}, 'dmg'], ['连陨', '星落调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  cryo: [[['千里雪', '雪原封天范围更大', { radius: 1.25 }, {}, 'area'], ['长夜', '雪原封天多下两秒', {}, { dur: 2 }, 'dur']], [['暴雪', '雪原封天伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['复雪', '雪原封天调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  storm: [[['雷池', '天刑范围更大', { radius: 1.25 }, {}, 'area'], ['连雷', '天刑多劈一秒半', {}, { dur: 1.5 }, 'dur']], [['重雷', '天刑每一击麻痹更久', {}, { stun: 0.15 }, 'cc'], ['再召', '天刑调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  healer: [[['广济', '清魂阵范围更大', { radius: 1.3 }, {}, 'spread'], ['回春', '清魂阵治疗 +30%', { dmg: 1.3 }, {}, 'sustain']], [['长春', '清魂阵多持续两秒', {}, { dur: 2 }, 'sustain'], ['常备', '清魂阵调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  yanzhao: [[['遮天', '蔽天范围更大', { radius: 1.25 }, {}, 'area'], ['长幕', '蔽天多持续两秒', {}, { dur: 2 }, 'dur']], [['沉幕', '蔽天的减速更重', {}, { slowP: 0.15 }, 'cc'], ['再幕', '蔽天调息 -30%', { cd: 0.7 }, {}, 'cd']]],
-  yuanshan: [[['大凶', '逆运范围更大', { radius: 1.25 }, {}, 'area'], ['定数', '逆运的定身更久', {}, { stun: 0.5 }, 'cc']], [['急卦', '逆运成局更快', { delay: 0.5 }, {}, 'fast'], ['连卦', '逆运调息 -30%', { cd: 0.7 }, {}, 'cd']]],
+  warden: [[['崩山', '镇关落地的范围更大', { radius: 1.3 }, {}, 'area'], ['封喉', '镇关的定身更久', {}, { stun: 0.5 }, 'cc']]],
+  keeper: [[['广阵', '静时阵范围更大', { radius: 1.3 }, {}, 'area'], ['急阵', '静时阵成阵更快', { delay: 0.55 }, {}, 'fast']]],
+  peiji: [[['天网', '镇渊范围更大', { radius: 1.25 }, {}, 'area'], ['重判', '镇渊的定身更久', {}, { stun: 0.5 }, 'cc']]],
+  bloodlord: [[['血潮', '血海范围更大', { radius: 1.3 }, {}, 'area'], ['血沸', '血海伤害 +25%', { dmg: 1.25 }, {}, 'dmg']]],
+  berserker: [[['开山', '断岳伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['追命', '断岳跳得更远', { range: 1.3 }, {}, 'range']]],
+  qingya: [[['穿云', '一剑清正穿得更远', { range: 1.3 }, {}, 'range'], ['绝命', '一剑清正对残血更狠', {}, { exec: 0.12 }, 'exec']]],
+  shade: [[['夺魄', '噬魂伤害 +25%', { dmg: 1.25 }, {}, 'dmg'], ['无踪', '噬魂调息 -30%', { cd: 0.7 }, {}, 'cd']]],
+  wenren: [[['焚野', '焚脉范围更大', { radius: 1.3 }, {}, 'area'], ['锁脉', '焚脉的定身更久', {}, { stun: 0.5 }, 'cc']]],
+  archer: [[['燎原', '焚天炸得更广', { splash: 1.4 }, {}, 'area'], ['灼魂', '焚天的定身更久', {}, { stun: 0.5 }, 'cc']]],
+  linshuang: [[['千里', '冰封三百年射得更远', { range: 1.35 }, {}, 'range'], ['彻骨', '冰封三百年对残血更狠', {}, { exec: 0.3 }, 'exec']]],
+  ranger: [[['横断', '万剑听雪更宽', { width: 1.4 }, {}, 'area'], ['连斩', '万剑听雪调息 -30%', { cd: 0.7 }, {}, 'cd']]],
+  gunner: [[['覆野', '万符齐发范围更大', { radius: 1.25 }, {}, 'area'], ['连爆', '万符齐发多炸两轮', {}, { dur: 1 }, 'dur']]],
+  mage: [[['陨野', '星落范围更大', { radius: 1.25 }, {}, 'area'], ['疾星', '星落落得更快', { delay: 0.6 }, {}, 'fast']]],
+  cryo: [[['千里雪', '雪原封天范围更大', { radius: 1.25 }, {}, 'area'], ['长夜', '雪原封天多下两秒', {}, { dur: 2 }, 'dur']]],
+  storm: [[['雷池', '天刑范围更大', { radius: 1.25 }, {}, 'area'], ['连雷', '天刑多劈一秒半', {}, { dur: 1.5 }, 'dur']]],
+  healer: [[['广济', '清魂阵范围更大', { radius: 1.3 }, {}, 'spread'], ['回春', '清魂阵治疗 +30%', { dmg: 1.3 }, {}, 'sustain']]],
+  yanzhao: [[['遮天', '蔽天范围更大', { radius: 1.25 }, {}, 'area'], ['长幕', '蔽天多持续两秒', {}, { dur: 2 }, 'dur']]],
+  yuanshan: [[['大凶', '逆运范围更大', { radius: 1.25 }, {}, 'area'], ['定数', '逆运的定身更久', {}, { stun: 0.5 }, 'cc']]],
 };
 export const HERO_ORDER = ['warden', 'keeper', 'peiji', 'bloodlord', 'berserker', 'qingya', 'shade', 'wenren', 'archer', 'linshuang', 'ranger', 'gunner', 'mage', 'cryo', 'storm', 'healer', 'yanzhao', 'yuanshan'];
 export const SUPPORTS = ['healer', 'yanzhao', 'yuanshan'];
