@@ -147,7 +147,7 @@ export function createUI(isTouch, audio) {
       b.lineCap = b.lineJoin = 'round'; b.strokeStyle = '#1d5b68'; b.lineWidth = 9 * kx; b.beginPath(); for (let t = 0; t <= 1.0001; t += 1 / 48) { const q = RIVER.at(Math.min(1, t), 0); b.lineTo(X(q.x), Z(q.z)); } b.stroke();
       b.strokeStyle = '#5a5648'; b.lineWidth = (LANES.length > 1 ? 7 : 10) * kx; for (const L of LANES) { b.beginPath(); for (let k = 0; k <= 80; k++) { const q = L.at(L.s0 + (L.s1 - L.s0) * k / 80, 0); b.lineTo(X(q.x), Z(q.z)); } b.stroke(); }
       b.fillStyle = 'rgba(96,150,70,.5)'; for (const br of BRUSH) { b.beginPath(); b.arc(X(br.x), Z(br.z), br.r * kx, 0, 6.3); b.fill(); }
-      b.fillStyle = 'rgba(255,214,110,.5)'; for (const cp of CAMPS) { b.beginPath(); b.arc(X(cp.x), Z(cp.z), cp.kind === 'guardian' ? 7 : 4.5, 0, 6.3); b.fill(); }
+      b.fillStyle = 'rgba(255,214,110,.5)'; for (const cp of CAMPS) { b.beginPath(); b.arc(X(cp.x), Z(cp.z), cp.kind !== 'golem' ? 7 : 4.5, 0, 6.3); b.fill(); }
     }
     g.drawImage(miniBg, 0, 0);
     if (G.fog) {                                                       // fog: one pixel per cell, stretched over the map
@@ -172,8 +172,9 @@ export function createUI(isTouch, audio) {
     [el.pipF, el.pipE].forEach((pe, t) => { const s = G.structs[t]; [...s.list, s.core].forEach((u, i) => { const off = !u.alive; if (cache.get(pe.children[i]) !== off) { cache.set(pe.children[i], off); pe.children[i].classList.toggle('off', off); } }); });
     const bt = G.buffT[p.team], be = G.buffT[1 - p.team];
     const heat = p.alive && p.heat > 0 ? `灵塔灼烧 ${p.heat} 层 · 下一发 ×${(1 + T.heatStep * p.heat).toFixed(1)}` : '';
+    const sg = G.surgeT[p.team], sge = G.surgeT[1 - p.team], surge = sg > 0 ? `弟子强化 ${Math.ceil(sg)}s` : sge > 0 ? `敌方弟子强化 ${Math.ceil(sge)}s` : '';
     const brush = p.alive && p.brush >= 0 ? (p.hid ? '隐于草丛 · 敌人看不见你' : '草丛中 · 已暴露') : '';
-    txt(el.buff, [heat, brush, bt > 0 ? `魂血之力 ${Math.ceil(bt)}s · 伤害 +15%` : be > 0 ? `敌方持有魂血之力 ${Math.ceil(be)}s` : ''].filter(Boolean).join('　'));
+    txt(el.buff, [heat, brush, surge, bt > 0 ? `魂血之力 ${Math.ceil(bt)}s · 伤害 +15%` : be > 0 ? `敌方持有魂血之力 ${Math.ceil(be)}s` : ''].filter(Boolean).join('　'));
     if (cache.get('heat') !== !!heat) { cache.set('heat', !!heat); el.buff.classList.toggle('hot', !!heat); }
     sx(el.hpFill, p.hp / p.maxHp); sx(el.mpFill, p.mana / p.maxMana); sx(el.xpFill, p.level >= T.maxLevel ? 1 : p.xp / T.xpNeed(p.level));
     txt(el.hpTxt, `${Math.ceil(p.hp)} / ${Math.round(p.maxHp)}`); txt(el.mpTxt, `${Math.floor(p.mana)} / ${Math.round(p.maxMana)}`);

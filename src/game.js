@@ -384,13 +384,18 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const s = tgt.stats; if (near(tgt)) { fx.dust(tgt.x, tgt.z, DUST, { n: tgt.kind === 'neutral' ? 12 : 5, speed: 3, size: tgt.kind === 'neutral' ? 2.4 : 1.5, life: 0.9 }); fx.burst(tgt.x, 1, tgt.z, col, { n: 5, speed: 5, life: 0.45, size: 0.26 }); }
       if (killer) giveGold(killer, s.gold, tgt);
       if (killer && tgt.kind === 'neutral' && killer.def.id === 'qingya') heal(killer, killer.maxHp * 0.04);
-      if (killer && killer.isPlayer) { if (tgt.nk === 'guardian') { fx.slowmo(0.6, 0.28); fx.punch(0.4); } else { fx.hitStop(0.05); fx.punch(0.14); } }   // the last blow is felt
+      if (killer && killer.isPlayer) { if (tgt.nk && tgt.nk !== 'golem') { fx.slowmo(0.6, 0.28); fx.punch(0.4); } else { fx.hitStop(0.05); fx.punch(0.14); } }   // the last blow is felt
       if (tgt.kind === 'minion') shareXp(1 - tgt.team, tgt, s.xp);
       else if (src && src.team !== NEUTRAL) {
         shareXp(src.team, tgt, s.xp);
+        const ours = src.team === G.player.team, cls = ours ? 'good' : 'bad', who = ours ? '我方' : '敌方';
         if (tgt.nk === 'guardian') {
           G.buffT[src.team] = 70; for (const h of G.heroes) if (h.team === src.team) giveGold(h, 90);
-          ui.announce(src.team === G.player.team ? '我方镇压血海残魂 · 全队伤害提升' : '敌方镇压了血海残魂', src.team === G.player.team ? 'good' : 'bad'); audio.play('horn'); fx.ringWave(tgt.x, tgt.z, 26, col, 0.9);
+          ui.announce(`${who}镇压血海残魂 · 全队伤害提升`, cls); audio.play('horn'); fx.ringWave(tgt.x, tgt.z, 26, col, 0.9);
+        } else if (tgt.nk === 'puppet' || tgt.nk === 'abyss') {       // 破阵 / 渊息: the side's next waves march much stronger
+          const [k, secs] = T.surge[tgt.nk]; G.surgeT[src.team] = secs; G.surgeK[src.team] = k; for (const h of G.heroes) if (h.team === src.team) giveGold(h, tgt.stats.gold);
+          if (tgt.nk === 'abyss') G.buffT[src.team] = secs;
+          ui.announce(tgt.nk === 'abyss' ? `${who}镇压渊主残念 · 弟子大幅强化` : `${who}镇压镇渊傀 · 弟子强化`, cls); audio.play('horn'); fx.ringWave(tgt.x, tgt.z, 26, col, 0.9);
         }
         if (tgt.camp.units.every(u => !u.alive)) tgt.camp.respawnT = s.respawn;
       }
@@ -695,7 +700,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     // home to spend: enough for the next piece, nobody around, nothing pressing
     if (!retreat && !eh && h.combatT > 4 && G.t > ai.shopAt && (dist(h, f) > 42 || (!h.atHome && dist(h, f) < T.shopR)) && h.gold >= botWant(h)) { ai.shopAt = G.t + 30; if (startRecall(h)) { G.botStat.shop++; chat(h, '回去置办法器，马上来'); return; } }
     const campUp = c => c.units.some(u => u.alive), holding = hasFront && dir * (front - sOf(ownS)) > 8;
-    const nearestCamp = far => { let best = null, bd = far; for (const c of G.camps) { if (c.c.kind === 'guardian' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } } return best; };
+    const nearestCamp = far => { let best = null, bd = far; for (const c of G.camps) { if (c.c.kind !== 'golem' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } } return best; };
     const ambushSpot = () => { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } return best; };
     if (!TRI) {
       // 一路: now and then, lie in wait in the grass beside the lane; when the lane is quiet and holding, slip off to clear a camp
@@ -736,12 +741,12 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (ai.state === 'ambush' && (G.t > ai.ambUntil || hpF < 0.5 || (eh && ehD < h.range + 5) || (h.combatT < 0.4 && !h.hid) || !hasFront || Math.abs(front - ai.ambS) > 18)) ai.state = 'lane';   // time is up, or the prey has come
     const ambush = ai.state === 'ambush';
     // the 血海残魂: once everyone is 金丹, healthy and the lane is safe, the whole side goes for it together
-    if (ai.state === 'lane' && G.t > 240 && G.t > G.gCall[team] && h.level >= 5 && hpF > 0.7 && !eh && G.buffT[team] <= 0) {
+    if (ai.state === 'lane' && G.t > 240 && G.t > G.gCall[team] && h.level >= 5 && hpF > 0.7 && !eh && (G.buffT[team] <= 0 || G.surgeT[team] <= 0)) {
       G.gCall[team] = G.t + 40;
-      const gc = G.camps.filter(c => c.c.kind === 'guardian').sort((a, b) => campUp(b) - campUp(a) || dist(h, a.c) - dist(h, b.c))[0], party = G.heroes.filter(o => o.team === team && o.alive && o.hp / o.maxHp > 0.6 && (!o.isPlayer || G.autoPlay) && (o.ai.state === 'lane' || o.ai.state === 'jungle'));
+      const gc = G.camps.filter(c => c.c.kind !== 'golem').sort((a, b) => campUp(b) - campUp(a) || dist(h, a.c) - dist(h, b.c))[0], party = G.heroes.filter(o => o.team === team && o.alive && o.hp / o.maxHp > 0.6 && (!o.isPlayer || G.autoPlay) && (o.ai.state === 'lane' || o.ai.state === 'jungle'));
       if (campUp(gc) && party.length >= 2 && holding && Math.random() < 0.55) {
-        for (const o of party) { o.ai.state = 'guardian'; o.ai.camp = gc; o.ai.jungleUntil = G.t + 45; } G.botStat.guardian++; chat(h, '打血海残魂，都来', true);
-        if (team === G.player.team && !G.autoPlay) { ui.toast('同门正在围剿血海残魂'); G.pings.push({ x: gc.c.x, z: gc.c.z, t: G.t }); audio.play('ping'); }
+        for (const o of party) { o.ai.state = 'guardian'; o.ai.camp = gc; o.ai.jungleUntil = G.t + 45; } G.botStat.guardian++; chat(h, `打${gc.units[0] ? gc.units[0].name : '河道目标'}，都来`, true);
+        if (team === G.player.team && !G.autoPlay) { G.pings.push({ x: gc.c.x, z: gc.c.z, t: G.t }); audio.play('ping'); }
       }
     }
     if (ai.state === 'jungle' && (G.t > ai.jungleUntil || (eh && (!ai.jungler || ehD < 9)) || !campUp(ai.camp) || hpF < 0.4)) ai.state = 'lane';
@@ -856,7 +861,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
 
   // ---------------- minions, neutrals, towers ----------------
   function spawnMinion(team, type, off, lane = 0) {
-    const s = T.minion[type], c = POS.core(team), dir = team === FROST ? 1 : -1, grow = 1 + 0.1 * (G.t / 60) + Math.max(0, G.t - T.lateAt) / 60 * T.lateK; // waves hit much harder after 6 minutes so matches always end
+    const s = T.minion[type], c = POS.core(team), dir = team === FROST ? 1 : -1, grow = (1 + 0.1 * (G.t / 60) + Math.max(0, G.t - T.lateAt) / 60 * T.lateK) * (G.surgeT[team] > 0 ? G.surgeK[team] : 1); // waves hit much harder after 6 minutes so matches always end
     const L = LANES[lane], sp = L.func ? { x: c.x + dir * 7, z: c.z + off } : L.at((team === FROST ? L.s0 : L.s1) + dir * 10, off), m = unit('minion', team, sp.x, sp.z, { ...s, hp: s.hp * grow, ad: s.ad * grow });
     m.stats = s; m.off = off; m.type = type; m.lane = lane; m.s = L.proj(m.x, m.z); m.facing = faceOf(team); m.view = M.minion(type, team);
   }
@@ -876,11 +881,11 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     tickAttack(m, dt);
   }
   function spawnCamp(camp) {
-    const c = camp.c, s = T.neutral[c.kind]; camp.units.length = 0;
+    const kind = c0 => (c0.kind === 'guardian' && T.bossAt && G.t >= T.bossAt ? 'abyss' : c0.kind), c = camp.c, k = kind(c), s = T.neutral[k]; camp.units.length = 0;
     for (let i = 0; i < c.n; i++) {
       const x = c.x + (c.n > 1 ? (i - 0.5) * 3.4 : 0), z = c.z + (i % 2) * 0.8;
-      const u = unit('neutral', NEUTRAL, x, z, s); u.stats = s; u.nk = c.kind; u.camp = camp; u.home = { x, z }; u.aggro = null; u.facing = Math.PI / 2;
-      u.name = c.kind === 'guardian' ? '血海残魂' : '血傀'; u.view = M.minion(c.kind, NEUTRAL, c.kind === 'guardian' ? 2.1 : 1.15); camp.units.push(u);
+      const u = unit('neutral', NEUTRAL, x, z, s); u.stats = s; u.nk = k; u.camp = camp; u.home = { x, z }; u.aggro = null; u.facing = Math.PI / 2;
+      u.name = { guardian: '血海残魂', puppet: '镇渊傀', abyss: '渊主残念' }[k] || '血傀'; u.view = M.minion(k === 'golem' ? 'golem' : 'guardian', NEUTRAL, { guardian: 2.1, puppet: 1.8, abyss: 3.0 }[k] || 1.15); camp.units.push(u);
     }
   }
   function updateNeutral(u, dt) {
@@ -925,7 +930,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.cmdStop = () => { const h = P(); h.order = null; h.target = null; h.windT = -1; stopRecall(h); };
   G.recall = () => { const h = P(); if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在山门内，万宝阁开着'); return ok; };
   G.pings = []; G.recalls = 0; G.gCall = [0, 0]; G.botStat = { ambush: 0, hunt: 0, hide: 0, shop: 0, jungle: 0, guardian: 0, gank: 0, group: 0 };
-  G.plan = [0, 1].map(() => ({ mode: 'rest', lane: 0, until: 0, next: 0 })); let pingAt = -9;
+  G.plan = [0, 1].map(() => ({ mode: 'rest', lane: 0, until: 0, next: 0 }));
+  G.surgeT = [0, 0]; G.surgeK = [1, 1];                              // 破阵 / 渊息: this side's disciples march stronger let pingAt = -9;
   // Signals: 集合 (come here), 进攻 (take this), 撤退 (fall back). A mark on the ground and the map, a sound, and every allied
   // bot in earshot weighs it (see botThink). unit = what was pointed at, for 进攻.
   let sigId = 0;
@@ -993,7 +999,11 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       for (let i = G.spawnQ.length - 1; i >= 0; i--) if (G.spawnQ[i].t <= G.t) { const q = G.spawnQ[i]; G.spawnQ.splice(i, 1); spawnMinion(q.team, q.type, q.off, q.lane); }
       for (const c of G.camps) if (c.respawnT > 0) { c.respawnT -= dt; if (c.respawnT <= 0) spawnCamp(c); }
       if (LANES.length > 1) { teamThink(FROST); teamThink(EMBER); }
-      for (const team of [FROST, EMBER]) { if (G.buffT[team] > 0) G.buffT[team] -= dt; let n = 0, sum = 0; for (const h of G.heroes) if (h.team === team) { n++; sum += h.level; } G.avgLvl[team] = sum / n; }
+      if (T.bossAt && !G.bossUp && G.t >= T.bossAt) {                  // 渊主残念 rises in the upper pit, whatever was there
+        G.bossUp = true; const camp = G.camps.find(c => c.c.kind === 'guardian');
+        if (camp) { for (const u of camp.units) if (u.alive) { u.alive = false; u.hp = 0; u.goneT = 0; } camp.respawnT = 0; spawnCamp(camp); ui.announce('渊主残念现世', ''); audio.play('horn'); G.pings.push({ x: camp.c.x, z: camp.c.z, t: G.t, type: 'attack' }); fx.pillar(camp.c.x, camp.c.z, 3, 26, [1.6, 0.1, 0.2], 1.6); }
+      }
+      for (const team of [FROST, EMBER]) { if (G.surgeT[team] > 0) G.surgeT[team] -= dt; if (G.buffT[team] > 0) G.buffT[team] -= dt; let n = 0, sum = 0; for (const h of G.heroes) if (h.team === team) { n++; sum += h.level; } G.avgLvl[team] = sum / n; }
       for (const e of G.units) { e.brush = !e.alive || isStruct(e) ? -1 : brushAt(e.x, e.z); if (e.revealT > 0) e.revealT -= dt; }
       // who can be seen. Brush hides you from anyone not in it with you; in a mode with fog you must also be within sight of
       // something on the other side (a cultivator, a disciple, a tower). Striking, casting or being hit shows you for a moment.
@@ -1070,7 +1080,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const c = ripe ? BAR.kill : e === p ? BAR.self : e.team === NEUTRAL ? BAR.neutral : e.team === p.team ? BAR.ally : BAR.enemy;
       if (e.kind === 'hero') fx.bar(e.x, y, e.z, shown, sh, 96, 14, c, e.maxHp / 300, Math.max(0.001, e.mana / e.maxMana), lag, frac, cut);
       else if (e.kind === 'minion') fx.bar(e.x, y, e.z, shown, 0, ripe ? 48 : 40, ripe ? 7 : 5, c, 0, 0, lag, frac, cut);
-      else if (e.kind === 'neutral') { if (frac < 1 || e.aggro) fx.bar(e.x, y, e.z, shown, 0, e.nk === 'guardian' ? 110 : 56, 7, c, 0, 0, lag, frac, cut); }
+      else if (e.kind === 'neutral') { if (frac < 1 || e.aggro) fx.bar(e.x, y, e.z, shown, 0, e.nk === 'abyss' ? 150 : e.nk !== 'golem' ? 110 : 56, 7, c, 0, 0, lag, frac, cut); }
       else if (vulnerable(e) || frac < 1) fx.bar(e.x, y, e.z, shown, 0, e.kind === 'core' ? 150 : 110, 9, c, 0, 0, lag, frac, cut);
     }
     fx.barsEnd();

@@ -56,7 +56,7 @@ export const MODES = {
     tune: {}, heroTune: { healer: { hp: 1.06, ap: 1.1 } },
   },
   tri: {
-    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。开发中：电脑会分路、打野抓人、后期集结，但还比较初级。',
+    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。野区有山脊相隔，河道有血海残魂与镇渊傀，十五分钟后渊主残念现世。',
     // frost holds the lower-left corner, ember the upper-right (the camera looks north, so -z is up the screen)
     map: { hx: 80, hz: 80, ax: Math.SQRT1_2, az: -Math.SQRT1_2, biome: 1.24, mini: [168, 168], base: 25, baseF: 13 },   // base: radius of each sect's precinct
     core: t => ({ x: sideSign(t) * 56, z: -sideSign(t) * 56 }), fountain: t => ({ x: sideSign(t) * 68, z: -sideSign(t) * 68 }),
@@ -68,7 +68,7 @@ export const MODES = {
     river: () => { const p = polyline([[-74, -74], [-52, -56], [-36, -30], [-12, -14], [0, 0], [12, 14], [36, 30], [52, 56], [74, 74]]); return { path: p, dist: (x, z) => p.near(x, z)[0], signed: (x, z) => -p.near(x, z)[2], at: (t, o) => p.at(t * p.len, o) }; },
     camps: [
       ...mirror([{ x: -44, z: 8, r: 6.5, kind: 'golem', n: 2 }, { x: -40, z: -22, r: 6.5, kind: 'golem', n: 2 }, { x: -8, z: 44, r: 6.5, kind: 'golem', n: 2 }, { x: 22, z: 40, r: 6.5, kind: 'golem', n: 2 }]),
-      { x: -26, z: -24, r: 8, kind: 'guardian', n: 1 }, { x: 26, z: 24, r: 8, kind: 'guardian', n: 1 },
+      { x: -26, z: -24, r: 8, kind: 'guardian', n: 1 }, { x: 26, z: 24, r: 8, kind: 'puppet', n: 1 },   // upper river: 血海残魂 (and later 渊主残念); lower river: 镇渊傀
     ],
     brush: mirror([
       { x: -14, z: -1, r: 3.3 }, { x: -1, z: 14, r: 3.3 }, { x: -54, z: -34, r: 3.4 }, { x: -34, z: -54, r: 3.4 },
@@ -80,15 +80,19 @@ export const MODES = {
     ridges: [[[-57, 24], [-57, 4]], [[-57, -12], [-57, -26]], [[-48, 34], [-38, 24]], [[-30, 16], [-18, 4]]],
     // 三路's own numbers. Everything not named here falls back to the shared table.
     tune: {
-      waveEvery: 28, coreHp: 5200, lateAt: 720, lateK: 0.3, respawnK: 1.15, startGold: 300,
-      groupAt: 600,                                                    // from here on the bots gather to push a lane together, again and again
+      waveEvery: 28, coreHp: 5200, towerHp: 3000, lateAt: 780, lateK: 0.3, respawnK: 1.15, startGold: 300,
+      groupAt: 660,                                                    // from here on the bots gather to push a lane together, again and again
       // a full-time jungler lives off these, so each camp pays less and comes back slower than in 一路
       neutral: {
         golem: { hp: 520, ad: 26, range: 2.2, period: 1.2, wind: 0.35, ms: 6, r: 1.3, h: 3.4, gold: 26, xp: 40, respawn: 62 },
         guardian: { hp: 2600, ad: 70, range: 3.4, period: 1.4, wind: 0.45, ms: 5.5, r: 2.5, h: 6.6, gold: 90, xp: 220, respawn: 100 },
+        puppet: { hp: 2300, ad: 62, range: 3.2, period: 1.3, wind: 0.42, ms: 5.5, r: 2.3, h: 6.0, gold: 80, xp: 200, respawn: 110 },
+        abyss: { hp: 6800, ad: 125, range: 4.2, period: 1.3, wind: 0.45, ms: 5.5, r: 3.3, h: 8.6, gold: 160, xp: 420, respawn: 170 },
       },
+      bossAt: 900,                                                     // 渊主残念 takes over the upper pit from here on
+      surge: { puppet: [1.4, 55], abyss: [2.0, 90] },                 // how much stronger the side's disciples get, and for how long
     },
-    heroTune: {},                                                   // e.g. storm: { hp: 1.06 } — multipliers on base stats, this mode only
+    heroTune: { keeper: { hp: 1.06 }, storm: { hp: 1.04, ap: 1.06 }, mage: { ap: 1.05 }, yuanshan: { ap: 1.05 } },   // multipliers on base stats, this mode only
   },
 };
 
