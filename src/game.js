@@ -831,7 +831,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (!retreat && !eh && h.combatT > 4 && G.t > ai.shopAt && (dist(h, f) > 42 || (!h.atHome && dist(h, f) < T.shopR)) && h.gold >= botWant(h)) { ai.shopAt = G.t + 30; if (startRecall(h)) { G.botStat.shop++; chat(h, '回去置办法器，马上来'); return; } }
     const campUp = c => c.units.some(u => u.alive), holding = hasFront && dir * (front - sOf(ownS)) > 8;
     const nearestCamp = far => { let best = null, bd = far; for (const c of G.camps) { if (c.c.kind !== 'golem' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } } return best; };
-    const ambushSpot = () => { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b) - (team !== G.player.team && G.favBrush === b ? 7 : 0); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } return best; };
+    const ambushSpot = () => { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b) - (team !== G.player.team && !G.autoPlay && G.favBrush === b ? 7 : 0); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } return best; };
     if (!TRI) {
       // 一路: now and then, lie in wait in the grass beside the lane; when the lane is quiet and holding, slip off to clear a camp
       if (ai.state === 'lane' && G.t > ai.ambushAt) {
@@ -908,7 +908,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     //   巡山 goes for the soft and the wounded, and in a brawl waits for someone else to start it.
     const role = SEAT_FIT[h.def.id][0], thr = eh, thrD = ehD; let wait = false, kite = false;
     if (eh && !retreat) {
-      if (nEH > 1 || role === 4) { let ps = -1e9; for (const e of G.heroes) { if (!e.alive || e.team === team || e.hid) continue; const d = dist(h, e); if (d > 14.5) continue; const lost = 1 - e.hp / e.maxHp, sc = role === 4 ? (e.ranged ? 1.6 : 0) + lost * 3 - d * 0.08 : role === 1 || role === 2 ? lost * 1.6 - d * 0.22 : -d * 0.3, mark = e.isPlayer && (e.streak || 0) >= 3 ? 1.3 : 0; if (sc + mark > ps && mark && G.t - (G.focusAt || -99) > 28) { G.focusAt = G.t; const ln = voice(h.def.id, 'focus', { t: e.name }); if (near(h)) fx.say(h.x, h.h + 1.6, h.z, ln, false); chat(h, [ln], true); } if (sc + mark > ps) { ps = sc + mark; eh = e; ehD = d; continue; } if (sc > ps) { ps = sc; eh = e; ehD = d; } } }
+      if (nEH > 1 || role === 4) { let ps = -1e9; for (const e of G.heroes) { if (!e.alive || e.team === team || e.hid) continue; const d = dist(h, e); if (d > 14.5) continue; const lost = 1 - e.hp / e.maxHp, sc = role === 4 ? (e.ranged ? 1.6 : 0) + lost * 3 - d * 0.08 : role === 1 || role === 2 ? lost * 1.6 - d * 0.22 : -d * 0.3, mark = e.isPlayer && !G.autoPlay && (e.streak || 0) >= 3 ? 1.3 : 0; if (sc + mark > ps && mark && G.t - (G.focusAt || -99) > 28) { G.focusAt = G.t; const ln = voice(h.def.id, 'focus', { t: e.name }); if (near(h)) fx.say(h.x, h.h + 1.6, h.z, ln, false); chat(h, [ln], true); } if (sc + mark > ps) { ps = sc + mark; eh = e; ehD = d; continue; } if (sc > ps) { ps = sc; eh = e; ehD = d; } } }
       if (role === 4 && nAH >= 1 && nEH >= 2 && eh.hp / eh.maxHp > 0.6 && (ai.waitT || 0) < 2 && !G.heroes.some(o => o.alive && o.team === team && o !== h && dist(o, eh) < 9 && o.combatT < 2)) wait = true;   // ...but not for long
       if (h.ranged && role !== 0 && role !== 4 && !thr.ranged && thrD < 4.8 && hpF < 0.85 && h.windT < 0 && h.atkT > h.period * 0.3) kite = true;   // only from someone with a blade, and only once it has started to hurt
     }

@@ -54,7 +54,7 @@ export const MODES = {
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
     // 一路's own nudges, set after the bots started playing their roles (v1.2.0-alpha.3). Shared numbers stay as they are.
-    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.02, hp: 1.02 }, keeper: { ad: 1.03 }, peiji: { ad: 1.05, hp: 1.04 }, bloodlord: { ad: 1.04, hp: 1.05 }, shade: { ad: 1.07, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.07 }, linshuang: { ad: 0.98 }, ranger: { ad: 0.95, hp: 0.97 }, gunner: { ad: 0.93 }, mage: { ap: 0.92, hp: 0.96 }, cryo: { ap: 0.9, hp: 0.92 }, storm: { ap: 0.92, hp: 0.95 }, healer: { pow: 1.13, hp: 1.1 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
+    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.04, hp: 1.03 }, keeper: { ad: 1.03 }, peiji: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 1.04, hp: 1.04 }, shade: { ad: 1.08, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.08 }, ranger: { ad: 0.95, hp: 0.97 }, gunner: { ad: 0.93 }, mage: { ap: 0.92, hp: 0.96 }, cryo: { ap: 0.9, hp: 0.92 }, storm: { ap: 0.92, hp: 0.95 }, healer: { pow: 1.1, hp: 1.09 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
   },
   tri: {
     id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, solid: true, blurb: '5v5 · 约 20 分钟',
@@ -93,7 +93,7 @@ export const MODES = {
       bossAt: 960,                                                     // 渊主残念 takes over the upper pit from here on
       surge: { puppet: [1.4, 55], abyss: [2.0, 90] },                 // how much stronger the side's disciples get, and for how long
     },
-    heroTune: { warden: { ad: 0.94 }, keeper: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 0.96, hp: 0.97 }, qingya: { ad: 0.97 }, ranger: { ad: 1.03 }, gunner: { ad: 0.97 }, cryo: { ap: 0.96 }, storm: { hp: 1.03 }, healer: { pow: 1.08, hp: 1.05 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 } },   // multipliers on base stats, this mode only
+    heroTune: { warden: { ad: 0.96 }, keeper: { ad: 1.1, hp: 1.06 }, bloodlord: { ad: 0.96, hp: 0.96 }, qingya: { ad: 0.97 }, ranger: { ad: 1.03 }, gunner: { ad: 0.94, hp: 0.98 }, cryo: { ap: 0.96 }, storm: { hp: 1.03 }, healer: { pow: 1.1, hp: 1.06 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 } },   // multipliers on base stats, this mode only
   },
 };
 
