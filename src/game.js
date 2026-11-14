@@ -57,10 +57,10 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // ---- items: what a purchase would cost given what is already in the bag, and making it ----
   function planBuy(id, pool) { const it = ITEMS[id]; let cost = it.cost; if (it.parts) for (const pid of it.parts) { const k = pool.indexOf(pid); if (k >= 0) pool.splice(k, 1); else cost += planBuy(pid, pool); } return cost; }
   const priceOf = (h, id) => planBuy(id, h.items.map(x => x.id));
-  const canShop = h => { if (!h.alive) return true; const f = POS.fountain(h.team); return dist2(h.x, h.z, f.x, f.z) < T.shopR; };   // 万宝阁 only trades at home, or with the fallen
+  const canShop = h => !h.alive || h.atHome;                         // fallen, or home and not yet stepped out: walking back in does not count, only 归宗 does   // 万宝阁 only trades at home, or with the fallen
   function buyItem(h, id) {   // returns '' on success, else the reason
     const it = ITEMS[id]; if (!it) return '没有这件物品';
-    if (!canShop(h)) return '离开山门后不能买东西 · 归宗（B）或陨落时再来';
+    if (!canShop(h)) return '出过山门就不能买了，走回来也不算 · 归宗（B）或陨落时再来';
     if (it.tier === 3 && h.items.some(x => x.id === id)) return '同一件法宝只能持有一件';
     const pool = h.items.map(x => x.id), cost = planBuy(id, pool);
     if (pool.length + 1 > 6) return '储物戒已满';
@@ -94,7 +94,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   function makeHero(defId, team, isPlayer, slot) {
     const d = HEROES[defId], f = POS.fountain(team);
     const h = unit('hero', team, f.x - (team === FROST ? -2 : 2), f.z + (slot - 1) * 2.8, { r: 0.95 + (d.size - 1.3) * 0.38, h: d.size * 3.55 + 0.35 + (d.tall || 0), hp: d.hp, ad: d.ad, range: d.range, period: d.period, wind: d.wind, ms: d.ms, ranged: d.ranged });
-    Object.assign(h, { def: d, name: d.name, isPlayer, level: 1, xp: 0, gold: T.startGold, mana: d.mana, maxMana: d.mana, items: [], ranks: [0, 0, 0, 0], sp: 1, cds: [0, 0, 0, 0], kills: 0, deaths: 0, assists: 0, respawnT: 0, order: null, dash: null, dmgLog: new Map(), ls: 0, cdr: 0, multi: 0, multiT: -99, pStack: 0, pT: 0, pCd: 0, pTgt: null, dealt: 0, earned: T.startGold, recallT: 0, recallFx: null, slot, ai: { state: 'lane', castLock: 1.5 + Math.random() * 2, laneOff: (slot - 1) * 2.8, ambushAt: 28 + Math.random() * 30, jungleAt: 45 + Math.random() * 30, shopAt: 0, sly: team === FROST || Math.random() < (diff.react > 1.5 ? 0.4 : 1), nose: team === FROST ? 0.7 : diff.react > 1.5 ? 0.35 : diff.react > 1 ? 0.7 : 1 } });
+    Object.assign(h, { def: d, name: d.name, isPlayer, level: 1, xp: 0, gold: T.startGold, mana: d.mana, maxMana: d.mana, items: [], ranks: [0, 0, 0, 0], sp: 1, cds: [0, 0, 0, 0], kills: 0, deaths: 0, assists: 0, respawnT: 0, order: null, dash: null, dmgLog: new Map(), ls: 0, cdr: 0, multi: 0, multiT: -99, pStack: 0, pT: 0, pCd: 0, pTgt: null, atHome: true, dealt: 0, earned: T.startGold, recallT: 0, recallFx: null, slot, ai: { state: 'lane', castLock: 1.5 + Math.random() * 2, laneOff: (slot - 1) * 2.8, ambushAt: 28 + Math.random() * 30, jungleAt: 45 + Math.random() * 30, shopAt: 0, sly: team === FROST || Math.random() < (diff.react > 1.5 ? 0.4 : 1), nose: team === FROST ? 0.7 : diff.react > 1.5 ? 0.35 : diff.react > 1 ? 0.7 : 1 } });
     const tg = TEAM_COL[team].glow, mix = [tg[0] * 0.38 + d.tint[0] * 0.62, tg[1] * 0.38 + d.tint[1] * 0.62, tg[2] * 0.38 + d.tint[2] * 0.62], mx = Math.max(mix[0], mix[1], mix[2]);
     h.fxCol = [mix[0] / mx, mix[1] / mx, mix[2] / mx]; h.lsBuff = 0;
     h.view = M.hero(d, team, isPlayer); recalc(h); h.hp = h.maxHp; h.mana = h.maxMana; G.heroes.push(h); return h;
@@ -450,7 +450,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // 归宗: stand still for a few breaths and the sect's formation pulls you home. Any order, any hit, any cast breaks it.
   function startRecall(h) {
     if (!h.alive || h.dash || h.stunT > 0 || h.recallT > 0 || G.over) return false;
-    const f = POS.fountain(h.team); if (dist2(h.x, h.z, f.x, f.z) < T.fountainR) return false;
+    const f = POS.fountain(h.team); if (h.atHome && dist2(h.x, h.z, f.x, f.z) < T.shopR) return false;   // already home with the shop open: nothing to gain
     h.recallT = T.recallTime; h.order = null; h.target = null; h.windT = -1;
     if (near(h)) h.recallFx = fx.decal({ mode: 5, x: h.x, z: h.z, size: 7, color: TEAM_COL[h.team].glow, dur: T.recallTime, hold: 0.05, alpha: 0.85 });
     if (h.isPlayer) audio.play('recall');
@@ -470,12 +470,12 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (h.recallT > 0) return;
     const f = POS.fountain(h.team); h.recallT = 0; G.recalls++; if (h.recallFx) { fx.release(h.recallFx); h.recallFx = null; }
     if (shown) { fx.pillar(h.x, h.z, 1.8, 13, c, 0.5); fx.ringWave(h.x, h.z, 9, c, 0.5); }
-    h.x = f.x - (h.team === FROST ? -2 : 2); h.z = f.z + (h.slot - 1) * 2.8; h.order = null; h.target = null; h.facing = h.team === EMBER ? Math.PI : 0; h.ai.state = 'lane';
+    h.x = f.x - (h.team === FROST ? -2 : 2); h.z = f.z + (h.slot - 1) * 2.8; h.order = null; h.target = null; h.facing = h.team === EMBER ? Math.PI : 0; h.ai.state = 'lane'; h.atHome = true;
     if (near(h) || h.isPlayer) { fx.pillar(h.x, h.z, 1.8, 13, c, 0.5); fx.ringWave(h.x, h.z, 9, c, 0.6); }
     if (h.isPlayer) audio.play('arrive'); else audio.play('arrive', h.x, h.z, 0.6);
   }
   function respawn(h) {
-    const f = POS.fountain(h.team); h.x = f.x - (h.team === FROST ? -2 : 2); h.z = f.z + (h.slot - 1) * 2.8; h.alive = true; h.hp = h.maxHp; h.mana = h.maxMana; h.barShown = h.barLag = 1; h.order = null; h.facing = h.team === EMBER ? Math.PI : 0; h.ai.state = 'lane';
+    const f = POS.fountain(h.team); h.x = f.x - (h.team === FROST ? -2 : 2); h.z = f.z + (h.slot - 1) * 2.8; h.alive = true; h.atHome = true; h.hp = h.maxHp; h.mana = h.maxMana; h.barShown = h.barLag = 1; h.order = null; h.facing = h.team === EMBER ? Math.PI : 0; h.ai.state = 'lane';
     fx.ringWave(h.x, h.z, 9, TEAM_COL[h.team].glow, 0.7); for (let k = 0; k < 30; k++) fx.spark(h.x + (Math.random() - 0.5) * 1.5, Math.random() * 2, h.z + (Math.random() - 0.5) * 1.5, 0, 6 + Math.random() * 10, 0, TEAM_COL[h.team].glow, 0.7, 0.9);
     if (h.isPlayer) { audio.play('level'); G.focus.x = h.x; G.focus.z = h.z; }
   }
@@ -509,7 +509,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (h.def.id === 'shade') for (const e of G.heroes) if (e.alive && e.team !== h.team && e.hp < e.maxHp * 0.4 && dist(e, h) < 13 && canSee(G.player, e)) V.doom(e);
     }
     if (!h.alive) { h.respawnT -= dt; if ((!h.isPlayer || G.autoPlay) && (h.think -= dt) <= 0) { h.think = 0.6; if (h.gold >= 300) botShop(h); } if (h.respawnT <= 0) respawn(h); return; }
-    const f = POS.fountain(h.team), atBase = dist2(h.x, h.z, f.x, f.z) < T.fountainR, ooc = h.combatT > 5;
+    const f = POS.fountain(h.team), dHome = dist2(h.x, h.z, f.x, f.z), atBase = dHome < T.fountainR, ooc = h.combatT > 5;
+    if (h.atHome && dHome >= T.shopR) h.atHome = false;                 // stepped out of the gate
     heal(h, h.maxHp * dt * (0.008 + (h.regenB || 0) + (ooc ? 0.03 : 0) + (atBase ? 0.16 : 0) + (G.buffT[h.team] > 0 ? 0.01 : 0)));
     h.mana = Math.min(h.maxMana, h.mana + h.maxMana * dt * (0.016 + (ooc ? 0.03 : 0) + (atBase ? 0.2 : 0)));
     for (let i = 0; i < 4; i++) if (h.cds[i] > 0) h.cds[i] -= dt;
@@ -553,7 +554,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (eh) { const s0 = ai.seen; ai.seen = { u: eh, x: eh.x, z: eh.z, t: G.t, go: s0 && s0.u === eh && G.t - s0.t < 4 ? s0.go : Math.random() < ai.nose }; }
     const sn = ai.seen, hunt = !eh && !retreat && sn && sn.go && G.t - sn.t < 4 && sn.u.alive && sn.u.hid && hpF > 0.45 && (!danger(sn) || diveOK);
     // home to spend: enough for the next piece, nobody around, nothing pressing
-    if (!retreat && !eh && h.combatT > 4 && G.t > ai.shopAt && dist(h, f) > 42 && h.gold >= botWant(h)) { ai.shopAt = G.t + 30; if (startRecall(h)) { G.botStat.shop++; return; } }
+    if (!retreat && !eh && h.combatT > 4 && G.t > ai.shopAt && (dist(h, f) > 42 || (!h.atHome && dist(h, f) < T.shopR)) && h.gold >= botWant(h)) { ai.shopAt = G.t + 30; if (startRecall(h)) { G.botStat.shop++; return; } }
     // now and then, lie in wait in the grass beside the lane
     if (ai.state === 'lane' && G.t > ai.ambushAt) {
       ai.ambushAt = G.t + 22 + Math.random() * 26;
@@ -710,7 +711,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.cmdAttack = t => { const h = P(); if (h.alive && valid(t)) h.order = { type: 'attack', target: t }; };
   G.cmdDir = (dx, dz) => { const h = P(); if (!h.alive) return; if (dx === 0 && dz === 0) { if (h.order && h.order.type === 'dir') h.order = null; } else h.order = { type: 'dir', dx, dz }; };
   G.cmdStop = () => { const h = P(); h.order = null; h.target = null; h.windT = -1; stopRecall(h); };
-  G.recall = () => { const h = P(); if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在门内了'); return ok; };
+  G.recall = () => { const h = P(); if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在山门内，万宝阁开着'); return ok; };
   G.pings = []; G.recalls = 0; G.gCall = [0, 0]; G.botStat = { ambush: 0, hunt: 0, hide: 0, shop: 0, jungle: 0, guardian: 0 }; let pingAt = -9;
   G.ping = (x, z) => {   // "over here": a mark on the ground and the map; allied bots without a fight on their hands come over
     if (G.over || G.t - pingAt < 0.8) return; pingAt = G.t; x = clamp(x, -MAP.hx + 2, MAP.hx - 2); z = clamp(z, -MAP.hz + 2, MAP.hz - 2);
