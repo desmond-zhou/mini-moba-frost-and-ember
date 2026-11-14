@@ -348,35 +348,48 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   }
   // 雷劫. Breaking through to 金丹 or 元婴 roots you for a breath inside a ward while the sky gathers, then lightning falls
   // around you: enemies caught in it are hurt and held. Everyone can see it coming.
-  // 雷劫: the sky closes over, the one crossing is held and given 罡气, and bolts come down about a second apart, each on someone nearby —
-  // friend, foe or the one crossing — with a closing ring to say where. 结丹 (5): five bolts worth a third of their health between them;
-  // 成婴 (9): nine worth two thirds. The 罡气 is exactly that much, so crossing alone cannot kill you.
-  const TRIB = { every: 1.0, first: 0.9, warn: 0.9, r: 2.8, reach: 11, small: { bolts: 5, part: 1 / 3, hold: 3 }, big: { bolts: 9, part: 2 / 3, hold: 5 } };
+  // 雷劫: first ten breaths under a closing sky in which the one crossing may still move and pick their ground; then the bolts, one wave a
+  // second (结丹 five, 成婴 nine), the one crossing held for all of it and given 罡气. Every wave aims at every cultivator within a screen
+  // of them — friend, foe, the one crossing — each with a closing ring; standing together, a wave still strikes each person once only.
+  // A wave is worth 罡气 ÷ waves, so the nine (or five) together come exactly to the 罡气: crossing alone cannot kill.
+  const TRIB = { prep: 10, every: 1.0, warn: 0.9, r: 2.8, reach: 24, small: { bolts: 5, part: 1 / 3 }, big: { bolts: 9, part: 2 / 3 } };
   function tribulation(h, big = h.tribBig) {
     if (!h.alive || h.dash) { h.tribDue = true; h.tribBig = big; return; }
-    h.tribDue = false; const K = big ? TRIB.big : TRIB.small, dur = TRIB.first + K.bolts * TRIB.every + 0.2, sh = h.maxHp * K.part;
-    stopRecall(h); h.stunT = Math.max(h.stunT, K.hold); h.windT = -1; h.order = null; h.shield = Math.max(h.shield, sh); h.shieldT = dur + 1;
-    G.tribs.push({ h, x: h.x, z: h.z, t: 0, n: 0, next: TRIB.first, bolts: K.bolts, dur, dmg: sh / K.bolts });
-    if (near(h)) V.tribStart(h);
-    if (!h.isPlayer && dist(h, G.player) < 30) ui.toast(`${h.name}在渡雷劫，离远些`);
+    h.tribDue = false; const K = big ? TRIB.big : TRIB.small;
+    const q = { h, big, t: 0, live: false, n: 0, bolts: K.bolts, part: K.part, dur: TRIB.prep + K.bolts * TRIB.every + 0.4 }; G.tribs.push(q); h.tribQ = q;
+    if (h.isPlayer) ui.toast(`十息后落雷，${big ? '九' : '五'}道：趁现在找个地方站好`);
+    else if (dist(h, G.player) < 30) ui.toast(`${h.name}要渡雷劫了，离远些`);
+  }
+  function startBolts(q) {
+    const h = q.h; q.live = true; q.x = h.x; q.z = h.z; h.tribQ = null; q.dmg = h.maxHp * q.part / q.bolts;
+    stopRecall(h); h.stunT = Math.max(h.stunT, q.bolts * TRIB.every); h.windT = -1; h.order = null; h.dash = null;
+    h.shield = Math.max(h.shield, h.maxHp * q.part); h.shieldT = q.bolts * TRIB.every + 1.5;
+    if (near(h)) V.tribStart(h); if (h.isPlayer) ui.announce(q.big ? '九道天雷' : '五道天雷', 'bad');
   }
   function updateTribs(dt) {
     let k = 0;
     for (let i = G.tribs.length - 1; i >= 0; i--) {
-      const q = G.tribs[i]; q.t += dt;
-      while (q.n < q.bolts && q.t >= q.next) {
-        const near9 = G.heroes.filter(e => e.alive && dist2(e.x, e.z, q.x, q.z) < TRIB.reach), pool = near9.includes(q.h) ? [...near9, q.h] : near9, who = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;   // the one crossing counts twice: the sky is looking at them
-        const a = Math.random() * 6.283, d = who ? Math.random() * 1.4 : 2 + Math.random() * 5, bx = (who ? who.x : q.x) + Math.cos(a) * d, bz = (who ? who.z : q.z) + Math.sin(a) * d;
-        G.bolts.push({ x: bx, z: bz, t: 0, dmg: q.dmg }); if (near({ x: bx, z: bz })) V.tribWarn(bx, bz, TRIB.r, TRIB.warn);
+      const q = G.tribs[i], h = q.h; q.t += dt;
+      if (!q.live) {
+        if (q.t < TRIB.prep) { q.x = h.x; q.z = h.z; }
+        else if (!h.alive || h.dash) q.t = TRIB.prep;                  // the sky waits for them
+        else { startBolts(q); q.next = TRIB.prep; }
+      }
+      while (q.live && q.n < q.bolts && q.t >= q.next) {              // a wave: one ring on each cultivator within a screen
+        const wave = new Set();
+        for (const e of G.heroes) if (e.alive && dist2(e.x, e.z, q.x, q.z) < TRIB.reach) {
+          const a = Math.random() * 6.283, d = e === h ? 0 : Math.random() * 1.2, bx = e.x + Math.cos(a) * d, bz = e.z + Math.sin(a) * d;
+          G.bolts.push({ x: bx, z: bz, t: 0, dmg: q.dmg, wave }); if (near({ x: bx, z: bz })) V.tribWarn(bx, bz, TRIB.r, TRIB.warn);
+        }
         q.n++; q.next += TRIB.every;
       }
-      if (q.t >= q.dur) { G.tribs.splice(i, 1); continue; }
-      const d = dist2(q.x, q.z, G.focus.x ?? q.x, G.focus.z ?? q.z); if (d < 34) k = Math.max(k, Math.min(1, q.t / 0.7, (q.dur - q.t) / 1.5) * (d < 22 ? 1 : (34 - d) / 12));
+      if (q.t >= q.dur) { G.tribs.splice(i, 1); if (h.tribQ === q) h.tribQ = null; continue; }
+      const d = dist2(q.x, q.z, G.focus.x ?? q.x, G.focus.z ?? q.z); if (d < 34) k = Math.max(k, Math.min(1, q.t / 1.2, (q.dur - q.t) / 1.5) * (d < 22 ? 1 : (34 - d) / 12));
     }
     G.tribK = k;                                                       // how much of the sky and the camera it takes (main.js)
     for (let i = G.bolts.length - 1; i >= 0; i--) {
       const b = G.bolts[i]; if ((b.t += dt) < TRIB.warn) continue; G.bolts.splice(i, 1);
-      for (const e of G.units) if (e.alive && !isStruct(e) && dist2(e.x, e.z, b.x, b.z) <= TRIB.r + e.r) { damage(null, e, b.dmg * (e.kind === 'hero' ? 1 : 0.6), { ability: true }); if (e.isPlayer) ui.buzz(50); }
+      for (const e of G.units) if (e.alive && !isStruct(e) && !b.wave.has(e) && dist2(e.x, e.z, b.x, b.z) <= TRIB.r + e.r) { b.wave.add(e); damage(null, e, b.dmg * (e.kind === 'hero' ? 1 : 0.6), { ability: true }); if (e.isPlayer) ui.buzz(50); }
       if (near(b)) V.tribBolt(b.x, b.z, TRIB.r);
     }
   }
@@ -723,7 +736,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     } else { h.windT = -1; moveToward(h, h.x + o.dx * 4, h.z + o.dz * 4, dt); }
   }
   function updateHero(h, dt) {
-    h.omen = h.alive && (h.level === 4 || h.level === 8) && h.xp >= T.xpNeed(h.level) * 0.72 ? (h.level === 8 ? 2 : 1) : 0;
+    h.omen = h.tribQ ? (h.tribQ.big ? 2 : 1) : h.alive && (h.level === 4 || h.level === 8) && h.xp >= T.xpNeed(h.level) * 0.72 ? (h.level === 8 ? 2 : 1) : 0;
     if (h.omen && h.omenAt !== h.level) { h.omenAt = h.level; if (h.isPlayer) ui.toast(h.omen === 2 ? '成婴的雷劫快到了：九道，找个地方' : '结丹的雷劫快到了：五道，找个地方'); else if (h.team !== G.player.team && canSee(G.player, h)) { const sp = G.heroes.find(a => a.team === G.player.team && a.alive && !a.isPlayer && dist(a, h) < 22); if (sp) chat(sp, [`${h.name}头上起雷云了，快渡劫了`], true); } }
     h.vulnOn = h.vulnT > G.t || h.lawT > G.t; V.status(h, near(h) && canSee(G.player, h));
     if (h.alive && !h.moving && !h.target && h.combatT > 5 && h.recallT <= 0 && near(h)) { if ((h.idleT = (h.idleT || 0) + dt) > (h.idleN || 6)) { h.idleT = 0; h.idleN = 5 + Math.random() * 6; h.animCast = 0.75; } } else h.idleT = 0;   // standing about: a small gesture now and then
