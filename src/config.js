@@ -33,7 +33,7 @@ export const MODES = {
     tune: {},
   },
   tri: {
-    id: 'tri', name: '三路 · 宗门大战', team: 5, blurb: '上中下三路，5 对 5，二十分钟上下。开发中：电脑还只会各守一路。',
+    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '上中下三路，5 对 5，有战争迷雾，二十分钟上下。开发中：电脑还只会各守一路。',
     map: { hx: 104, hz: 58, core: 86, fountain: 98, biome: 1.3 },
     lanes: [
       { name: '上路', ...arc(-38, Math.PI / 192, 0.6), outer: 34, inner: 56, high: 72 },
@@ -62,7 +62,7 @@ export let MID = 0;
 export const laneZ = (x, lane = MID) => LANES[lane].f(x);
 // distance from a point to a lane's centre line, and which lane is nearest (the side lanes are steep near the bases, so the
 // plain difference in z is corrected by the slope)
-export const laneDist = (x, z, lane) => { const L = LANES[lane], s = L.slope(x); return Math.abs(z - L.f(x)) / Math.sqrt(1 + s * s); };
+export const laneDist = (x, z, lane) => { const L = LANES[lane]; if (L.type === 'arc' && Math.abs(x) > MAP.core + 1) return 1e9; const s = L.slope(x); return Math.abs(z - L.f(x)) / Math.sqrt(1 + s * s); };   // the side lanes end at the bases
 export const nearestLane = (x, z) => { let best = 0, bd = 1e9; for (let i = 0; i < LANES.length; i++) { const d = laneDist(x, z, i); if (d < bd) { bd = d; best = i; } } return best; };
 export const riverX = z => RIVER.amp * Math.sin(z * RIVER.k);
 
@@ -269,7 +269,8 @@ export const RANK = {
 };
 
 const T_BASE = {
-  lateAt: 360, lateK: 0.4, respawnK: 1,                               // when waves start to snowball, and how fast; respawn scale
+  lateAt: 360, lateK: 0.4, respawnK: 1,
+  sight: { hero: 20, minion: 13, neutral: 0, tower: 17, core: 20 },      // how far each kind of unit sees, where the mode has fog                               // when waves start to snowball, and how fast; respawn scale
   maxLevel: 12, xpNeed: L => 90 + 55 * L,
   waveFirst: 6, waveEvery: 24,
   towerHp: 2650, towerAd: 150, towerRange: 13.5, towerPeriod: 1.05,

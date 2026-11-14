@@ -44,6 +44,7 @@ export function createUI(isTouch, audio) {
   };
 
   // ---------- match HUD ----------
+  let fogCv = null, fogImg = null;
   let skillEls = [], shopTiles = [], roster = [], scoreRows = [], scoreHead = [], lastItems = '', miniBg = null, miniT = 0, G = null, tipT = 0;
   ui.bind = (game, actions) => {
     G = game; const p = G.player, d = p.def; cache.clear(); lastItems = ''; miniBg = null;
@@ -123,6 +124,11 @@ export function createUI(isTouch, audio) {
       b.fillStyle = 'rgba(255,214,110,.5)'; for (const cp of CAMPS) { b.beginPath(); b.arc(X(cp.x), Z(cp.z), cp.kind === 'guardian' ? 7 : 4.5, 0, 6.3); b.fill(); }
     }
     g.drawImage(miniBg, 0, 0);
+    if (G.fog) {                                                       // fog: one pixel per cell, stretched over the map
+      const F = G.fog; if (!fogCv || fogCv.width !== F.w) { fogCv = document.createElement('canvas'); fogCv.width = F.w; fogCv.height = F.h; fogImg = fogCv.getContext('2d').createImageData(F.w, F.h); }
+      const d = fogImg.data; for (let i = 0; i < F.data.length; i++) { d[i * 4] = 2; d[i * 4 + 1] = 4; d[i * 4 + 2] = 9; d[i * 4 + 3] = (1 - Math.min(1, F.data[i] * 1.3)) * 150; }
+      fogCv.getContext('2d').putImageData(fogImg, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(fogCv, 0, 0, w, h);
+    }
     const col = t => TEAM_COL[t].css, me = G.player.team;
     for (const u of G.units) {
       if (!u.alive || (u.hid && u.team !== me)) continue; const x = X(u.x), z = Z(u.z);

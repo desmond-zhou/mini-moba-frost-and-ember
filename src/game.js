@@ -1,6 +1,7 @@
 // game.js — rules of the match: units, combat, abilities, minion waves, towers, jungle camps, economy, bot AI.
 import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, laneZ, POS, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
 import { clamp, dist, dist2, angLerp, lerp } from './util.js';
+import * as THREE from 'three';
 import { createVfx } from './vfx.js';
 import { BARKS } from './barks.js';
 
@@ -15,6 +16,31 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   const V = createVfx(fx, audio);
   const close = e => dist2(e.x, e.z, G.focus.x, G.focus.z) < 26;
 
+  // ---------------- fog of war (where the mode has it) ----------------
+  // A coarse grid over the map holds how well the player's side sees each cell. It darkens the ground through a plane laid
+  // just above it and is what the minimap dims by. The rules themselves do not read it: sight is decided unit against unit.
+  const FOG = !!MODE.fog; let fogT = 0, paintFog = () => {};
+  if (FOG) {
+    const CELL = 2, fw = Math.ceil(MAP.hx * 2 / CELL), fh = Math.ceil(MAP.hz * 2 / CELL), want = new Float32Array(fw * fh), cur = new Float32Array(fw * fh), px = new Uint8Array(fw * fh);
+    const tex = new THREE.DataTexture(px, fw, fh, THREE.RedFormat); tex.magFilter = tex.minFilter = THREE.LinearFilter; tex.needsUpdate = true;
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(MAP.hx * 2 + 160, MAP.hz * 2 + 140).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
+      uniforms: { tFog: { value: tex }, uHalf: { value: new THREE.Vector2(MAP.hx, MAP.hz) } }, transparent: true, depthWrite: false,
+      vertexShader: 'varying vec2 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xz; gl_Position = projectionMatrix * viewMatrix * w; }',
+      fragmentShader: 'uniform sampler2D tFog; uniform vec2 uHalf; varying vec2 vW; void main(){ vec2 uv = clamp((vW + uHalf) / (uHalf * 2.0), 0.0, 1.0); float v = texture2D(tFog, uv).r; gl_FragColor = vec4(0.012, 0.018, 0.035, (1.0 - smoothstep(0.05, 0.95, v)) * 0.62); }',
+    }));
+    plane.position.y = 0.13; plane.renderOrder = -2; plane.userData.noAO = true; plane.frustumCulled = false; M.root.add(plane);
+    G.fog = { w: fw, h: fh, data: cur, plane };
+    paintFog = () => {
+      want.fill(0); const mine = G.player.team;
+      for (const u of G.units) {
+        if (!u.alive || u.team !== mine) continue; const R0 = T.sight[u.kind]; if (!R0) continue;
+        const cx = (u.x + MAP.hx) / CELL, cz = (u.z + MAP.hz) / CELL, rc = R0 / CELL, x0 = Math.max(0, Math.floor(cx - rc)), x1 = Math.min(fw - 1, Math.ceil(cx + rc)), z0 = Math.max(0, Math.floor(cz - rc)), z1 = Math.min(fh - 1, Math.ceil(cz + rc));
+        for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) { const d = Math.hypot(x + 0.5 - cx, z + 0.5 - cz) / rc; if (d < 1) { const v = d < 0.62 ? 1 : (1 - d) / 0.38, i = z * fw + x; if (v > want[i]) want[i] = v; } }
+      }
+      for (let i = 0; i < cur.length; i++) { cur[i] += (want[i] - cur[i]) * 0.45; px[i] = cur[i] * 255; }
+      tex.needsUpdate = true;
+    };
+  }
   // a line of speech: only for those in view, never two at once from the same mouth, and not everyone talking over each other
   let sayAt = -9; const sayQ = [];
   function say(h, kind, chance = 1) {
@@ -801,11 +827,21 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       for (const c of G.camps) if (c.respawnT > 0) { c.respawnT -= dt; if (c.respawnT <= 0) spawnCamp(c); }
       for (const team of [FROST, EMBER]) { if (G.buffT[team] > 0) G.buffT[team] -= dt; let n = 0, sum = 0; for (const h of G.heroes) if (h.team === team) { n++; sum += h.level; } G.avgLvl[team] = sum / n; }
       for (const e of G.units) { e.brush = !e.alive || isStruct(e) ? -1 : brushAt(e.x, e.z); if (e.revealT > 0) e.revealT -= dt; }
+      // who can be seen. Brush hides you from anyone not in it with you; in a mode with fog you must also be within sight of
+      // something on the other side (a cultivator, a disciple, a tower). Striking, casting or being hit shows you for a moment.
       for (const e of G.units) {
-        if (e.brush < 0 || e.revealT > 0 || e.team === NEUTRAL) { e.hid = false; continue; }
-        let seen = false; for (const o of G.units) if (o.alive && o.team === 1 - e.team && !isStruct(o) && (o.brush === e.brush || dist2(o.x, o.z, e.x, e.z) < 2.6)) { seen = true; break; }
-        e.hid = !seen;
+        if (e.team === NEUTRAL || isStruct(e) || !e.alive || e.revealT > 0) { e.hid = false; continue; }
+        if (e.brush < 0 && !FOG) { e.hid = false; continue; }
+        let sight = !FOG, bush = e.brush < 0; const foe = 1 - e.team;
+        for (const o of G.units) {
+          if (!o.alive || o.team !== foe) continue; const d = dist2(o.x, o.z, e.x, e.z);
+          if (!sight && d < T.sight[o.kind] + e.r) sight = true;
+          if (!bush && !isStruct(o) && (o.brush === e.brush || d < 2.6)) bush = true;
+          if (sight && bush) break;
+        }
+        e.hid = !(sight && bush);
       }
+      if (FOG && (fogT -= dt) <= 0) { fogT = 0.12; paintFog(); }
       while (G.pings.length && G.t - G.pings[0].t > 4) G.pings.shift();
       while (sayQ.length && sayQ[0].at <= G.t) { const q = sayQ.shift(); if (q.h.alive) say(q.h, 'kill', q.chance); }
       for (const e of G.units) {

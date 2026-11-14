@@ -11,7 +11,7 @@ const F = v => { const t = Number(v).toFixed(6); return t.includes('.') ? t : t 
 // the nearest lane to p: returns the distance to its centre line and writes that lane's z at p.x into lz
 const laneGLSL = () => 'float laneNear(vec2 p, out float lz){ float best = 1e9, z, d, c, sl; lz = 0.0;\n' + LANES.map(L => (L.type === 'sine'
   ? `    z = ${F(L.amp)} * sin(p.x * ${F(L.k)}); d = abs(p.y - z);`
-  : `    c = max(cos(p.x * ${F(L.k)}), 0.0001); z = ${F(L.z0)} * pow(c, ${F(L.q)}); sl = ${F(L.z0 * L.q * L.k)} * pow(c, ${F(L.q - 1)}) * sin(p.x * ${F(L.k)}); d = abs(p.y - z) / sqrt(1.0 + sl * sl);`)
+  : `    c = max(cos(p.x * ${F(L.k)}), 0.0001); z = ${F(L.z0)} * pow(c, ${F(L.q)}); sl = ${F(L.z0 * L.q * L.k)} * pow(c, ${F(L.q - 1)}) * sin(p.x * ${F(L.k)}); d = abs(p.x) > ${F(MAP.core + 1)} ? 1e9 : abs(p.y - z) / sqrt(1.0 + sl * sl);`)
   + ' if (d < best) { best = d; lz = z; }').join('\n') + '\n    return best; }';
 const groundPars = () => `
   uniform sampler2D tNoise; uniform float uTime; uniform vec3 uCamps[${CAMPS.length}]; uniform vec3 uBrush[${BRUSH.length}];
