@@ -1,7 +1,8 @@
 // game.js — rules of the match: units, combat, abilities, minion waves, towers, jungle camps, economy, bot AI.
-import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, nearestLane, POS, SEATS, SEAT_FIT, SUPPORTS, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
+import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, nearestLane, RIVER, RIDGE_ENDS, POS, SEATS, SEAT_FIT, SUPPORTS, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
 import { clamp, dist, dist2, angLerp, lerp } from './util.js';
 import * as THREE from 'three';
+import { Graph, AStar, NavNode, NavEdge, Vector3 as YVec } from 'yuka';
 import { createVfx } from './vfx.js';
 import { BARKS } from './barks.js';
 
@@ -189,6 +190,36 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const sp = speedOf(e), step = Math.min(d, sp * dt); dx /= d; dz /= d;
     e.x += dx * step; e.z += dz * step; e.facing = angLerp(e.facing, Math.atan2(dz, dx), dt * 14); e.moving = true; e.curSpeed = sp;
     collide(e, dx, dz, step);
+  }
+  // ---------------- finding the way ----------------
+  // Where the map has walls (三路's ridges and precincts), cultivators do not just walk at what they want. A graph of
+  // waypoints — along the lanes, at the camps, the brush, the river, and just past the end of every ridge — is joined
+  // wherever two points can see each other; when the straight walk is blocked, A* over that graph (Yuka) gives the turns.
+  const blocked = (ax, az, bx, bz, pad = 1.05) => { const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1; for (const w of W.walls) { const t = clamp(((w.x - ax) * dx + (w.z - az) * dz) / L2, 0, 1), qx = ax + dx * t - w.x, qz = az + dz * t - w.z, rr = w.r + pad; if (qx * qx + qz * qz < rr * rr) return true; } return false; };
+  const NAV = W.walls.length ? (() => {
+    const pts = [...RIDGE_ENDS.map(p => ({ ...p })), ...CAMPS.map(c => ({ x: c.x, z: c.z })), ...BRUSH.map(b => ({ x: b.x, z: b.z })), POS.fountain(FROST), POS.fountain(EMBER), POS.core(FROST), POS.core(EMBER)];
+    for (const L of LANES) { const n = Math.round((L.s1 - L.s0) / 10); for (let i = 0; i <= n; i++) pts.push(L.at(L.s0 + (L.s1 - L.s0) * i / n, 0)); }
+    for (let i = 0; i <= 16; i++) pts.push(RIVER.at(i / 16, 0));
+    const nodes = pts.filter(p => Math.abs(p.x) < MAP.hx - 1 && Math.abs(p.z) < MAP.hz - 1 && !W.walls.some(w => (p.x - w.x) ** 2 + (p.z - w.z) ** 2 < (w.r + 1.3) ** 2));
+    const g = new Graph(); nodes.forEach((p, i) => g.addNode(new NavNode(i, new YVec(p.x, 0, p.z))));
+    let edges = 0; for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const d = dist(nodes[i], nodes[j]); if (d < 36 && !blocked(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z)) { g.addEdge(new NavEdge(i, j, d)); g.addEdge(new NavEdge(j, i, d)); edges++; } }
+    const seen = (x, z) => { let best = -1, bd = 1e9; for (let i = 0; i < nodes.length; i++) { const d = (nodes[i].x - x) ** 2 + (nodes[i].z - z) ** 2; if (d < bd && !blocked(x, z, nodes[i].x, nodes[i].z, 0.6)) { bd = d; best = i; } } return best; };
+    return { g, nodes, edges, seen };
+  })() : null;
+  G.nav = NAV;
+  function route(x, z, tx, tz) {                                       // the waypoints to walk, or null when the way is clear
+    if (!blocked(x, z, tx, tz)) return null;
+    const a = NAV.seen(x, z), b = NAV.seen(tx, tz); if (a < 0 || b < 0) return null;
+    const s = new AStar(NAV.g, a, b); s.search(); const path = s.found ? s.getPath().map(i => NAV.nodes[i]) : [NAV.nodes[a]];
+    path.push({ x: tx, z: tz }); return path;
+  }
+  function go(h, tx, tz, dt) {
+    if (!NAV || h.kind !== 'hero') return moveToward(h, tx, tz, dt);
+    const n = h.nav || (h.nav = { tx: 1e9, tz: 0, path: null, i: 0, t: 0 });
+    if (Math.abs(tx - n.tx) + Math.abs(tz - n.tz) > 3 || G.t > n.t) { n.tx = tx; n.tz = tz; n.t = G.t + 0.7; n.path = route(h.x, h.z, tx, tz); n.i = 0; }
+    if (!n.path) return moveToward(h, tx, tz, dt);
+    while (n.i < n.path.length - 1 && (dist2(h.x, h.z, n.path[n.i].x, n.path[n.i].z) < 1.8 || !blocked(h.x, h.z, n.path[n.i + 1].x, n.path[n.i + 1].z))) n.i++;   // cut the corner as soon as the next one is in view
+    moveToward(h, n.path[n.i].x, n.path[n.i].z, dt);
   }
   // returns true while in range (attacking), false if the unit needs to close in
   function tryAttack(e, dt) {
@@ -564,13 +595,13 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (!o) { if (h.isPlayer) { const t = autoAcquire(h); if (t) h.order = { type: 'attack', target: t, auto: true }; } return; }
     if (o.type === 'attack') {
       const t = o.target; if (!valid(t) || !canSee(h, t) || (o.auto && dist(h, t) > h.range + 9)) { h.order = null; h.target = null; return; }
-      h.target = t; if (!tryAttack(h, dt)) moveToward(h, t.x, t.z, dt);
+      h.target = t; if (!tryAttack(h, dt)) go(h, t.x, t.z, dt);
     } else if (o.type === 'amove') {   // attack-move: walk to the point; the moment anything hostile is in reach, fight the nearest one
       if (!valid(o.target) || !canSee(h, o.target) || dist(h, o.target) - o.target.r > h.range + 5) o.target = autoAcquire(h, Math.max(h.range + 2, 8), true);
-      if (o.target) { h.target = o.target; if (!tryAttack(h, dt)) moveToward(h, o.target.x, o.target.z, dt); }
-      else { h.windT = -1; if (dist2(h.x, h.z, o.x, o.z) < 0.5) h.order = null; else moveToward(h, o.x, o.z, dt); }
+      if (o.target) { h.target = o.target; if (!tryAttack(h, dt)) go(h, o.target.x, o.target.z, dt); }
+      else { h.windT = -1; if (dist2(h.x, h.z, o.x, o.z) < 0.5) h.order = null; else go(h, o.x, o.z, dt); }
     } else if (o.type === 'move') {
-      h.windT = -1; if (dist2(h.x, h.z, o.x, o.z) < 0.35) h.order = null; else moveToward(h, o.x, o.z, dt);
+      h.windT = -1; if (dist2(h.x, h.z, o.x, o.z) < 0.35) h.order = null; else go(h, o.x, o.z, dt);
     } else { h.windT = -1; moveToward(h, h.x + o.dx * 4, h.z + o.dz * 4, dt); }
   }
   function updateHero(h, dt) {

@@ -3,7 +3,7 @@
 // are painted on a canvas at load, displaced boulders, undergrowth, grass, drifting motes.
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { MAP, LANES, RIVER, TOWERS, CAMPS, POS, FROST, EMBER, BRUSH, brushAt, biomeX, biomeGLSL, MODE } from './config.js';
+import { MAP, LANES, RIVER, TOWERS, CAMPS, POS, FROST, EMBER, BRUSH, brushAt, biomeX, biomeGLSL, MODE, RIDGES } from './config.js';
 import { rng, vnoise, smooth } from './util.js';
 import { vcMat, part, build, G, K, kind, uTime, tNoise, COMMON_GLSL } from './mat.js';
 
@@ -251,7 +251,7 @@ function card(list, cx, cy, cz, w, h, nx, ny, nz, roll, ox, oy, oz, shade = 1) {
 
 export function createWorld(R) {
   const { scene, renderer } = R;
-  const W = { obstacles: [] }, owned = [], add = (...o) => { for (const q of o) { scene.add(q); owned.push(q); } };
+  const W = { obstacles: [], walls: [] }, owned = [], add = (...o) => { for (const q of o) { scene.add(q); owned.push(q); } };
   const AREA = (MAP.hx * MAP.hz) / (80 * 48);                            // scatter counts scale with the size of the map
   const rand = rng(20261111);
 
@@ -466,6 +466,15 @@ export function createWorld(R) {
     const rp = RIVER.at(rand(), (rand() < 0.5 ? -1 : 1) * (4.3 + rand() * 2.2)), x = rp.x, z = rp.z, t = terrain(x, z);
     if (t.dl > 7) rockAt(x, z, 0.3 + rand() * 0.55, t, false);
   }
+  // ridges: a spine of big boulders along each wall segment. Each boulder is also a solid circle for movement and for paths.
+  for (const [A, B] of RIDGES) {
+    const d = Math.hypot(B[0] - A[0], B[1] - A[1]), n = Math.max(2, Math.round(d / 1.7));
+    for (let i = 0; i <= n; i++) {
+      const x = A[0] + (B[0] - A[0]) * i / n, z = A[1] + (B[1] - A[1]) * i / n, t = terrain(x, z);
+      rockAt(x + (rand() - 0.5) * 0.5, z + (rand() - 0.5) * 0.5, 1.75 + rand() * 0.7, t, false); if (rand() < 0.5) rockAt(x + (rand() - 0.5) * 1.6, z + (rand() - 0.5) * 1.6, 0.8 + rand() * 0.5, t, false);
+      W.walls.push({ x, z, r: 1.5 });
+    }
+  }
   instanced(rg, vcMat({ world: true }), rocks);
 
   // ---- sect precincts: a low stone balustrade around each one, and a gate (山门) where every lane comes in ----
@@ -482,12 +491,12 @@ export function createWorld(R) {
       const ring = (o, R, other, Ro) => { const n = Math.round(6.2832 * R / 2.75); for (let i = 0; i < n; i++) { const a = i / n * 6.2832, x = o.x + Math.cos(a) * R, z = o.z + Math.sin(a) * R;
         if (Math.hypot(x - other.x, z - other.z) < Ro - 0.3 || Math.abs(x) > MAP.hx + 6 || Math.abs(z) > MAP.hz + 6) continue;       // inside the other circle, or off the map
         let open = false; for (const L of LANES) if (L.dist(x, z) < 8.6) open = true; if (open) continue;                        // the lanes come through here
-        walls[team].push({ x, z, s: 1, ry: -a + Math.PI / 2, c: tint }); } };
+        walls[team].push({ x, z, s: 1, ry: -a + Math.PI / 2, c: tint }); if (RIDGES.length) W.walls.push({ x, z, r: 1.45 }); } };
       ring(c, Rc, f, Rf); ring(f, Rf, c, Rc);
       for (const L of LANES) {                                           // the gate stands where the lane crosses the edge of the precinct
         const from = team === FROST ? L.s0 : L.s1, dir = team === FROST ? 1 : -1; let s = from, q = L.at(s, 0);
         for (let k = 0; k < 400 && Math.min(Math.hypot(q.x - c.x, q.z - c.z), Math.hypot(q.x - f.x, q.z - f.z) + MAP.baseF) < MAP.base + 0.9; k++) { s += dir * 0.25; q = L.at(s, 0); }
-        const t = L.tan(s); gates[team].push({ x: q.x, z: q.z, s: 1, ry: Math.atan2(-t.x, -t.z), c: tint });
+        const t = L.tan(s); gates[team].push({ x: q.x, z: q.z, s: 1, ry: Math.atan2(-t.x, -t.z), c: tint }); if (RIDGES.length) for (const sd of [-7.4, 7.4]) W.walls.push({ x: q.x - t.z * sd, z: q.z + t.x * sd, r: 0.95 });
       }
     }
     // 血魂宗's fence is a row of tusks leaning outward from a black sill; its gates are two obsidian spires hung with chains,
@@ -586,6 +595,7 @@ export function createWorld(R) {
   const motes = new THREE.Points(mg, mm); motes.frustumCulled = false; motes.renderOrder = 19; add(motes);
   const setScale = s => { mm.uniforms.uScale.value = s.ph / (2 * Math.tan(R.camera.fov * Math.PI / 360)); };
   R.onResize.push(setScale); setScale(R.size);
+  for (const w of W.walls) W.obstacles.push(w);
   W.dispose = () => {
     const k = R.onResize.indexOf(setScale); if (k >= 0) R.onResize.splice(k, 1);
     for (const o of owned) { scene.remove(o); if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); if (o.shadow && o.shadow.map) o.shadow.map.dispose(); if (o.dispose && o.isInstancedMesh) o.dispose(); }

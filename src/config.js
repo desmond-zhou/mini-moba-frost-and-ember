@@ -75,6 +75,9 @@ export const MODES = {
       { x: -33, z: 12, r: 3.3 }, { x: -8, z: 34, r: 3.3 }, { x: -51, z: -3, r: 3.3 }, { x: 3, z: 53, r: 3.3 },
       { x: -47, z: -31, r: 3.3 }, { x: -22, z: -8, r: 3.2 },
     ]),
+    // Ridges that wall the jungle off from the lanes, with gaps to go in by. Given for frost's upper quarter; the other three
+    // quarters are its reflection across the middle lane and across the centre of the map.
+    ridges: [[[-57, 24], [-57, 4]], [[-57, -12], [-57, -26]], [[-48, 34], [-38, 24]], [[-30, 16], [-18, 4]]],
     // 三路's own numbers. Everything not named here falls back to the shared table.
     tune: {
       waveEvery: 28, coreHp: 5200, lateAt: 720, lateK: 0.3, respawnK: 1.15, startGold: 300,
@@ -109,6 +112,7 @@ export const SEAT_FIT = {
 export let MODE = MODES.single;
 export const MAP = { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126], base: 15, baseF: 4 };
 export const LANES = [], CAMPS = [], BRUSH = [], TOWERS = [];
+export const RIDGES = [], RIDGE_ENDS = [];                          // wall segments [[x,z],[x,z]] and a point just past each end, for paths to round
 export let MID = 0, RIVER = null;
 export const laneZ = (x, lane = MID) => LANES[lane].f(x);            // 一路 only
 // where a point sits between the two bases: negative toward frost, positive toward ember
@@ -420,6 +424,11 @@ export function setMode(id) {
   Object.assign(MAP, m.map); RIVER = m.river();
   LANES.length = 0; LANES.push(...m.lanes()); CAMPS.length = 0; CAMPS.push(...m.camps); BRUSH.length = 0; BRUSH.push(...m.brush);
   for (const k of Object.keys(T)) delete T[k]; Object.assign(T, T_BASE, m.tune);
+  RIDGES.length = 0; RIDGE_ENDS.length = 0;
+  for (const [a, b] of m.ridges || []) for (const f of [p => p, p => [-p[1], -p[0]], p => [-p[0], -p[1]], p => [p[1], p[0]]]) {
+    const A = f(a), B = f(b), d = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / d, uz = (B[1] - A[1]) / d;
+    RIDGES.push([A, B]); RIDGE_ENDS.push({ x: A[0] - ux * 3.6, z: A[1] - uz * 3.6 }, { x: B[0] + ux * 3.6, z: B[1] + uz * 3.6 });
+  }
   TOWERS.length = 0;
   for (const team of [FROST, EMBER]) LANES.forEach((L, lane) => L.towers.forEach((_, i) => { const s = L.towerS(team, i + 1); TOWERS.push({ team, lane, tier: i + 1, s, ...L.at(s, L.towerOff(team)) }); }));
   return m;
