@@ -99,6 +99,7 @@ export function createInput(R, fx, ui, audio, isTouch) {
     if (ui.menuOpen && k !== 'escape' && k !== 'm') return;
     if (i >= 0) { if (aim.i >= 0 && aim.i !== i) cancelAim(); if (beginAim(i, false)) aim.key = k; }
     else if (k >= '1' && k <= '4' && k.length === 1) I.G.learn(+k - 1);
+    else if (k === '5' || k === '6') I.G.chooseInsight(+k - 5);
     else if (k === 'a') { cancelAim(); if (live()) { amove = true; canvas.style.cursor = 'crosshair'; } }
     else if (k === 's') { cancelAim(); I.G.cmdStop(); }
     else if (k === 'z' || k === 'x' || k === 'c') I.signal(k === 'z' ? 'gather' : k === 'x' ? 'attack' : 'retreat', true);

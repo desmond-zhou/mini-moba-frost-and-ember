@@ -21,7 +21,7 @@ const store = { get(k, d) { try { return localStorage.getItem('frostember.' + k)
 
 export function createUI(isTouch, audio) {
   const ui = { shopOpen: false, onCast: null, onBuy: null };
-  const el = {}; for (const id of ['hud', 'title', 'end', 'cards', 'detail', 'diff', 'portrait', 'rosF', 'rosE', 'goBtn', 'help', 'kF', 'kE', 'clock', 'pipF', 'pipE', 'buff', 'feed', 'announce', 'toast', 'dead', 'deadT', 'tip', 'touch', 'pName', 'pLvl', 'skills', 'hpFill', 'hpTxt', 'mpFill', 'mpTxt', 'xpFill', 'gold', 'kda', 'items', 'shop', 'shopGrid', 'shopBtn', 'shopX', 'mini', 'endMark', 'endSub', 'endTable', 'againBtn', 'muteBtn', 'qBtn', 'pas', 'chan', 'chanFill', 'score', 'recallBtn', 'top', 'shopNote', 'menu', 'menuBtn', 'mResume', 'mRestart', 'mQuit', 'vMusic', 'vSfx', 'ult', 'modeSel', 'sub', 'sig', 'seatSel', 'chat']) el[id] = $(id);
+  const el = {}; for (const id of ['ins', 'rec', 'hud', 'title', 'end', 'cards', 'detail', 'diff', 'portrait', 'rosF', 'rosE', 'goBtn', 'help', 'kF', 'kE', 'clock', 'pipF', 'pipE', 'buff', 'feed', 'announce', 'toast', 'dead', 'deadT', 'tip', 'touch', 'pName', 'pLvl', 'skills', 'hpFill', 'hpTxt', 'mpFill', 'mpTxt', 'xpFill', 'gold', 'kda', 'items', 'shop', 'shopGrid', 'shopBtn', 'shopX', 'mini', 'endMark', 'endSub', 'endTable', 'againBtn', 'muteBtn', 'qBtn', 'pas', 'chan', 'chanFill', 'score', 'recallBtn', 'top', 'shopNote', 'menu', 'menuBtn', 'mResume', 'mRestart', 'mQuit', 'vMusic', 'vSfx', 'ult', 'modeSel', 'sub', 'sig', 'seatSel', 'chat']) el[id] = $(id);
   document.body.classList.toggle('touch', isTouch);
   let goldShown = 0, kWas = [0, 0];
   el.touch.hidden = !isTouch;
@@ -38,7 +38,7 @@ export function createUI(isTouch, audio) {
     el.seatSel.onclick = e => { const c = e.target.closest('button'); if (c) { seat = +c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.modeSel.onclick = e => { const c = e.target.closest('button'); if (c) { mode = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.cards.innerHTML = HERO_ORDER.map(k => { const h = HEROES[k]; return `<button type="button" class="card" data-k="${k}"><i class="pt" style="background-image:url(${face(h)})"></i><h3>${h.name}</h3><div class="role">${h.role}</div><div class="ics">${h.skills.map(sk => `<i style="background-image:url(${icon(h, sk)})"></i>`).join('')}</div></button>`; }).join('');
-    const detail = () => { const h = HEROES[hero]; el.detail.innerHTML = `<i class="big" style="background-image:url(${face(h)})"></i><h3>${h.name}<small>${h.title}</small></h3><p>${h.blurb}</p><ul><li class="pv"><i style="background-image:url(${pasIcon(h)})"></i><div><b>被动 · ${h.passive.name}</b><span>${h.passive.desc}</span></div></li>${h.skills.map(sk => `<li><i style="background-image:url(${icon(h, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}</b><span>${sk.desc}</span></div></li>`).join('')}</ul>`; };
+    const detail = () => { el.rec.innerHTML = ui.recHtml(hero); const h = HEROES[hero]; el.detail.innerHTML = `<i class="big" style="background-image:url(${face(h)})"></i><h3>${h.name}<small>${h.title}</small></h3><p>${h.blurb}</p><ul><li class="pv"><i style="background-image:url(${pasIcon(h)})"></i><div><b>被动 · ${h.passive.name}</b><span>${h.passive.desc}</span></div></li>${h.skills.map(sk => `<li><i style="background-image:url(${icon(h, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}</b><span>${sk.desc}</span></div></li>`).join('')}</ul>`; };
     el.diff.innerHTML = Object.entries(T.difficulty).map(([k, d]) => `<button type="button" data-k="${k}">${d.name}</button>`).join('');
     const paint = () => { for (const c of el.cards.children) c.classList.toggle('on', c.dataset.k === hero); for (const c of el.diff.children) c.classList.toggle('on', c.dataset.k === diffK); for (const c of el.modeSel.children) c.classList.toggle('on', c.dataset.k === mode); el.sub.textContent = `${HERO_ORDER.length === 18 ? '十八' : HERO_ORDER.length}位修士 · ${MODES[mode].team}V${MODES[mode].team} · 摧毁敌方阵眼`;
       // 三路: pick your seat. ★ marks the ones this cultivator suits; 自动 takes the first of them. The others fill the rest.
@@ -106,7 +106,7 @@ export function createUI(isTouch, audio) {
       ui.toggleShop(false); ui.showScore(false); el.tip.hidden = true;
       if (G) { const p = G.player, d = p.def;                          // every ability spelled out: the one place to read them on a phone
         $('mSkills').innerHTML = `<li><i style="background-image:url(${pasIcon(d)});border-radius:50%"></i><div><b>被动 · ${d.passive.name}</b><span>${d.passive.desc}</span></div></li>` + d.skills.map((sk, i) => { const R = i === 3 ? RANK.ult : RANK.basic, r = p.ranks[i], e = G.skill(i), word = sk.kind === 'shield' ? '罡气' : sk.kind === 'heal' ? '治疗' : '伤害';
-          return `<li><i style="background-image:url(${icon(d, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}<u>${r ? R.name[r - 1] : '未学'}</u></b><span>${sk.desc}</span><span class="n">灵力 ${sk.mana} · 调息 ${(e.cd * (1 - p.cdr)).toFixed(1)} 秒${sk.b !== undefined ? ` · ${word} ${Math.round(G.skillDmg(i, Math.max(1, r)))}` : ''}${scaleTxt(sk) ? ` · 随 ${scaleTxt(sk)}` : ''}</span></div></li>`; }).join(''); }
+          return `<li><i style="background-image:url(${icon(d, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}<u>${r ? R.name[r - 1] : '未学'}</u></b><span>${e.desc || sk.desc}</span><span class="n">灵力 ${sk.mana} · 调息 ${(e.cd * (1 - p.cdr)).toFixed(1)} 秒${sk.b !== undefined ? ` · ${word} ${Math.round(G.skillDmg(i, Math.max(1, r)))}` : ''}${scaleTxt(sk) ? ` · 随 ${scaleTxt(sk)}` : ''}</span></div></li>`; }).join(''); }
     }
   };
   el.menuBtn.onclick = () => { audio.init(); ui.toggleMenu(); }; el.mResume.onclick = () => ui.toggleMenu(false);
@@ -130,6 +130,24 @@ export function createUI(isTouch, audio) {
   }
   // what your side's bots say to each other: a face, a name, a few words; three lines at most, each gone in a few seconds
   ui.chat = (h, text) => { const d = document.createElement('div'); d.innerHTML = `<i class="fp" style="background-image:url(${faceOf(h)})"></i><b>${h.name}</b>${text}`; el.chat.append(d); while (el.chat.children.length > 3) el.chat.firstChild.remove(); setTimeout(() => d.remove(), 5200); };
+  const ACH = [
+    ['kill', '开锋', '镇压一名修士'], ['multi3', '三花聚顶', '十息之内连镇三人'], ['streak7', '一人镇一宗', '不陨落连镇七人'], ['clean', '不染尘', '一次不陨落地赢下一局'],
+    ['turn', '逆天改命', '镇压数落后的情况下取胜'], ['fast', '速战', '一路十分钟内取胜'], ['both', '两路通吃', '一路和三路各赢一局'], ['ten', '守山人', '累计赢十局'],
+    ['fire', '三百年', '用沈焰和林霜各赢一局'], ['hard', '天衍', '困难难度下用周易取胜'], ['all', '十八般', '十八位修士都用过'],
+  ];
+  const recGet = () => { try { return JSON.parse(store.get('rec', '{}')) || {}; } catch { return {}; } };
+  const recOf = () => { const r = recGet(); r.h = r.h || {}; r.a = r.a || {}; r.m = r.m || {}; return r; };
+  ui.record = (G, diffK) => {                                           // called once when a match ends; returns the names newly earned
+    const r = recOf(), p = G.player, id = p.def.id, win = G.winner === p.team, me = r.h[id] || (r.h[id] = { n: 0, w: 0, k: 0, s: 0 });
+    me.n++; if (win) me.w++; me.k += p.kills; me.s = Math.max(me.s, p.bestStreak || 0); if (win) r.m[MODE.id] = (r.m[MODE.id] || 0) + 1;
+    const wins = Object.values(r.h).reduce((a, x) => a + x.w, 0), got = [];
+    const test = { kill: p.kills > 0, multi3: (p.bestMulti || 0) >= 3, streak7: (p.bestStreak || 0) >= 7, clean: win && p.deaths === 0, turn: win && G.kills[p.team] < G.kills[1 - p.team], fast: win && MODE.id === 'single' && G.t < 600,
+      both: r.m.single > 0 && r.m.tri > 0, ten: wins >= 10, fire: (r.h.archer || {}).w > 0 && (r.h.linshuang || {}).w > 0, hard: win && id === 'mage' && diffK === 'hard', all: HERO_ORDER.every(k => r.h[k]) };
+    for (const [k, name] of ACH) if (test[k] && !r.a[k]) { r.a[k] = 1; got.push(name); }
+    store.set('rec', JSON.stringify(r)); return got;
+  };
+  ui.recHtml = id => { const r = recOf(), me = r.h[id], n = ACH.filter(a => r.a[a[0]]).length;
+    return `<span class="rs">${me ? `此人 ${me.n} 场 · 胜 ${me.w} · 镇压 ${me.k}${me.s ? ' · 最高连镇 ' + me.s : ''}` : '此人还没出过山'}</span><span class="ra">成就 ${n} / ${ACH.length}</span>` + ACH.map(a => `<i class="${r.a[a[0]] ? 'on' : ''}" title="${a[2]}">${a[1]}<small>${a[2]}</small></i>`).join(''); };
   ui.buzz = p => { try { if (isTouch && navigator.vibrate) navigator.vibrate(p); } catch { /* not every phone allows it */ } };
   ui.rally = on => { const b = el.sig.querySelector('[data-s=rally]'); if (b) b.classList.toggle('on', on); ui.toast(on ? '开团' : '解散'); };
   ui.announce = (text, cls) => { el.announce.textContent = text; el.announce.className = cls || ''; el.announce.animate([{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.12 }, { opacity: 1, offset: 0.8 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 2600, easing: 'ease-out' }); };
@@ -213,9 +231,11 @@ export function createUI(isTouch, audio) {
       }
     }
     for (const r of roster) { txt(r.lv, String(r.h.level)); const d = r.h.alive ? '' : String(Math.ceil(r.h.respawnT)); if (cache.get(r.e) !== d) { cache.set(r.e, d); r.dead.textContent = d; r.e.classList.toggle('dead', !r.h.alive); } }
-    if (el.dead.hidden === p.alive) el.dead.hidden = p.alive; if (!p.alive) txt(el.deadT, String(Math.ceil(p.respawnT)));
+    if (el.dead.hidden !== p.alive) el.dead.hidden = p.alive; if (!p.alive) txt(el.deadT, String(Math.ceil(p.respawnT)));
     if (!el.shopNote.dataset.t) el.shopNote.dataset.t = el.shopNote.textContent;
     if (el.recallBtn.hidden !== !!MODE.noRecall) { el.recallBtn.hidden = !!MODE.noRecall; el.shopNote.textContent = MODE.noRecall ? '出过山门就只能看、不能买。一路没有归宗：只有出山前和陨落时能买。' : el.shopNote.dataset.t || el.shopNote.textContent; }
+    { const q = G.insight(), key = q ? q.tier + p.def.id : '';
+      if (cache.get(el.ins) !== key) { cache.set(el.ins, key); el.ins.hidden = !q; if (q) { el.ins.innerHTML = `<b>感悟<small>二选一</small></b>` + q.opts.map((o, k) => `<button type="button" data-k="${k}"><i style="background-image:url(${icon(p.def, o.skill)})"></i><span><u>${o.name}</u>${o.desc}</span><kbd>${k + 5}</kbd></button>`).join(''); el.ins.querySelectorAll('button').forEach(b => { b.onclick = () => { audio.init(); G.chooseInsight(+b.dataset.k); }; }); } } }
     const shopOK = G.canShop(); if (cache.get(el.shopBtn) !== shopOK) { cache.set(el.shopBtn, shopOK); el.shopBtn.classList.toggle('away', !shopOK); el.shopNote.hidden = shopOK; el.shopGrid.classList.toggle('away', !shopOK); }
     if (ui.shopOpen) for (const t of shopTiles) {
       const it = ITEMS[t.k], price = G.price(t.k), have = p.items.filter(x => x.id === t.k).length, full = it.tier === 3 && have > 0;
@@ -229,7 +249,7 @@ export function createUI(isTouch, audio) {
 
   ui.showEnd = onAgain => {
     const win = G.winner === G.player.team;
-    el.endMark.textContent = win ? '宗门大捷' : '山门失守'; el.endSub.textContent = `用时 ${fmt(G.t)} · 镇压 ${G.kills[FROST]} : ${G.kills[EMBER]}`;
+    el.endMark.textContent = win ? '宗门大捷' : '山门失守'; { const got = ui.record(G, store.get('diff', 'normal')); el.endSub.textContent = `用时 ${fmt(G.t)} · 镇压 ${G.kills[FROST]} : ${G.kills[EMBER]}` + (got.length ? ` · 新成就：${got.join('、')}` : ''); }
     const score = h => h.kills * 3 + h.assists * 1.5 - h.deaths * 1.2 + h.dealt / 1500 + (h.team === G.winner ? 2 : 0), best = G.heroes.reduce((a, h) => (score(h) > score(a) ? h : a)), top = Math.max(...G.heroes.map(h => h.dealt));
     el.endTable.innerHTML = '<tr><th class="c-team">阵营</th><th></th><th>修士</th><th>境界</th><th>镇压</th><th>陨落</th><th>合力</th><th>伤害</th><th class="c-gold">灵石</th></tr>' + G.heroes.map(h => `<tr class="${h === best ? 'best ' : ''}${h.team === FROST ? 'tf' : 'te'}"><td class="c-team ${h.team === FROST ? 'frost' : 'ember'}">${h.team === FROST ? '霜' : '烬'}</td><td><i class="fp" style="background-image:url(${faceOf(h)})"></i></td><td>${h.isPlayer ? '<u>' + h.name + '</u>' : h.name}${h === best ? '<span class="tag">最佳</span>' : ''}</td><td><span class="rl">${REALM[h.level - 1]}</span><span class="rn">${h.level}</span></td><td>${h.kills}</td><td>${h.deaths}</td><td>${h.assists}</td><td>${h.dealt === top ? '<b>' + kfmt(h.dealt) + '</b>' : kfmt(h.dealt)}</td><td class="c-gold">${kfmt(h.earned)}</td></tr>`).join('');
     ui.toggleMenu(false); el.hud.hidden = true; el.end.hidden = false; el.againBtn.onclick = () => { el.end.hidden = true; onAgain(); };

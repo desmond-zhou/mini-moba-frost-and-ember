@@ -1,5 +1,5 @@
 // game.js — rules of the match: units, combat, abilities, minion waves, towers, jungle camps, economy, bot AI.
-import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, nearestLane, RIVER, RIDGE_ENDS, POS, SEATS, SEAT_FIT, SEAT_BIAS, SUPPORTS, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
+import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, nearestLane, RIVER, RIDGE_ENDS, POS, SEATS, SEAT_FIT, SEAT_BIAS, SUPPORTS, INSIGHT, INSIGHT_LVL, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
 import { clamp, dist, dist2, angLerp, lerp } from './util.js';
 import * as THREE from 'three';
 import { Graph, AStar, NavNode, NavEdge, Vector3 as YVec, Think, GoalEvaluator, MemorySystem } from 'yuka';
@@ -169,13 +169,19 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // the ability as it currently stands for this hero: cooldown and durations follow its rank
   function eff(h, i) {
     const s = h.def.skills[i], R = rankOf(h, i), r = Math.max(1, h.ranks[i]), top = r === R.max ? RANK.top : 1;
-    return { ...s, cd: s.cd * R.cd[r - 1], rank: r, slow: s.slow ? [s.slow[0], s.slow[1] * top] : s.slow, stun: s.stun ? s.stun * top : s.stun, dur: s.dur && s.kind !== 'zone' && s.kind !== 'heal' ? s.dur * top : s.dur };
+    const e = { ...s, cd: s.cd * R.cd[r - 1], rank: r, slow: s.slow ? [s.slow[0], s.slow[1] * top] : s.slow, stun: s.stun ? s.stun * top : s.stun, dur: s.dur && s.kind !== 'zone' && s.kind !== 'heal' ? s.dur * top : s.dur };
+    for (const q of h.ins) if (q[0] === i) {                           // 感悟 taken on this move
+      for (const k in q[3] || {}) { if (k === 'dmg') e.dmgK = (e.dmgK || 1) * q[3][k]; else if (e[k] !== undefined) e[k] *= q[3][k]; }
+      for (const k in q[4] || {}) { if (k === 'slowT') { if (e.slow) e.slow = [e.slow[0], e.slow[1] + q[4][k]]; } else e[k] = (e[k] || 0) + q[4][k]; }
+      e.desc = `${s.desc}〔感悟 · ${q[1]}：${q[2]}〕`;
+    }
+    return e;
   }
   const N = MODE.team, slotZ = slot => (slot - (N - 1) / 2) * 2.8;
   function makeHero(defId, team, isPlayer, slot, lane = 0, laneOff = slotZ(slot)) {
     const d = HEROES[defId], sp = spawnAt(team, slotZ(slot));
     const h = unit('hero', team, sp.x, sp.z, { r: 0.95 + (d.size - 1.3) * 0.38, h: d.size * 3.55 + 0.35 + (d.tall || 0), hp: d.hp, ad: d.ad, range: d.range, period: d.period, wind: d.wind, ms: d.ms, ranged: d.ranged });
-    Object.assign(h, { def: d, name: d.name, isPlayer, level: 1, xp: 0, gold: T.startGold, mana: d.mana, maxMana: d.mana, items: [], ranks: [0, 0, 0, 0], sp: 1, cds: [0, 0, 0, 0], kills: 0, deaths: 0, assists: 0, respawnT: 0, order: null, dash: null, dmgLog: new Map(), ls: 0, cdr: 0, multi: 0, multiT: -99, pStack: 0, pT: 0, pCd: 0, pTgt: null, atHome: true, dealt: 0, earned: T.startGold, recallT: 0, recallFx: null, slot, ai: { state: 'lane', lane, castLock: 1.5 + Math.random() * 2, laneOff, ambushAt: 28 + Math.random() * 30, jungleAt: 45 + Math.random() * 30, shopAt: 0, sly: team === FROST || Math.random() < (diff.react > 1.5 ? 0.4 : 1), nose: team === FROST ? 0.7 : diff.react > 1.5 ? 0.35 : diff.react > 1 ? 0.7 : 1 } });
+    Object.assign(h, { def: d, name: d.name, isPlayer, level: 1, xp: 0, gold: T.startGold, mana: d.mana, maxMana: d.mana, items: [], ranks: [0, 0, 0, 0], ins: [], insPend: [], sp: 1, cds: [0, 0, 0, 0], kills: 0, deaths: 0, assists: 0, respawnT: 0, order: null, dash: null, dmgLog: new Map(), ls: 0, cdr: 0, multi: 0, multiT: -99, pStack: 0, pT: 0, pCd: 0, pTgt: null, atHome: true, dealt: 0, earned: T.startGold, recallT: 0, recallFx: null, slot, ai: { state: 'lane', lane, castLock: 1.5 + Math.random() * 2, laneOff, ambushAt: 28 + Math.random() * 30, jungleAt: 45 + Math.random() * 30, shopAt: 0, sly: team === FROST || Math.random() < (diff.react > 1.5 ? 0.4 : 1), nose: team === FROST ? 0.7 : diff.react > 1.5 ? 0.35 : diff.react > 1 ? 0.7 : 1 } });
     const tg = TEAM_COL[team].glow, mix = [tg[0] * 0.38 + d.tint[0] * 0.62, tg[1] * 0.38 + d.tint[1] * 0.62, tg[2] * 0.38 + d.tint[2] * 0.62], mx = Math.max(mix[0], mix[1], mix[2]);
     h.fxCol = [mix[0] / mx, mix[1] / mx, mix[2] / mx]; h.lsBuff = 0;
     h.view = M.hero(d, team, isPlayer); recalc(h); h.hp = h.maxHp; h.mana = h.maxMana; G.heroes.push(h); return h;
@@ -300,8 +306,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     while (h.level < T.maxLevel && h.xp >= T.xpNeed(h.level)) {
       h.xp -= T.xpNeed(h.level); h.level++; if (h.ranks[0] + h.ranks[1] + h.ranks[2] + h.ranks[3] + h.sp < 12) h.sp++; recalc(h);
       if (h.level === 5 || h.level === 9) { tribulation(h); say(h, 'up'); }
+      { const t = INSIGHT_LVL.indexOf(h.level); if (t >= 0) { h.insPend.push(t); if (!h.isPlayer || G.autoPlay) takeInsight(h, Math.random() < 0.5 ? 0 : 1); } }
       if (h.alive && near(h)) { fx.ringWave(h.x, h.z, 7, GOLD, 0.6); fx.burst(h.x, 1.5, h.z, GOLD, { n: 18, speed: 3, up: 9, life: 0.8, size: 0.5, grav: 4 }); }
-      if (h.isPlayer) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至小成', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 修为已满 · 绝招可至大成', 'good'); }
+      if (h.isPlayer) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至小成 · 有所感悟', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 修为已满 · 再悟一重', 'good'); }
     }
   }
   // 雷劫. Breaking through to 金丹 or 元婴 roots you for a breath inside a ward while the sky gathers, then lightning falls
@@ -422,7 +429,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         k.streak = (k.streak || 0) + 1; k.fallen = 0;
         chat(k, [`${tgt.name}倒了`, '拿下一个', '漂亮，继续压', `${tgt.name}没了，可以打`]); chat(tgt, ['我没了，别硬打', '大意了', '等我重聚', '他们人齐，先别上']);
         k.kills++; giveGold(k, T.killGold * fair + (G.firstBlood ? 0 : 100), tgt); addXp(k, (80 + 16 * tgt.level) * fair);
-        k.multi = G.t - k.multiT < 10 ? k.multi + 1 : 1; k.multiT = G.t;
+        k.multi = G.t - k.multiT < 10 ? k.multi + 1 : 1; k.multiT = G.t; k.bestMulti = Math.max(k.bestMulti || 0, k.multi); k.bestStreak = Math.max(k.bestStreak || 0, k.streak || 0); if (k.isPlayer && k.streak === 3) ui.toast('你连镇三人，对面盯上你了');
       }
       for (const [a] of rec) { const fair = clamp(0.35 + 0.65 * tgt.level / a.level, 0.4, 1.4) * worth; a.fallen = 0; a.assists++; giveGold(a, T.assistGold * fair); addXp(a, (40 + 8 * tgt.level) * fair); }
       say(tgt, 'die'); if (k) sayQ.push({ h: k, at: G.t + 1.3, chance: k.isPlayer ? 1 : 0.7 });
@@ -524,7 +531,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   }
 
   // ---------------- abilities ----------------
-  const skillDmg = (h, s, i) => ((s.b + s.l * (h.level - 1) * 0.5) * rankOf(h, i).dmg[Math.max(1, h.ranks[i]) - 1] + (s.ad || 0) * h.ad + (s.ap || 0) * h.ap) * (h.pow || 1);
+  const skillDmg = (h, s, i) => ((s.b + s.l * (h.level - 1) * 0.5) * rankOf(h, i).dmg[Math.max(1, h.ranks[i]) - 1] + (s.ad || 0) * h.ad + (s.ap || 0) * h.ap) * (h.pow || 1) * (s.dmgK || 1);
   const canCast = (h, i) => { const s = h.def.skills[i]; return h.alive && !h.dash && h.stunT <= 0 && h.cds[i] <= 0 && h.mana >= s.mana && h.ranks[i] > 0 && !(h.tauntT > 0) && !G.over; };
   function cast(h, i, ax, az) {
     if (!canCast(h, i)) return false;
@@ -723,7 +730,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (!retreat && !eh && h.combatT > 4 && G.t > ai.shopAt && (dist(h, f) > 42 || (!h.atHome && dist(h, f) < T.shopR)) && h.gold >= botWant(h)) { ai.shopAt = G.t + 30; if (startRecall(h)) { G.botStat.shop++; chat(h, '回去置办法器，马上来'); return; } }
     const campUp = c => c.units.some(u => u.alive), holding = hasFront && dir * (front - sOf(ownS)) > 8;
     const nearestCamp = far => { let best = null, bd = far; for (const c of G.camps) { if (c.c.kind !== 'golem' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } } return best; };
-    const ambushSpot = () => { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } return best; };
+    const ambushSpot = () => { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b) - (team !== G.player.team && G.favBrush === b ? 7 : 0); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } return best; };
     if (!TRI) {
       // 一路: now and then, lie in wait in the grass beside the lane; when the lane is quiet and holding, slip off to clear a camp
       if (ai.state === 'lane' && G.t > ai.ambushAt) {
@@ -800,7 +807,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     //   巡山 goes for the soft and the wounded, and in a brawl waits for someone else to start it.
     const role = SEAT_FIT[h.def.id][0], thr = eh, thrD = ehD; let wait = false, kite = false;
     if (eh && !retreat) {
-      if (nEH > 1 || role === 4) { let ps = -1e9; for (const e of G.heroes) { if (!e.alive || e.team === team || e.hid) continue; const d = dist(h, e); if (d > 14.5) continue; const lost = 1 - e.hp / e.maxHp, sc = role === 4 ? (e.ranged ? 1.6 : 0) + lost * 3 - d * 0.08 : role === 1 || role === 2 ? lost * 1.6 - d * 0.22 : -d * 0.3; if (sc > ps) { ps = sc; eh = e; ehD = d; } } }
+      if (nEH > 1 || role === 4) { let ps = -1e9; for (const e of G.heroes) { if (!e.alive || e.team === team || e.hid) continue; const d = dist(h, e); if (d > 14.5) continue; const lost = 1 - e.hp / e.maxHp, sc = role === 4 ? (e.ranged ? 1.6 : 0) + lost * 3 - d * 0.08 : role === 1 || role === 2 ? lost * 1.6 - d * 0.22 : -d * 0.3, mark = e.isPlayer && (e.streak || 0) >= 3 ? 1.3 : 0; if (sc + mark > ps && mark && G.t - (G.focusAt || -99) > 25 && near(h)) { G.focusAt = G.t; fx.say(h.x, h.h + 1.6, h.z, `先杀${e.name}！`, false); } if (sc + mark > ps) { ps = sc + mark; eh = e; ehD = d; continue; } if (sc > ps) { ps = sc; eh = e; ehD = d; } } }
       if (role === 4 && nAH >= 1 && nEH >= 2 && eh.hp / eh.maxHp > 0.6 && (ai.waitT || 0) < 2 && !G.heroes.some(o => o.alive && o.team === team && o !== h && dist(o, eh) < 9 && o.combatT < 2)) wait = true;   // ...but not for long
       if (h.ranged && role !== 0 && role !== 4 && !thr.ranged && thrD < 4.8 && hpF < 0.85 && h.windT < 0 && h.atkT > h.period * 0.3) kite = true;   // only from someone with a blade, and only once it has started to hurt
     }
@@ -1031,7 +1038,11 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.learn = i => learn(P(), i);
   G.canLearn = i => canLearn(P(), i);
   G.skill = i => eff(P(), i);
-  G.skillDmg = (i, rank) => { const h = P(), s = h.def.skills[i], keep = h.ranks[i]; h.ranks[i] = rank; const v = s.b !== undefined ? skillDmg(h, s, i) : 0; h.ranks[i] = keep; return v; };
+  G.skillDmg = (i, rank) => { const h = P(), keep = h.ranks[i]; h.ranks[i] = rank; const s = eff(h, i), v = s.b !== undefined ? skillDmg(h, s, i) : 0; h.ranks[i] = keep; return v; };
+  // 感悟: what is waiting to be chosen, and choosing it
+  G.insight = () => { const h = P(), t = h.insPend[0]; return t === undefined ? null : { tier: t, opts: INSIGHT[h.def.id][t].map(q => ({ name: q[1], desc: q[2], skill: h.def.skills[q[0]] })) }; };
+  const takeInsight = (h, k) => { const t = h.insPend.shift(); if (t === undefined) return false; const q = INSIGHT[h.def.id][t][k ? 1 : 0]; h.ins.push(q); if (near(h)) { fx.pillar(h.x, h.z, 1.4, 12, h.fxCol, 0.6); fx.ringWave(h.x, h.z, 9, h.fxCol, 0.5); } if (h.isPlayer) { audio.play('star'); ui.announce(`感悟 · ${q[1]}`, 'good'); ui.buzz(40); } return true; };
+  G.chooseInsight = k => takeInsight(P(), k);
 
   // ---------------- frame update ----------------
   const BAR = { kill: [1.0, 0.9, 0.3], self: [0.3, 0.95, 0.42], ally: [0.3, 0.62, 1.0], enemy: [1.0, 0.27, 0.2], neutral: [0.95, 0.78, 0.3] };
@@ -1065,6 +1076,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       }
       for (const team of [FROST, EMBER]) { if (G.surgeT[team] > 0) G.surgeT[team] -= dt; if (G.buffT[team] > 0) G.buffT[team] -= dt; let n = 0, sum = 0; for (const h of G.heroes) if (h.team === team) { n++; sum += h.level; } G.avgLvl[team] = sum / n; }
       for (const e of G.units) { e.brush = !e.alive || isStruct(e) ? -1 : brushAt(e.x, e.z); if (e.revealT > 0) e.revealT -= dt; }
+      { const p = G.player, b = p.alive ? p.brush : -1; if (b >= 0 && b !== G.pBrushWas) { const n = G.pBrushN || (G.pBrushN = {}); n[b] = (n[b] || 0) + 1; if (n[b] >= 3 && n[b] >= (n[G.favIdx] || 0)) { G.favIdx = b; G.favBrush = BRUSH[b]; } } G.pBrushWas = b; }   // the grass the player keeps going back to
       // who can be seen. Brush hides you from anyone not in it with you; in a mode with fog you must also be within sight of
       // something on the other side (a cultivator, a disciple, a tower). Striking, casting or being hit shows you for a moment.
       for (const e of G.units) {

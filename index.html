@@ -258,6 +258,18 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
   #shop { width: calc(100% - 20px); max-height: calc(100% - 14px); padding: 10px 14px; } #shop .tier { grid-template-columns: repeat(6, minmax(0, 1fr)); } #shop h2 { margin: 0 0 4px; font-size: 20px; } #shopNote { padding: 4px 10px; margin: 0 0 4px; font-size: 11.5px; }
 }
 @media (max-width: 480px) { #seatSel { gap: 4px; flex-wrap: nowrap; font-size: 0; margin-bottom: 26px; position: relative; } #seatSel button { padding: 5px 6px; font-size: 12px; white-space: nowrap; } #seatSel button.fit::after { content: '★'; font-size: 9px; } #seatSel em { position: absolute; left: 0; right: 0; top: 100%; margin-top: 5px; font-size: 11px; } }
+/* ---- 感悟: two turnings offered above the moves ---- */
+#ins { position: absolute; left: 50%; bottom: calc(150px + var(--sab)); transform: translateX(-50%); display: flex; gap: 8px; align-items: stretch; padding: 8px 10px; background: var(--panel-solid); border: 1px solid var(--brass); box-shadow: 0 0 18px rgba(223, 189, 120, .35); pointer-events: auto; z-index: 20; animation: feedIn .3s ease-out; max-width: calc(100% - 16px); }
+#ins[hidden] { display: none; } #ins > b { align-self: center; font: 400 22px var(--f-brush); color: var(--brass); letter-spacing: .1em; white-space: nowrap; } #ins > b small { display: block; font: 400 10.5px var(--f-ui); color: var(--dim); letter-spacing: 0; }
+#ins button { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; width: 220px; padding: 6px 8px; text-align: left; color: var(--bone); background: var(--panel); border: 1px solid var(--line); font-size: 12px; line-height: 1.35; } #ins button:hover { border-color: var(--brass); }
+#ins button i { width: 34px; height: 34px; background: center / cover; } #ins button u { display: block; text-decoration: none; font-weight: 800; font-size: 14px; color: var(--brass); } #ins kbd { font-size: 10px; color: var(--dim); }
+body.touch #ins { bottom: auto; top: calc(34% + var(--sat)); } body.touch #ins kbd { display: none; }
+@media (max-width: 760px) { #ins { flex-direction: column; width: min(300px, calc(100% - 24px)); } #ins button { width: 100%; } #ins > b small { display: inline; margin-left: 8px; } }
+/* ---- records on the title page ---- */
+#rec { width: min(1040px, 100%); display: flex; flex-wrap: wrap; gap: 5px 6px; align-items: center; margin: 8px 0 2px; font-size: 11.5px; color: var(--dim); } #rec .rs { color: var(--bone); margin-right: 8px; } #rec .ra { margin-right: 4px; }
+#rec i { font-style: normal; padding: 2px 8px; border: 1px solid var(--line-soft); opacity: .45; position: relative; } #rec i.on { opacity: 1; color: var(--brass); border-color: var(--brass); } #rec i small { display: none; position: absolute; left: 0; bottom: calc(100% + 4px); padding: 3px 8px; white-space: nowrap; background: var(--panel-solid); border: 1px solid var(--line); color: var(--bone); z-index: 5; } #rec i:hover small, #rec i:active small { display: block; }
+@media (max-width: 760px), (max-height: 520px) { #rec { justify-content: center; margin: 6px 0 70px; } #rec i:not(.on) { display: none; } #rec .rs { flex-basis: 100%; text-align: center; margin: 0; } }
+#dead span { font-size: 16px; color: var(--bone); opacity: .85; }
 /* ---- small motion ---- */
 #shopBtn.can { animation: canBuy 1.6s ease-in-out infinite; border-color: var(--brass); } @keyframes canBuy { 50% { box-shadow: 0 0 14px rgba(223, 189, 120, .7), 0 0 0 1px var(--brass) inset; } }
 body.touch .skill:active, body.touch #atkBtn:active, body.touch #sig button:active, body.touch #recallBtn:active, body.touch #shopBtn:active { transform: scale(.9); filter: brightness(1.35); } body.touch .skill, body.touch #atkBtn, body.touch #sig button { transition: transform .08s; }
@@ -309,6 +321,7 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     <div id="dead" hidden><b>已陨落</b><em id="deadT"></em><span>秒后重聚</span></div>
     <div id="tip" hidden></div>
     <div id="touch" hidden><div id="stick"><i></i></div><button id="atkBtn" type="button">攻击</button></div>
+    <div id="ins" hidden></div>
     <div id="bar">
       <div id="pWrap"><div id="portrait"><span id="pName"></span></div><i id="pLvl"></i></div>
       <button id="pas" type="button" aria-label="被动"><b></b></button>
@@ -344,9 +357,10 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     <h1 class="mark">霜烬之争</h1>
     <div class="sub" id="sub">十八位修士 · 3V3 · 摧毁敌方阵眼</div>
     <div id="modeSel"></div>
-    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.12</div>
+    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.13</div>
     <div id="cards"></div>
     <div id="detail"></div>
+    <div id="rec"></div>
     <div class="row"><div class="seg" id="diff"></div><button class="go" id="goBtn" type="button">出战</button></div>
     <p class="help" id="help"></p>
     <div class="credit">制作 · Desmond Zhou 周易　微信 desmondzhou　© 2026 版权所有</div>
