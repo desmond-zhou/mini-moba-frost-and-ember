@@ -640,6 +640,20 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (ai.state === 'jungle' && (G.t > ai.jungleUntil || eh || !campUp(ai.camp) || hpF < 0.4)) ai.state = 'lane';
     if (ai.state === 'guardian' && (G.t > ai.jungleUntil || !campUp(ai.camp) || hpF < 0.35 || (eh && outnum))) ai.state = 'lane';
     const woods = ai.state === 'jungle' || ai.state === 'guardian';
+    // What the leader has asked for. It is weighed, not obeyed: nobody walks into a tower that has no disciples to shoot at,
+    // into a crowd the side cannot match, or anywhere at all on a sliver of health. A bot that will not go says so once.
+    const sig = ai.sig && G.t < ai.sig.until && !retreat ? ai.sig : null; let sigAct = null, sigTw = null;
+    if (sig) {
+      if (sig.type === 'retreat') sigAct = 'back';
+      else {
+        sigTw = G.structs[1 - team].list.find(t => t.alive && dist(t, sig) < t.range + 1.5) || null;
+        if (sigTw && G.units.some(u => u.alive && u.kind === 'minion' && u.team === team && dist(u, sigTw) < sigTw.range + 1)) sigTw = null;   // the tower is busy with disciples: fine
+        let foes = 0, pals = 1; for (const o of G.heroes) { if (!o.alive || o === h) continue; if (o.team !== team) { if (!o.hid && dist(o, sig) < 13) foes++; } else if (dist(o, sig) < 13 || (o.ai.sig && o.ai.sig.id === sig.id && G.t < o.ai.sig.until)) pals++; }
+        sigAct = hpF > 0.4 && foes <= pals + 1 ? sig.type : 'no';
+      }
+      if (!sig.said) { sig.said = true; if (near(h)) { const say = { back: ['撤', '走'], gather: ['来了', '这就到'], attack: ['上', '随你'], no: ['过不去', '太险，去不得'] }[sigAct]; fx.say(h.x, h.h + 1.6, h.z, say[Math.floor(Math.random() * say.length)], team === G.player.team); } }
+      if (sigAct !== 'no' && ai.state !== 'lane') ai.state = 'lane';
+    }
     let dodged = false;
     for (const z of G.zones) if (z.team !== team && dist2(h.x, h.z, z.x, z.z) < z.r + 0.8 && Math.random() < (team === EMBER ? 0.75 / diff.react : 0.6)) {
       let ox = h.x - z.x, oz = h.z - z.z; const d = Math.hypot(ox, oz) || 1; if (d < 0.5) { const tn = L.tan(hs); ox = -dir * tn.x; oz = -dir * tn.z; }
@@ -653,6 +667,18 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         if (hide && hide !== h && !ai.hiding) G.botStat.hide++; ai.hiding = !!hide;
         h.order = hide === h ? null : hide ? { type: 'move', x: hide.x, z: hide.z } : { type: 'move', x: f.x, z: f.z };
       }
+      else if (sigAct === 'back') { const q = at(sOf(ownS) - dir * 2); h.order = dist(h, q) > 4 ? { type: 'move', x: q.x, z: q.z } : null; }
+      else if (sigAct === 'gather' || sigAct === 'attack') {
+        let tgt = sig.unit && valid(sig.unit) && canSee(h, sig.unit) ? sig.unit : null;                 // the thing that was pointed at
+        if (tgt && tgt.kind === 'tower' && tgt === sigTw) tgt = null;                                  // ...but not a tower nobody is tanking
+        if (!tgt && eh && ehD < h.range + 5 && (!danger(eh) || diveOK)) tgt = eh;
+        let px = sig.x, pz = sig.z + (h.slot - (N - 1) / 2) * 1.6;
+        if (sigTw) { const dx = h.x - sigTw.x, dz = h.z - sigTw.z, d = Math.hypot(dx, dz) || 1, R0 = sigTw.range + 3.5; px = sigTw.x + dx / d * R0; pz = sigTw.z + dz / d * R0; if (tgt && dist(tgt, sigTw) < sigTw.range + 1) tgt = null; }   // wait at the edge of its reach
+        if (tgt && (sigAct === 'attack' || dist(h, tgt) < h.range + 3)) h.order = { type: 'attack', target: tgt };
+        else if (dist2(h.x, h.z, px, pz) > 4) h.order = { type: 'move', x: px, z: pz };
+        else if (em && emD < h.range + 2 && (!danger(em) || diveOK)) h.order = { type: 'attack', target: em };
+        else h.order = null;
+      }
       else if (outnum && eh && ehD < 12 && dist(h, ownS) > 8 && !(eh.hp / eh.maxHp < 0.25 && ehD < h.range + 2)) { const q = at(sOf(ownS) + dir * 3); h.order = { type: 'move', x: q.x, z: q.z }; }
       else if (woods && !eh) { let t = null, bd = 1e9; for (const u of ai.camp.units) if (u.alive) { const d = dist(h, u); if (d < bd) { bd = d; t = u; } } if (t) { h.order = { type: 'attack', target: t }; em = t; emD = bd; nEM = 3; } }
       else if (hunt) { if (!sn.counted) { sn.counted = true; G.botStat.hunt++; } const b = brushAt(sn.x, sn.z, 3.5), gx = b >= 0 ? BRUSH[b].x : sn.x, gz = b >= 0 ? BRUSH[b].z : sn.z; h.order = { type: 'move', x: gx, z: gz }; }
@@ -664,7 +690,6 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         else if (em && (!danger(em) || diveOK)) tgt = em;
         else if (vulnerable(etw) && dTw < 17 && diveOK) tgt = etw;
         if (tgt) h.order = { type: 'attack', target: tgt };
-        else if (ai.ping && G.t < ai.ping.until && (!danger(ai.ping) || diveOK)) { if (dist2(h.x, h.z, ai.ping.x, ai.ping.z) > 3.5) h.order = { type: 'move', x: ai.ping.x, z: ai.ping.z + ai.laneOff * 0.6 }; else h.order = null; }
         else {
           const own = frontStruct(team, ai.lane);
           let gs = hasFront ? front - dir * (h.ranged ? 4.5 : 1.5) : sOf(own) + dir * 4;
@@ -771,12 +796,20 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.cmdStop = () => { const h = P(); h.order = null; h.target = null; h.windT = -1; stopRecall(h); };
   G.recall = () => { const h = P(); if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在山门内，万宝阁开着'); return ok; };
   G.pings = []; G.recalls = 0; G.gCall = [0, 0]; G.botStat = { ambush: 0, hunt: 0, hide: 0, shop: 0, jungle: 0, guardian: 0 }; let pingAt = -9;
-  G.ping = (x, z) => {   // "over here": a mark on the ground and the map; allied bots without a fight on their hands come over
-    if (G.over || G.t - pingAt < 0.8) return; pingAt = G.t; x = clamp(x, -MAP.hx + 2, MAP.hx - 2); z = clamp(z, -MAP.hz + 2, MAP.hz - 2);
-    G.pings.push({ x, z, t: G.t }); const c = [0.5, 1.5, 0.9];
-    fx.pillar(x, z, 0.9, 14, c, 0.9); fx.ringWave(x, z, 12, c, 0.7); fx.decal({ mode: 1, x, z, size: 1, size0: 9, color: c, dur: 0.6 }); audio.play('ping');
-    for (const h of G.heroes) if (h.team === P().team && !h.isPlayer) h.ai.ping = { x, z, until: G.t + 8 };
+  // Signals: 集合 (come here), 进攻 (take this), 撤退 (fall back). A mark on the ground and the map, a sound, and every allied
+  // bot in earshot weighs it (see botThink). unit = what was pointed at, for 进攻.
+  let sigId = 0;
+  G.signal = (type, x, z, unit = null) => {
+    if (G.over || G.t - pingAt < 1.2) return false; pingAt = G.t; x = clamp(x, -MAP.hx + 2, MAP.hx - 2); z = clamp(z, -MAP.hz + 2, MAP.hz - 2);
+    const c = { gather: [0.5, 1.5, 0.9], attack: [1.9, 0.35, 0.2], retreat: [1.8, 1.4, 0.3] }[type], me = P(), id = ++sigId;
+    G.pings.push({ x, z, t: G.t, type });
+    fx.pillar(x, z, 0.9, 14, c, 0.9); fx.ringWave(x, z, 12, c, 0.7); fx.decal({ mode: 1, x, z, size: 1, size0: 9, color: c, dur: 0.6 }); audio.play(type === 'retreat' ? 'warn' : 'ping');
+    ui.toast({ gather: '集合！', attack: '进攻！', retreat: '撤退！' }[type]);
+    const reach = type === 'retreat' ? 50 : 90;
+    for (const h of G.heroes) if (h.team === me.team && !h.isPlayer && h.alive && dist2(h.x, h.z, x, z) < reach) h.ai.sig = { id, type, x, z, unit, until: G.t + (type === 'retreat' ? 7 : 12), said: false };
+    return true;
   };
+  G.ping = (x, z) => G.signal('gather', x, z);
   G.passive = () => { const h = P(), d = h.def.passive; return { stacks: d.pct ? Math.round((1 - h.hp / h.maxHp) * 60) : d.max ? h.pStack : 0, cd: d.cd ? Math.max(0, h.pCd) : 0 }; };
   G.pick = (x, z, slack = 1.3) => {
     let best = null, bd = 1e9;

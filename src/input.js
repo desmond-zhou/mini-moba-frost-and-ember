@@ -101,6 +101,7 @@ export function createInput(R, fx, ui, audio, isTouch) {
     else if (k >= '1' && k <= '4' && k.length === 1) I.G.learn(+k - 1);
     else if (k === 'a') { cancelAim(); if (live()) { amove = true; canvas.style.cursor = 'crosshair'; } }
     else if (k === 's') { cancelAim(); I.G.cmdStop(); }
+    else if (k === 'z' || k === 'x' || k === 'c') I.signal(k === 'z' ? 'gather' : k === 'x' ? 'attack' : 'retreat', true);
     else if (k === 'b') { cancelAim(); I.G.recall(); }
     else if (k === 'p') ui.toggleShop();
     else if (k === 'escape') { if (aim.i >= 0 || amove) cancelAim(); else if (ui.shopOpen) ui.toggleShop(false); else ui.toggleMenu(); }
@@ -111,6 +112,14 @@ export function createInput(R, fx, ui, audio, isTouch) {
   addEventListener('keyup', e => { if (e.key === 'Tab') ui.showScore(false); if (aim.i >= 0 && !aim.touch && e.key.toLowerCase() === aim.key) releaseAim(true); });
   addEventListener('blur', () => { cancelAim(); ui.showScore(false); if (I.G) I.G.peek = null; });
 
+  // ---- signals. From the keys they go where the mouse points (and at what it points at, for 进攻); from the buttons they are
+  //      about you: come to me, hit what I am hitting, fall back from here. ----
+  I.signal = (type, atCursor) => {
+    const G = I.G; if (!G || G.over) return; const p = G.player;
+    if (atCursor) { const g0 = ground(I.mouse.x, I.mouse.y), body = ground(I.mouse.x, I.mouse.y, 1.6), u = type === 'attack' ? G.pick(body.x, body.z, 2.2) || G.pick(g0.x, g0.z, 2.2) : null; G.signal(type, u ? u.x : g0.x, u ? u.z : g0.z, u); return; }
+    if (type === 'attack') { const u = (p.order && p.order.type === 'attack' && p.order.target && p.order.target.alive ? p.order.target : null) || G.nearestEnemy(18); if (u) G.signal(type, u.x, u.z, u); else G.signal(type, p.x + Math.cos(p.facing) * 10, p.z + Math.sin(p.facing) * 10); }
+    else G.signal(type, p.x, p.z);
+  };
   // ---- minimap: hold to look, right-click to walk there, Alt/Ctrl-click (or a quick tap on touch) to ping ----
   const mini = ui.el.mini; let mpid = -1, mT = 0, mX = 0, mY = 0;
   const miniPt = e => { const r = mini.getBoundingClientRect(); return { x: clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1) * MAP.hx, z: clamp((e.clientY - r.top) / r.height * 2 - 1, -1, 1) * MAP.hz }; };

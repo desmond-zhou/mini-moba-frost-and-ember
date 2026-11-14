@@ -120,6 +120,20 @@ const groundPars = () => `
       emis = mix(emis, glowC * ward * (0.28 + 0.16 * pulse), sect);
       h = mix(h, 0.55 + slab * 0.07 - joint * 0.28 - ward * 0.1, sect); rough = mix(rough, 0.48 + 0.2 * slab, sect);
       alb = mix(alb, vec3(0.022, 0.02, 0.02), (1.0 - smoothstep(0.0, 0.55, abs(baseD - ${F(MAP.base)}))) * 0.85);       // the kerb
+      if (own < 0.5) {
+        // 血魂宗. No clean ward here: an eight-pointed blood array scored into black stone, blood welling in the seams and
+        // standing in pools, the whole floor breathing.
+        float Rw = ${F(MAP.base - 2.4)}, star = 1e9;
+        for (int k = 0; k < 8; k++) { float a0 = float(k) * 0.7853982, a1 = float(k + 3) * 0.7853982; vec2 A = vec2(cos(a0), sin(a0)) * Rw, B = vec2(cos(a1), sin(a1)) * Rw, ab = B - A; star = min(star, length(bp - A - ab * clamp(dot(bp - A, ab) / dot(ab, ab), 0.0, 1.0))); }
+        float arr = max(1.0 - smoothstep(0.0, 0.24, star), 1.0 - smoothstep(0.0, 0.34, abs(rr - Rw))) * (1.0 - smoothstep(${F(MAP.base - 1.5)}, ${F(MAP.base)}, dPl));
+        float beat = 0.55 + 0.45 * sin(uTime * 2.1 + rr * 0.35);
+        float pool = smoothstep(0.6, 0.68, nB.g * 0.55 + nA.b * 0.45) * sect * (1.0 - arr);
+        vec3 stoneB = mix(vec3(0.03, 0.022, 0.024), vec3(0.058, 0.036, 0.036), slab) * (0.75 + 0.45 * fine);
+        vec3 e = stoneB; e = mix(e, vec3(0.16, 0.006, 0.008), joint * 0.9); e = mix(e, vec3(0.2, 0.01, 0.012), arr); e = mix(e, vec3(0.07, 0.003, 0.005), pool);
+        alb = mix(alb, e, sect * step(${F(MAP.base)}, 1e4));
+        emis = mix(emis, vec3(2.3, 0.1, 0.07) * (arr * (0.35 + 0.3 * beat) + joint * (0.1 + 0.16 * beat) * (0.4 + 0.6 * nC.r)) + vec3(0.3, 0.008, 0.008) * pool * beat, sect);
+        rough = mix(rough, mix(0.55 + 0.2 * slab, 0.07, pool), sect); h = mix(h, 0.5 + slab * 0.09 - joint * 0.3 - pool * 0.35, sect);
+      }
     }
 
     // --- standing water: rain puddles on the lane (ice on the frost side) ---
@@ -449,21 +463,37 @@ export function createWorld(R) {
     part(GT, G.box(16.4, 0.7, 0.85), '#5f5b55', 0, 6.3, 0); part(GT, G.box(18.6, 0.42, 1.7), '#3e3b37', 0, 7.35, 0); part(GT, G.box(3.4, 1.15, 0.5), '#2c2a28', 0, 5.35, 0);
     for (const sx of [-1, 1]) part(GT, G.box(2.2, 0.38, 1.6), '#3e3b37', sx * 9.9, 7.62, 0, 0, 0, sx * 0.3);
     kind(K.paint);
-    const walls = [], gates = [];
+    const walls = [[], []], gates = [[], []];
     for (const team of [FROST, EMBER]) {
-      const c = POS.core(team), f = POS.fountain(team), Rc = MAP.base + 0.9, Rf = MAP.base - MAP.baseF + 0.9, tint = team === FROST ? [0.92, 0.98, 1.1] : [0.8, 0.52, 0.46];
+      const c = POS.core(team), f = POS.fountain(team), Rc = MAP.base + 0.9, Rf = MAP.base - MAP.baseF + 0.9, tint = team === FROST ? [0.92, 0.98, 1.1] : [1, 1, 1];
       const ring = (o, R, other, Ro) => { const n = Math.round(6.2832 * R / 2.75); for (let i = 0; i < n; i++) { const a = i / n * 6.2832, x = o.x + Math.cos(a) * R, z = o.z + Math.sin(a) * R;
         if (Math.hypot(x - other.x, z - other.z) < Ro - 0.3 || Math.abs(x) > MAP.hx + 6 || Math.abs(z) > MAP.hz + 6) continue;       // inside the other circle, or off the map
         let open = false; for (const L of LANES) if (L.dist(x, z) < 8.6) open = true; if (open) continue;                        // the lanes come through here
-        walls.push({ x, z, s: 1, ry: -a + Math.PI / 2, c: tint }); } };
+        walls[team].push({ x, z, s: 1, ry: -a + Math.PI / 2, c: tint }); } };
       ring(c, Rc, f, Rf); ring(f, Rf, c, Rc);
       for (const L of LANES) {                                           // the gate stands where the lane crosses the edge of the precinct
         const from = team === FROST ? L.s0 : L.s1, dir = team === FROST ? 1 : -1; let s = from, q = L.at(s, 0);
         for (let k = 0; k < 400 && Math.min(Math.hypot(q.x - c.x, q.z - c.z), Math.hypot(q.x - f.x, q.z - f.z) + MAP.baseF) < MAP.base + 0.9; k++) { s += dir * 0.25; q = L.at(s, 0); }
-        const t = L.tan(s); gates.push({ x: q.x, z: q.z, s: 1, ry: Math.atan2(-t.x, -t.z), c: tint });
+        const t = L.tan(s); gates[team].push({ x: q.x, z: q.z, s: 1, ry: Math.atan2(-t.x, -t.z), c: tint });
       }
     }
-    const wm = vcMat({ world: true }); instanced(build(WL), wm, walls); instanced(build(GT), wm, gates);
+    // 血魂宗's fence is a row of tusks leaning outward from a black sill; its gates are two obsidian spires hung with chains,
+    // a skull with lit sockets between them and a blood-red banner below.
+    const WE = [], GE = [];
+    kind(K.stone); part(WE, G.box(2.6, 0.5, 0.95), '#141012', 0, 0.25, 0);
+    kind(K.skin); for (const [x, hgt, lean] of [[-0.95, 2.3, 0.3], [-0.3, 3.0, 0.42], [0.4, 2.5, 0.34], [1.05, 1.9, 0.26]]) part(WE, G.cyl(0.02, 0.2, hgt, 6), '#b3a58d', x, 0.4 + hgt * 0.45, -Math.sin(lean) * hgt * 0.45, -lean, 0, x * 0.08);
+    kind(K.stone);
+    for (const sx of [-7.4, 7.4]) {
+      part(GE, G.cyl(0.14, 0.85, 9.4, 6), '#120e10', sx, 4.7, 0); part(GE, G.box(2.0, 0.7, 2.0), '#0e0b0c', sx, 0.35, 0);
+      for (const [y, a] of [[3.2, 0.9], [5.4, 0.75], [7.2, 0.6]]) for (const d of [-1, 1]) part(GE, G.cyl(0.02, 0.2, 1.9, 5), '#b3a58d', sx + d * 0.7, y + 0.5, 0, 0, 0, -d * a);
+    }
+    for (let i = 0; i <= 12; i++) { const k = i / 12, x = -7.2 + 14.4 * k, y = 8.3 - Math.sin(k * Math.PI) * 2.0; part(GE, G.box(0.5, 0.2, 0.32), '#1c1719', x, y, 0, 0, 0, Math.cos(k * Math.PI) * 0.5); }   // the chain sags
+    kind(K.skin); part(GE, G.sph(0.95, 12, 9), '#bfb29a', 0, 5.6, 0, 0, 0, 0, 1, 1.12, 0.95); part(GE, G.box(0.9, 0.6, 0.7), '#a99c85', 0, 4.75, 0.25);
+    kind(K.paint); for (const sx of [-0.36, 0.36]) part(GE, G.sph(0.21, 8, 6), '#ff2a14', sx, 5.72, 0.78, 0, 0, 0, 1, 1, 0.6, 3.2);
+    kind(K.cloth); part(GE, G.box(2.3, 3.4, 0.07), '#4a0606', 0, 2.75, 0); part(GE, G.box(1.1, 1.1, 0.09), '#8a0c0c', 0, 3.0, 0.02, 0, 0, Math.PI / 4);
+    kind(K.paint);
+    const wm = vcMat({ world: true });
+    instanced(build(WL), wm, walls[FROST]); instanced(build(GT), wm, gates[FROST]); instanced(build(WE), wm, walls[EMBER]); instanced(build(GE), wm, gates[EMBER]);
   }
 
   // ---- grass: thin blades in tufts, lit like the ground, swaying in the vertex shader ----
