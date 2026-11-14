@@ -211,6 +211,68 @@ const OUTFIT = {
     kind(K.metal); part(P.faL, G.box(0.06, 0.2, 0.06), BRASS, 0, HAND, 0); part(P.faL, G.oct(0.06), tc.glow, 0, HAND - 0.02, 0.98, 0, 0, 0, 1, 1, 1.6, 2.0); part(P.faL, G.oct(0.06), tc.glow, 0, HAND - 0.02, -0.98, 0, 0, 0, 1, 1, 1.6, 2.0);
     return { scale: 1.3, shX: 0.4, cape: cape(P, '#6e2410', 0.5, 0.78, 1.0, '#e0a040') };
   },
+  // 言照雪 · 蔽目之体：素白长衣，眼上覆一条银纱，手里一盏不亮的灯
+  yanzhao(P, tc) {
+    body(P, { robe: true, top: '#e6e8f0', sleeve: '#c9cfe0', arm: '#e6e8f0', girth: 0.9 });
+    skirt(P, '#d7dcea', 0.56, '#8f9bc0'); collar(P, '#8f9bc0'); sash(P, '#6f7aa8', true);
+    hairCap(P, '#1c1c26', 1.0); kind(K.cloth); part(P.head, G.box(0.44, 0.09, 0.06), '#cfd6ea', 0, 0.3, 0.17); part(P.head, G.box(0.05, 0.5, 0.02), '#cfd6ea', 0.16, 0.12, -0.2, 0.25);
+    const top = staff(P.faR, 2.7, '#8a90a8', 0.56);
+    kind(K.metal); part(P.faR, G.cyl(0.16, 0.12, 0.3, 8), '#aab1c8', 0, HAND, -top - 0.22, PI / 2); kind(K.paint); part(P.faR, G.sph(0.09, 8, 6), tc.glow, 0, HAND, -top - 0.22, 0, 0, 0, 1, 1, 1, 1.5);
+    for (let i = 0; i < 2; i++) { const a = i * 3.14; part(P.orbit, G.box(0.5, 0.02, 0.16), '#cfd6ea', Math.cos(a) * 0.9, 2.3 + i * 0.5, Math.sin(a) * 0.9, 0, a, 0, 1, 1, 1, 1.4); }
+    return { scale: 1.24, shX: 0.38, cape: cape(P, '#b9c1dc', 0.5, 0.78, 1.5, '#8f9bc0') };
+  },
+  // 周远山 · 携钱南下：旧青布袍，背微驼，杖头吊着一枚天衍钱
+  yuanshan(P, tc) {
+    body(P, { robe: true, top: '#3f5560', sleeve: '#35474f', arm: '#3f5560', skin: '#b8906e' });
+    skirt(P, '#36494f', 0.58); collar(P, '#c9b06a'); sash(P, '#8a6a2a', false);
+    hairCap(P, '#b8b8b8', 0.5); topknot(P, '#b8b8b8', '#c9a04a'); kind(K.cloth); part(P.head, G.cone(0.1, 0.36, 8), '#c8c8c8', 0, 0.0, 0.15, PI + 0.22);
+    const top = staff(P.faR, 3.0, '#5a4a2e', 0.5);
+    kind(K.metal); part(P.faR, G.tor(0.17, 0.045, 6, 16), '#d8b24a', 0, HAND, -top - 0.24, 0, PI / 2, 0); part(P.faR, G.box(0.1, 0.02, 0.1), tc.glow, 0, HAND, -top - 0.24, 0, 0, 0, 1, 1, 1, 2.2);
+    kind(K.paint); for (let i = 0; i < 3; i++) { const a = i * 2.094; part(P.orbit, G.tor(0.11, 0.03, 5, 12), '#f0c860', Math.cos(a) * 1.05, 1.6 + i * 0.4, Math.sin(a) * 1.05, PI / 2, a, 0, 1, 1, 1, 2.2); }
+    return { scale: 1.24, shX: 0.4, hunch: 0.16 };
+  },
+  // 陆青崖 · 清正：青衫磊落，一柄不带剑穗的直剑
+  qingya(P, tc) {
+    body(P, { robe: true, top: '#2f6a62', sleeve: '#275850', arm: '#2f6a62', girth: 1.0 });
+    skirt(P, '#285a54', 0.5, '#d6e6dc'); collar(P, '#d6e6dc'); sash(P, '#1b3d38', true);
+    hairCap(P, HAIR, 0.5); topknot(P, HAIR, '#9fb8ac');
+    blade(P.faR, 1.7, 0.065, '#e4efe9', [0.5, 1.0, 0.85], { guard: 0.24, guardCol: '#6f8a80', glowK: 1.5 });
+    kind(K.wood); part(P.chest, G.box(0.09, 1.4, 0.05), '#1d302c', -0.14, 0.35, -0.27, 0, 0, -0.5);
+    return { scale: 1.34, shX: 0.41, cape: cape(P, '#1f4a44', 0.55, 0.78, 1.2, '#d6e6dc') };
+  },
+  // 闻人遥 · 走火：黑底刑服绽着暗红纹，披发，双手各一柄刑刺
+  wenren(P, tc) {
+    body(P, { girth: 0.96, top: '#1a1418', leg: '#120e11', boot: INK, fore: '#3a0f1a', arm: '#1a1418' });
+    collar(P, '#8a1230'); sash(P, '#8a1230', true); kind(K.cloth); for (const sx of [-0.16, 0.16]) part(P.chest, G.box(0.04, 0.7, 0.03), '#b0183c', sx, 0.5, 0.26, 0, 0, sx * 0.6);
+    hairCap(P, '#0c0a0d', 1.15); kind(K.cloth); part(P.head, G.box(0.1, 0.4, 0.04), '#0c0a0d', 0.14, 0.2, 0.15, 0, 0, -0.15);
+    kind(K.paint); part(P.head, G.sph(0.03, 6, 5), '#ff2a4a', 0.07, 0.3, 0.19, 0, 0, 0, 1, 1, 1, 2.6); part(P.head, G.sph(0.03, 6, 5), '#ff2a4a', -0.07, 0.3, 0.19, 0, 0, 0, 1, 1, 1, 2.6);
+    for (const L of [P.faL, P.faR]) { kind(K.metal); part(L, G.cyl(0.012, 0.045, 0.78, 6), '#c8ced8', 0, HAND, 0.46, PI / 2); part(L, G.box(0.014, 0.03, 0.6), tc.glow, 0, HAND - 0.01, 0.46, 0, 0, 0, 1, 1, 1, 1.9); part(L, G.box(0.2, 0.05, 0.05), '#3a0f1a', 0, HAND, 0.08); kind(K.wood); part(L, G.cyl(0.03, 0.03, 0.2, 6), INK, 0, HAND, 0, PI / 2); }
+    return { scale: 1.3, shX: 0.39, cape: cape(P, '#2a0c16', 0.45, 0.8, 1.35, '#8a1230') };
+  },
+  // 林霜 · 冰岛守岛人：月白劲装，霜色长弓，箭羽结着冰
+  linshuang(P, tc) {
+    body(P, { girth: 0.92, top: '#dfe9f2', leg: '#5b6f86', boot: '#3c4a5c', fore: '#8fa6bf', arm: '#dfe9f2' });
+    collar(P, '#7fb2d8'); sash(P, '#4f7fa6', true); kind(K.cloth); part(P.chest, G.box(0.1, 1.2, 0.05), '#6f8aa6', -0.1, 0.45, 0.27, 0, 0, -0.6);
+    part(P.chest, G.cyl(0.15, 0.13, 0.95, 10), '#8fa6bf', 0.28, 0.42, -0.3, 0, 0, -0.45);
+    kind(K.metal); for (let i = 0; i < 4; i++) part(P.chest, G.box(0.03, 0.34, 0.03), tc.glow, 0.44 + i * 0.045, 0.92, -0.3 + (i % 2) * 0.05, 0, 0, -0.45, 1, 1, 1, 2.0);
+    hairCap(P, '#e8eef6', 1.0); topknot(P, '#e8eef6', '#7fb2d8');
+    kind(K.metal); part(P.faL, G.tor(1.0, 0.04, 6, 26, PI), '#cfe2f2', 0, HAND + 0.28, 0, 0, PI / 2, PI, 1, 0.26, 1);
+    kind(K.paint); part(P.faL, G.cyl(0.012, 0.012, 2.0, 4), tc.glow, 0, HAND + 0.28, 0, PI / 2, 0, 0, 1, 1, 1, 1.6);
+    kind(K.metal); part(P.faL, G.box(0.06, 0.2, 0.06), '#9fb8d0', 0, HAND, 0); part(P.faL, G.oct(0.07), tc.glow, 0, HAND - 0.02, 1.0, 0, 0, 0, 1, 1, 1.8, 2.0); part(P.faL, G.oct(0.07), tc.glow, 0, HAND - 0.02, -1.0, 0, 0, 0, 1, 1, 1.8, 2.0);
+    return { scale: 1.28, shX: 0.38, cape: cape(P, '#b6cfe6', 0.48, 0.78, 1.1, '#7fb2d8') };
+  },
+  // 裴寂 · 天刑台代管：铁灰官袍，肩有獬豸纹甲，手持一人高的刑杖
+  peiji(P, tc) {
+    body(P, { girth: 1.14, top: '#3a3d48', leg: '#23252d', boot: INK, fore: '#555a68' });
+    collar(P, '#c9ccd6'); sash(P, '#7a1a1a', true);
+    kind(K.metal); part(P.chest, lathe([[0.3, 0.3], [0.4, 0.54], [0.41, 0.7], [0.32, 0.82]], 16), '#555a68', 0, 0, 0.01, 0, 0, 0, 1, 1, 0.7);
+    for (const sx of [1, -1]) { part(P.chest, G.sph(0.2, 12, 9), '#555a68', sx * 0.48, 0.8, 0, 0, 0, 0, 1.15, 0.7, 1.1); part(P.chest, G.cone(0.07, 0.24, 6), '#c9ccd6', sx * 0.56, 0.95, 0, 0, 0, -sx * 0.7); }
+    part(P.chest, G.box(0.16, 0.16, 0.04), tc.glow, 0, 0.56, 0.29, 0, 0, PI / 4, 1, 1, 1, 1.7);
+    hairCap(P, HAIR, 0.4); kind(K.cloth); part(P.head, G.box(0.34, 0.2, 0.3), '#23252d', 0, 0.5, -0.02); part(P.head, G.box(0.5, 0.04, 0.12), '#23252d', 0, 0.56, -0.02); kind(K.metal); part(P.head, G.box(0.08, 0.08, 0.03), BRASS, 0, 0.5, 0.14);
+    kind(K.wood); part(P.faR, G.cyl(0.055, 0.065, 3.3, 8), '#2a1c14', 0, HAND, 0.55, PI / 2);
+    kind(K.metal); part(P.faR, G.cyl(0.1, 0.1, 0.5, 8), '#8a8f9c', 0, HAND, 2.0, PI / 2); part(P.faR, G.cyl(0.08, 0.08, 0.24, 8), '#8a8f9c', 0, HAND, -1.0, PI / 2); part(P.faR, G.box(0.03, 0.03, 0.4), tc.glow, 0, HAND - 0.11, 2.0, 0, 0, 0, 1, 1, 1, 1.8);
+    return { scale: 1.48, shX: 0.46, cape: cape(P, '#2c2f39', 0.62, 0.8, 1.25, '#7a1a1a') };
+  },
 };
 
 // resting arm poses per weapon style: [rightShoulder, rightElbow, leftShoulder, leftElbow]

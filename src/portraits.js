@@ -17,6 +17,12 @@ const SPEC = {
   bloodlord: { skin: '#cdbdb6', hair: '#cfc8be', robe: '#2a0c10', robe2: '#0d0406', collar: '#7a1018', inner: '#12060a', eye: '#e01828', brow: 2.6, tilt: 5.5, jaw: 0.98, male: true, long: true, locks: true, shadow: 'rgba(90,10,20,.55)' },
   archer: { skin: '#c79f7d', hair: HAIR, robe: '#8a2f14', robe2: '#3d150a', collar: '#e0a040', inner: '#2a1a12', eye: '#b8641c', brow: 2.8, tilt: 2.2, jaw: 1.0, male: true, knot: true },
   storm: { skin: '#c4a58a', hair: HAIR, robe: '#1a1820', robe2: '#0a090d', collar: '#b08a3e', inner: '#221f2b', eye: '#6a5a1c', brow: 2.2, tilt: 4.5, jaw: 0.95, male: true },
+  yanzhao: { skin: '#e2cdbb', hair: '#1c1c26', robe: '#e6e8f0', robe2: '#aeb6cf', collar: '#8f9bc0', inner: '#f4f5fa', eye: '#8f9bc0', brow: 1.6, tilt: 0.4, jaw: 0.88, long: true, locks: true, lips: '#b06a72' },
+  yuanshan: { skin: '#b8906e', hair: '#b8b8b8', robe: '#3f5560', robe2: '#22323a', collar: '#c9b06a', inner: '#e0d6b8', eye: '#3a3226', brow: 2.6, tilt: -0.8, jaw: 0.98, male: true, knot: true, old: true },
+  qingya: { skin: '#c9a585', hair: HAIR, robe: '#2f6a62', robe2: '#183a36', collar: '#d6e6dc', inner: '#eef4f0', eye: '#24403a', brow: 2.6, tilt: 1.2, jaw: 1.0, male: true, knot: true },
+  wenren: { skin: '#d6bcae', hair: '#0c0a0d', robe: '#1a1418', robe2: '#0b080a', collar: '#8a1230', inner: '#2a0c16', eye: '#c0183c', brow: 2.4, tilt: 3.4, jaw: 0.94, male: true, long: true, locks: true, shadow: 'rgba(150,20,50,.5)' },
+  linshuang: { skin: '#e6d6c8', hair: '#e8eef6', robe: '#dfe9f2', robe2: '#8fa6bf', collar: '#7fb2d8', inner: '#f2f7fb', eye: '#4f7fa6', brow: 1.8, tilt: 1.4, jaw: 0.9, long: true, locks: true, lips: '#a8606a' },
+  peiji: { skin: '#b89274', hair: HAIR, robe: '#3a3d48', robe2: '#1c1e25', collar: '#c9ccd6', inner: '#23252d', eye: '#2a2a30', brow: 3.4, tilt: 1.6, jaw: 1.08, male: true },
 };
 
 function shade(hex, k) { const n = parseInt(hex.slice(1), 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(v * k)))); return `rgb(${c[0]},${c[1]},${c[2]})`; }
@@ -109,7 +115,7 @@ const EXTRA = {
 export function portrait(id, tint = [0.4, 0.75, 1]) {
   const key = id + tint.map(v => v.toFixed(2)).join();
   if (cache[key]) return cache[key];
-  const P = SPEC[id], X = EXTRA[id], N = 192, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d');
+  const P = SPEC[id], X = EXTRA[id] || {}, N = 192, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d');
   const tc = `rgb(${Math.round(tint[0] * 255)},${Math.round(tint[1] * 255)},${Math.round(tint[2] * 255)})`, ta = a => `rgba(${Math.round(tint[0] * 255)},${Math.round(tint[1] * 255)},${Math.round(tint[2] * 255)},${a})`;
   // backdrop: night sky in the hero's colour, a pale disc behind the head
   const bg = g.createRadialGradient(96, 70, 6, 96, 96, 150); bg.addColorStop(0, ta(0.55)); bg.addColorStop(0.5, ta(0.16)); bg.addColorStop(1, '#05070b'); g.fillStyle = '#05070b'; g.fillRect(0, 0, N, N); g.fillStyle = bg; g.fillRect(0, 0, N, N);
@@ -143,7 +149,7 @@ export function portrait(id, tint = [0.4, 0.75, 1]) {
   if (P.knot) { g.beginPath(); g.arc(96, 34, 12, 0, 7); g.fill(); }
   if (P.locks) for (const s of [-1, 1]) { g.beginPath(); g.moveTo(96 + s * 30, 66); g.quadraticCurveTo(96 + s * 38, 110, 96 + s * 30, 150); g.quadraticCurveTo(96 + s * 26, 110, 96 + s * 27, 70); g.closePath(); g.fill(); }
   g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 1; for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(96 + i * 7, 40); g.quadraticCurveTo(96 + i * 9, 50, 96 + i * 10, 62); g.stroke(); }
-  X.over(g, tc);
+  X.over && X.over(g, tc);
   // rim light in the hero's colour from the upper right, and a vignette
   g.globalCompositeOperation = 'soft-light'; const rl = g.createRadialGradient(150, 40, 4, 150, 40, 130); rl.addColorStop(0, ta(0.9)); rl.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = rl; g.fillRect(0, 0, N, N);
   g.globalCompositeOperation = 'source-over'; const vg = g.createRadialGradient(96, 90, 70, 96, 96, 140); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = vg; g.fillRect(0, 0, N, N);

@@ -2,7 +2,7 @@
 // node batch.mjs <matches> <offset> <maxSeconds> [difficulty]  → one JSON line per match on stdout
 import puppeteer from 'puppeteer-core';
 const [n = '6', off = '0', maxT = '1200', diff = 'mirror', mode = 'single', seat = '-1'] = process.argv.slice(2);
-const ORDER = ['warden', 'keeper', 'bloodlord', 'berserker', 'shade', 'archer', 'ranger', 'gunner', 'mage', 'cryo', 'storm', 'healer'];
+const ORDER = ['warden', 'keeper', 'bloodlord', 'berserker', 'shade', 'archer', 'ranger', 'gunner', 'mage', 'cryo', 'storm', 'healer', 'yanzhao', 'yuanshan', 'qingya', 'wenren', 'linshuang', 'peiji'];
 const b = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', protocolTimeout: 600000, args: ['--no-sandbox', '--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=metal', '--mute-audio', '--window-size=640,360'] });
 const page = await b.newPage(); await page.setViewport({ width: 640, height: 360, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.error('PAGEERROR', (e.stack || e.message).slice(0, 600)));

@@ -53,7 +53,7 @@ export const MODES = {
       { x: -4, z: 21, r: 3.6 }, { x: 4, z: -21, r: 3.6 }, { x: -22, z: 17, r: 3.6 }, { x: 22, z: -17, r: 3.6 },
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
-    tune: {},
+    tune: {}, heroTune: { healer: { hp: 1.06, ap: 1.1 } },
   },
   tri: {
     id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。开发中：电脑会分路、打野抓人、后期集结，但还比较初级。',
@@ -85,6 +85,7 @@ export const MODES = {
         guardian: { hp: 2600, ad: 70, range: 3.4, period: 1.4, wind: 0.45, ms: 5.5, r: 2.5, h: 6.6, gold: 90, xp: 220, respawn: 100 },
       },
     },
+    heroTune: {},                                                   // e.g. storm: { hp: 1.06 } — multipliers on base stats, this mode only
   },
 };
 
@@ -100,6 +101,7 @@ export const SEATS = [
 export const SEAT_FIT = {
   warden: [3, 4], keeper: [0], bloodlord: [1], berserker: [0], shade: [1, 4], archer: [1, 4], ranger: [1], gunner: [2],
   mage: [2], cryo: [2, 0], storm: [0], healer: [3],
+  yanzhao: [3], yuanshan: [3], qingya: [4, 0], wenren: [4], linshuang: [2], peiji: [0],   // the six new ones: by design until simulated
 };
 
 export let MODE = MODES.single;
@@ -269,8 +271,83 @@ export const HEROES = {
       S('R', 'sunarrow', '焚天', 'proj', { range: 40, speed: 32, width: 1.5, cd: 60, mana: 100, b: 200, l: 50, ad: 1.2, splash: 4.5, stun: 0.9 }, '射出一支能飞越半个战场的巨箭，命中第一个敌人后爆炸并定身。'),
     ],
   },
+
+  // ---- six more, to fill the seats that were thin: two who protect, two who hunt, one more archer, one more wall ----
+  yanzhao: {
+    id: 'yanzhao', size: 1.2, tint: [0.72, 0.8, 1.0], style: 'staff', name: '言照雪', short: '雪', title: '蔽目之体', role: '幕修 · 辅助', blurb: '天生蔽目之体，能遮住不该被看见的东西。站在同门身边，替他们挡下一部分伤害。',
+    hp: 930, hpG: 100, mana: 430, manaG: 35, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 8.8, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.1,
+    build: ['xingluo', 'mingpan', 'zhaohun'],
+    passive: { name: '蔽目之体', icon: 'smoke', desc: '身边的同门（含自己）受到修士的伤害 -8%。' },
+    skills: [
+      S('Q', 'veilbolt', '蔽目', 'proj', { range: 15, speed: 26, width: 0.95, cd: 7.5, mana: 45, b: 72, l: 16, ap: 0.6, stun: 0.95, vfx: 'vine', icon: 'smoke' }, '放出一缕蔽目之力，命中的第一个敌人眼前一黑，被定在原地。'),
+      S('W', 'skyveil', '遮天幕', 'shield', { cd: 11, mana: 55, b: 140, l: 30, ap: 0.55, dur: 3.5, aoe: 8, vfx: 'ward', icon: 'ward' }, '给自己和附近的同门各罩上一层幕，化作罡气。'),
+      S('E', 'mirrorheal', '照影', 'heal', { range: 11, radius: 4.6, cd: 7, mana: 50, b: 115, l: 25, ap: 0.68, vfx: 'mend', icon: 'mend' }, '照出目标区域内同门无伤时的影子，为他们回复气血。'),
+      S('R', 'eclipse', '蔽天', 'zone', { range: 0, radius: 7.5, delay: 0.5, dur: 4, tick: 0.5, cd: 60, mana: 100, b: 44, l: 10, ap: 0.32, slow: [0.4, 1], lvl: 4, vfx: 'blizzard', icon: 'blizzard' }, '以自己为中心张开蔽天之幕，幕中的敌人持续受伤并步履维艰。'),
+    ],
+  },
+  yuanshan: {
+    id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '周远山', short: '山', title: '携钱南下的人', role: '卜修 · 辅助', blurb: '周易的祖父，五十年前带着天衍钱南下。一枚铜钱定吉凶，专替后辈挡灾。',
+    hp: 960, hpG: 102, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.4, range: 8.6, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.3,
+    build: ['xingluo', 'mingpan', 'zhaohun'],
+    passive: { name: '余荫', icon: 'i_disc', desc: '身边的同门气血跌破 30% 时，替他挡一次：给一层相当于其 22% 最大气血的罡气。每人 30 秒一次。' },
+    skills: [
+      S('Q', 'coin', '天衍钱', 'proj', { range: 15, speed: 30, width: 0.9, cd: 5, mana: 38, b: 92, l: 19, ap: 0.75, slow: [0.35, 1.5], splash: 2.2, vfx: 'starbolt', icon: 'starbolt' }, '弹出一枚天衍钱，命中第一个敌人后炸开，造成伤害并减速。'),
+      S('W', 'omen', '卜吉', 'shield', { cd: 13, mana: 55, b: 100, l: 24, ap: 0.45, dur: 3.5, aoe: 7.5, vfx: 'bulwark', icon: 'bulwark' }, '起一卦吉象，自己和附近同门各得一层罡气。'),
+      S('E', 'refate', '改命', 'heal', { range: 10, radius: 4.2, cd: 7.5, mana: 55, b: 135, l: 28, ap: 0.72, vfx: 'mend', icon: 'bloom' }, '把目标区域内同门的伤势改轻几分，回复气血。'),
+      S('R', 'misfortune', '逆运', 'zone', { range: 14, radius: 6.5, delay: 0.75, cd: 60, mana: 100, b: 175, l: 40, ap: 0.8, stun: 1.4, lvl: 4, vfx: 'stasis', icon: 'stasis' }, '在目标区域布下逆运之局，局成时范围内的敌人受伤并被定住。'),
+    ],
+  },
+  qingya: {
+    id: 'qingya', size: 1.34, tint: [0.5, 1.0, 0.85], style: 'sword', name: '陆青崖', short: '崖', title: '清正', role: '剑修 · 近战', blurb: '苏紫烟与韩不语的师父，蒙冤被逐，宗主后来为他题"清正"二字。一人一剑，最擅长独行清剿。',
+    hp: 1190, hpG: 126, mana: 280, manaG: 22, ad: 74, adG: 4.8, ap: 0, apG: 0, ms: 7.2, range: 2.9, period: 0.85, wind: 0.2, ranged: false, r: 1.0, h: 5.2,
+    build: ['tingxue', 'heichi', 'dunying'],
+    passive: { name: '独行', icon: 'pierce', desc: '普攻吸血 12%。对邪祟的伤害 +40%，每清掉一只回复 4% 气血。' },
+    skills: [
+      S('Q', 'breeze', '清风', 'dash', { range: 8, speed: 34, cd: 5, mana: 30, b: 75, l: 15, ad: 0.8, hitR: 1.8, reset: true, vfx: 'shadowstep', icon: 'slide' }, '一步掠过，对路径上的敌人造成伤害，落地可立刻再出一剑。'),
+      S('W', 'upright', '正气', 'shield', { cd: 10, mana: 40, b: 160, l: 34, ad: 0.7, hpR: 0.08, dur: 4, vfx: 'bulwark', icon: 'bulwark' }, '一身正气护体，获得一层罡气。'),
+      S('E', 'dispel', '破妄', 'cone', { range: 6.6, angle: 80, cd: 5.5, mana: 30, b: 70, l: 14, ad: 0.85, slow: [0.35, 1.5], drain: 0.35, vfx: 'cleave', icon: 'cleave' }, '横剑扫开前方扇形，造成伤害并减速，伤害的一部分化为自身气血。'),
+      S('R', 'verdict', '一剑清正', 'strike', { range: 12, cd: 45, mana: 80, b: 200, l: 45, ad: 1.2, exec: 0.2, lvl: 4, vfx: 'reap', icon: 'pierce' }, '瞬息间到目标修士身前出剑，目标损失的气血越多伤害越高。'),
+    ],
+  },
+  wenren: {
+    id: 'wenren', size: 1.26, tint: [1.0, 0.35, 0.6], style: 'dual', name: '闻人遥', short: '遥', title: '大司刑关门弟子', role: '刑修 · 近战', blurb: '闻人策的关门弟子，练功走火，出手再无分寸。在野外游荡，逮着落单的就下死手。',
+    hp: 1090, hpG: 117, mana: 280, manaG: 22, ad: 72, adG: 4.7, ap: 0, apG: 0, ms: 7.3, range: 2.8, period: 0.78, wind: 0.17, ranged: false, r: 0.95, h: 5.0,
+    build: ['dunying', 'tingxue', 'heichi'],
+    passive: { name: '走火入魔', icon: 'rage', desc: '对邪祟的伤害 +35%。参与镇压修士后，「掠影」立刻可以再用。' },
+    skills: [
+      S('Q', 'fateline', '判命线', 'proj', { range: 12, speed: 30, width: 0.95, cd: 11, mana: 45, b: 55, l: 12, ad: 0.55, stun: 0.4, pull: true, vfx: 'hook', icon: 'hook' }, '甩出一道判命血线，把命中的第一个敌人拽到自己面前。'),
+      S('W', 'frenzy', '走火', 'haste', { cd: 11, mana: 35, dur: 4.5, ms: 0.3, as: 0.6, ls: 0.25, dr: 0.3, vfx: 'rage', icon: 'rage' }, '任由真气逆行，短时间内出手和脚步都快得反常，普攻吸血，受到的伤害 -30%。'),
+      S('E', 'flit', '掠影', 'dash', { range: 7, speed: 32, cd: 6, mana: 30, b: 55, l: 12, ad: 0.6, hitR: 1.7, reset: true, vfx: 'shadowstep', icon: 'dagger' }, '贴地掠出一段，划伤路径上的敌人。'),
+      S('R', 'burnvein', '焚脉', 'nova', { radius: 5.6, cd: 50, mana: 80, b: 195, l: 44, ad: 1.15, stun: 1.1, lvl: 4, vfx: 'whirl', icon: 'whirl' }, '逆行的真气从周身炸开，重创并定住周围的敌人。'),
+    ],
+  },
+  linshuang: {
+    id: 'linshuang', size: 1.24, tint: [0.55, 0.85, 1.0], style: 'archer', name: '林霜', short: '霜', title: '冰岛守岛人', role: '弓修 · 远程', blurb: '三百年前的天衍传人，与沈焰分守冰火两岛。她的箭不快，但中了箭的人再也快不起来。',
+    hp: 800, hpG: 89, mana: 300, manaG: 24, ad: 53, adG: 3.7, ap: 0, apG: 0, ms: 6.6, range: 9.5, period: 0.88, wind: 0.18, ranged: true, r: 0.95, h: 5.0,
+    build: ['tingxue', 'dunying', 'heichi'],
+    passive: { name: '霜弦', icon: 'icelance', desc: '普攻附带 10% 减速；对已被减速或定身的目标，普攻伤害 +12%。' },
+    skills: [
+      S('Q', 'frostfeather', '霜羽', 'proj', { range: 18, speed: 34, width: 0.9, cd: 6.5, mana: 35, b: 50, l: 12, ad: 0.8, pierce: true, slow: [0.3, 1.5], vfx: 'icelance', icon: 'icelance' }, '射出一支贯穿敌人的霜羽箭，造成伤害并减速。'),
+      S('W', 'stillheart', '冰心', 'haste', { cd: 13, mana: 40, dur: 4, ms: 0.12, as: 0.42, vfx: 'gale', icon: 'quick' }, '心如冰镜，短时间内开弓大幅加快。'),
+      S('E', 'snowstep', '踏雪', 'backdash', { range: 7, speed: 28, cd: 9, mana: 40, b: 40, l: 10, ad: 0.5, slow: [0.5, 1.5], projRange: 13, vfx: 'backshot', icon: 'backshot' }, '踏雪后撤，同时朝目标方向补一支减速箭。'),
+      S('R', 'icebound', '冰封三百年', 'zone', { range: 15, radius: 6.6, delay: 0.5, dur: 3, tick: 0.5, cd: 58, mana: 90, b: 32, l: 8, ad: 0.26, slow: [0.3, 0.8], lvl: 4, vfx: 'blizzard', icon: 'blizzard' }, '把冰岛的风雪引到目标区域，持续伤害并减速。'),
+    ],
+  },
+  peiji: {
+    id: 'peiji', size: 1.48, tint: [0.88, 0.9, 1.0], style: 'axe', name: '裴寂', short: '寂', title: '天刑台代管', role: '律修 · 近战', blurb: '闻人策伏法后代管天刑台。一根刑杖在手，站在哪里，哪里就是规矩。',
+    hp: 1170, hpG: 126, mana: 280, manaG: 22, ad: 57, adG: 3.5, ap: 0, apG: 0, ms: 6.6, range: 3.0, period: 1.0, wind: 0.26, ranged: false, r: 1.1, h: 5.3,
+    build: ['heichi', 'xingluo', 'tingxue'],
+    passive: { name: '铁律', icon: 'gate', desc: '被他的招式打中的敌人，3 秒内受到的所有伤害 +7%。' },
+    skills: [
+      S('Q', 'rod', '刑杖', 'cone', { range: 6.2, angle: 85, cd: 7, mana: 35, b: 58, l: 12, ad: 0.6, stun: 0.6, vfx: 'gate', icon: 'gate' }, '刑杖横扫前方扇形，造成伤害并定身。'),
+      S('W', 'writ', '天刑令', 'taunt', { radius: 6.5, dur: 1.4, cd: 14, mana: 50, b: 110, l: 30, hpR: 0.08, vfx: 'taunt', icon: 'taunt' }, '亮出天刑令，周围的敌人只能冲他来，自己获得一层罡气。'),
+      S('E', 'enforce', '执法', 'dash', { range: 8.5, speed: 28, cd: 10, mana: 40, b: 50, l: 11, ad: 0.55, stun: 0.5, hitR: 2, vfx: 'charge', icon: 'charge' }, '大步上前，撞到的敌人受伤并短暂定身。'),
+      S('R', 'abyssseal', '镇渊', 'leap', { range: 11, radius: 5.4, delay: 0.55, cd: 55, mana: 80, b: 165, l: 38, ad: 1.05, stun: 0.95, lvl: 4, vfx: 'skyfall', icon: 'skyfall' }, '跃起砸向目标区域，落地时重创并定住范围内的敌人。'),
+    ],
+  },
 };
-export const HERO_ORDER = ['warden', 'keeper', 'bloodlord', 'berserker', 'shade', 'archer', 'ranger', 'gunner', 'mage', 'cryo', 'storm', 'healer'];
+export const HERO_ORDER = ['warden', 'keeper', 'peiji', 'bloodlord', 'berserker', 'qingya', 'shade', 'wenren', 'archer', 'linshuang', 'ranger', 'gunner', 'mage', 'cryo', 'storm', 'healer', 'yanzhao', 'yuanshan'];
+export const SUPPORTS = ['healer', 'yanzhao', 'yuanshan'];
 
 // Items come in three grades, as in the novel: 凡器 (bought outright) → 灵器 (one 凡器 refined) → 法宝 (two 灵器 fused).
 // Each entry lists its TOTAL stats; `cost` is the fee for this step only, `parts` are consumed. Buying a finished item
