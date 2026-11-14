@@ -48,8 +48,8 @@ export function createUI(isTouch, audio) {
     el.diff.onclick = e => { const c = e.target.closest('button'); if (c) { diffK = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.goBtn.onclick = () => { store.set('hero', hero); store.set('diff', diffK); store.set('mode', mode); store.set('seat', String(seat)); el.title.hidden = true; onStart(hero, diffK, mode, MODES[mode].team === 5 ? seat : -1); };
     el.help.innerHTML = isTouch
-      ? '左侧摇杆移动，松开摇杆自动攻击附近敌人。招式按钮点一下自动瞄准；按住往外拖可以自己瞄，松手释放。点右上角灵石打开万宝阁（只在没离开山门、归宗回来或陨落时能买，走回来不算），旁边是归宗（站定 4 秒，挨打或移动会打断）。小地图下面的按钮是信号：集合（到我这来）、进攻（打我面前的目标）、撤退，还有一个开团开关（开着时同门一直跟着你打，再点一次解散）。电脑会尽量照办，但不会去送死。按住小地图可以看别处，轻点小地图是在那里集合；点顶部比分看计分板。躲进高草丛，外面的敌人就看不见你，出手或挨打才会暴露。'
-      : '<kbd>鼠标左/右键</kbd>移动或攻击目标 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd>按住瞄准、松开释放（右键取消） <kbd>A</kbd>再点左键是攻击移动（路上一有敌人进入范围就打最近的） <kbd>S</kbd>停止 <kbd>B</kbd>归宗 <kbd>P</kbd>万宝阁 <kbd>Tab</kbd>计分板 <kbd>滚轮</kbd>缩放<br>小地图：左键按住查看，右键移动过去，<kbd>Alt</kbd>+点击是在那里集合。信号：<kbd>Z</kbd>集合 <kbd>X</kbd>进攻 <kbd>C</kbd>撤退 <kbd>V</kbd>开团（开关：开着时同门一直跟着你、打你打的目标，再按一次解散），对着鼠标指的地方或目标发；也可以点小地图下面的三个按钮（以自己为准）。电脑会尽量照办，但不会去送死。躲进高草丛，外面的敌人看不见你，出手或挨打才会暴露。归宗要站定 4 秒，挨打或下命令会打断。万宝阁只在刚出生还没离开山门、归宗回来、或陨落时能买；出去后自己走回来不算。<br>镇压弟子和邪祟拿灵石，置办法器，推掉两座灵塔后摧毁敌方阵眼。境界从筑基初期到元婴巅峰共十二层，每突破一层得一点感悟（绝招共三重，对应三个大境界的巅峰：筑基巅峰初悟、金丹巅峰大成、元婴巅峰圆满），按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 或点招式上方的 + 号学习和提升招式。灵塔先打弟子；在塔下打敌方修士会被立刻锁定，连续挨塔打每发伤害再加 65%（第五发起是 3.6 倍），离开一会儿才降温。队友和对手每局从其余修士里随机。';
+      ? '摇杆移动，松手自动打附近的敌人 · 招式点一下自动瞄，按住拖动自己瞄 · 小地图下：集合 / 进攻 / 撤退 / 开团 · 招式说明在菜单里'
+      : '<kbd>右键</kbd>移动 / 攻击 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd>招式 <kbd>A</kbd>攻击移动 <kbd>B</kbd>归宗 <kbd>P</kbd>万宝阁 <kbd>Tab</kbd>计分板 · 信号 <kbd>Z</kbd>集合 <kbd>X</kbd>进攻 <kbd>C</kbd>撤退 <kbd>V</kbd>开团 · <kbd>Esc</kbd>菜单里有招式说明';
     paint(); el.hud.hidden = true; el.end.hidden = true; el.title.hidden = false;
   };
 
@@ -59,7 +59,7 @@ export function createUI(isTouch, audio) {
   ui.bind = (game, actions) => {
     G = game; const p = G.player, d = p.def; cache.clear(); lastItems = ''; miniBg = null;
     el.mini.classList.toggle('sq', MAP.mini[0] === MAP.mini[1]); el.mini.width = MAP.mini[0] * 2; el.mini.height = MAP.mini[1] * 2;
-    requestAnimationFrame(() => el.hud.style.setProperty('--mh', Math.round(el.mini.getBoundingClientRect().height) + 'px'));   // things stacked under the minimap follow its height
+    requestAnimationFrame(() => { const r = el.mini.getBoundingClientRect(); el.hud.style.setProperty('--mh', Math.round(r.height) + 'px'); el.hud.style.setProperty('--mw', Math.round(r.width) + 'px'); });   // things stacked under the minimap follow its height
     for (const [pe, t] of [[el.pipF, FROST], [el.pipE, EMBER]]) { pe.innerHTML = '<i></i>'.repeat(G.structs[t].list.length + 1); pe.classList.toggle('many', G.structs[t].list.length > 3); }
     el.pName.textContent = ''; el.portrait.style.backgroundImage = `url(${faceOf(p)})`;
     el.skills.innerHTML = d.skills.map((s, i) => `<div class="sk" data-i="${i}"><button type="button" class="up" hidden aria-label="提升">＋</button><button type="button" class="skill${i === 3 ? ' ult' : ''}" data-i="${i}" style="background-image:url(${icon(d, s)})"><span class="key">${s.key}</span><span class="nm">${s.name}</span><span class="cost">${s.mana}</span><span class="pips">${'<i></i>'.repeat(3)}</span><i class="cd"></i><b class="cdn"></b></button></div>`).join('');
@@ -129,7 +129,7 @@ export function createUI(isTouch, audio) {
   }
   // what your side's bots say to each other: a face, a name, a few words; three lines at most, each gone in a few seconds
   ui.chat = (h, text) => { const d = document.createElement('div'); d.innerHTML = `<i class="fp" style="background-image:url(${faceOf(h)})"></i><b>${h.name}</b>${text}`; el.chat.append(d); while (el.chat.children.length > 3) el.chat.firstChild.remove(); setTimeout(() => d.remove(), 5200); };
-  ui.rally = on => { const b = el.sig.querySelector('[data-s=rally]'); if (b) b.classList.toggle('on', on); ui.toast(on ? '开团：同门向你靠拢，跟你打' : '解散：各回各位'); };
+  ui.rally = on => { const b = el.sig.querySelector('[data-s=rally]'); if (b) b.classList.toggle('on', on); ui.toast(on ? '开团' : '解散'); };
   ui.announce = (text, cls) => { el.announce.textContent = text; el.announce.className = cls || ''; el.announce.animate([{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.12 }, { opacity: 1, offset: 0.8 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 2600, easing: 'ease-out' }); };
   ui.toast = text => { if (!text) return; el.toast.textContent = text; el.toast.animate([{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: 1300 }); };
   const who = u => (u.kind === 'hero' ? `<i class="fp" style="background-image:url(${faceOf(u)})"></i><span class="${u.team === FROST ? 'frost' : 'ember'}">${u.name}</span>` : u.name || (u.kind === 'minion' ? '弟子' : '护山大阵'));
@@ -209,7 +209,7 @@ export function createUI(isTouch, audio) {
       }
     }
     for (const r of roster) { txt(r.lv, String(r.h.level)); const d = r.h.alive ? '' : String(Math.ceil(r.h.respawnT)); if (cache.get(r.e) !== d) { cache.set(r.e, d); r.dead.textContent = d; r.e.classList.toggle('dead', !r.h.alive); } }
-    if (el.dead.hidden === p.alive) el.dead.hidden = p.alive; if (!p.alive) txt(el.deadT, `${Math.ceil(p.respawnT)} 秒后重聚`);
+    if (el.dead.hidden === p.alive) el.dead.hidden = p.alive; if (!p.alive) txt(el.deadT, String(Math.ceil(p.respawnT)));
     if (!el.shopNote.dataset.t) el.shopNote.dataset.t = el.shopNote.textContent;
     if (el.recallBtn.hidden !== !!MODE.noRecall) { el.recallBtn.hidden = !!MODE.noRecall; el.shopNote.textContent = MODE.noRecall ? '出过山门就只能看、不能买。一路没有归宗：只有出山前和陨落时能买。' : el.shopNote.dataset.t || el.shopNote.textContent; }
     const shopOK = G.canShop(); if (cache.get(el.shopBtn) !== shopOK) { cache.set(el.shopBtn, shopOK); el.shopBtn.classList.toggle('away', !shopOK); el.shopNote.hidden = shopOK; el.shopGrid.classList.toggle('away', !shopOK); }

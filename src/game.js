@@ -292,7 +292,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       h.xp -= T.xpNeed(h.level); h.level++; if (h.ranks[0] + h.ranks[1] + h.ranks[2] + h.ranks[3] + h.sp < 12) h.sp++; recalc(h);
       if (h.level === 5 || h.level === 9) { tribulation(h); say(h, 'up'); }
       if (h.alive && near(h)) { fx.ringWave(h.x, h.z, 7, GOLD, 0.6); fx.burst(h.x, 1.5, h.z, GOLD, { n: 18, speed: 3, up: 9, life: 0.8, size: 0.5, grav: 4 }); }
-      if (h.isPlayer) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至大成', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 绝招可至圆满', 'good'); }
+      if (h.isPlayer) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至小成', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 修为已满 · 绝招可至大成', 'good'); }
     }
   }
   // 雷劫. Breaking through to 金丹 or 元婴 roots you for a breath inside a ward while the sky gathers, then lightning falls
@@ -475,7 +475,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
           if (!e.alive || e.team === p.team || isStruct(e) || (p.heroOnly && e.kind !== 'hero') || dist2(e.x, e.z, p.x, p.z) > p.width + e.r) continue;
           if (p.hit) { if (p.hit.has(e)) continue; p.hit.add(e); }
           damage(p.src, e, p.dmg * (p.exec && e.kind === 'hero' ? 1 + (1 - e.hp / e.maxHp) * p.exec : 1), { ability: true }); applySlow(e, p.slow); applyStun(e, p.stun);
-          if (p.pull === 'self' && e.alive && p.src.alive) { const c = p.src, qx = c.x - e.x, qz = c.z - e.z, qd = Math.hypot(qx, qz) || 1, gap = c.r + e.r + 0.4; c.knock = { sx: c.x, sz: c.z, tx: e.x + qx / qd * gap, tz: e.z + qz / qd * gap, t: 0, dur: Math.min(0.4, 0.1 + qd / 40) }; c.dash = null; if (c.kind === 'hero' && !c.isPlayer) c.order = { type: 'attack', target: e }; }   // the line hauls its owner in
+          if (p.pull === 'self' && e.alive && p.src.alive) { const c = p.src, qx = c.x - e.x, qz = c.z - e.z, qd = Math.hypot(qx, qz) || 1, gap = c.r + e.r + 0.4; c.knock = { sx: c.x, sz: c.z, tx: e.x + qx / qd * gap, tz: e.z + qz / qd * gap, t: 0, dur: Math.min(0.4, 0.1 + qd / 40) }; c.dash = null; applyStun(e, (p.stun || 0) + (T.selfPullStun || 0)); if (c.kind === 'hero' && !c.isPlayer) c.order = { type: 'attack', target: e }; }   // the line hauls its owner in
           else if (p.pull && e.alive && p.src.alive) { const c = p.src, qx = e.x - c.x, qz = e.z - c.z, qd = Math.hypot(qx, qz) || 1, gap = c.r + e.r + 0.5; e.knock = { sx: e.x, sz: e.z, tx: c.x + qx / qd * gap, tz: c.z + qz / qd * gap, t: 0, dur: 0.32 }; applyStun(e, 0.32 + (p.stun || 0)); e.dash = null; }
           if (near(e)) V.projHit(p, e);
           if (!p.hit) {
@@ -701,7 +701,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const wasBack = ai.state === 'retreat';
     if (ai.state === 'retreat') { if (hpF > 0.8) ai.state = 'lane'; } else if (hpF < (h.def.id === 'shade' || h.def.id === 'qingya' || h.def.id === 'wenren' ? 0.36 : 0.27) || (hpF < 0.45 && nEH > nAH + 1)) ai.state = 'retreat';
     const retreat = ai.state === 'retreat', outnum = nEH > nAH + 1, ownS = frontStruct(team, ai.lane);
-    if (retreat && !wasBack) chat(h, eh ? '顶不住了，我先撤' : '我回去歇口气'); else if (outnum && eh && ehD < 12) chat(h, `${LANES[ai.lane].name || '这边'}对面人多，来个人`);
+    if (retreat && !wasBack) chat(h, eh ? '顶不住了，我先撤' : '我回去歇口气'); else if (outnum && eh && ehD < 12 && G.t - (G.helpAt || -99) > 25) { G.helpAt = G.t; chat(h, `${LANES[ai.lane].name || '这边'}对面人多，来个人`); }
     // the last enemy hero we had eyes on: if they slip into the grass, the bolder bots go in after them
     if (eh) { const s0 = ai.seen; ai.seen = { u: eh, x: eh.x, z: eh.z, t: G.t, go: s0 && s0.u === eh && G.t - s0.t < 4 ? s0.go : Math.random() < ai.nose }; }
     const sn = ai.seen, hunt = !eh && !retreat && sn && sn.go && G.t - sn.t < 4 && sn.u.alive && sn.u.hid && hpF > 0.45 && (!danger(sn) || diveOK);
@@ -850,7 +850,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (!canCast(h, i)) continue; const s = h.def.skills[i]; let aim = null;
       switch (s.kind) {
         case 'proj':
-          if (s.pull === 'self') { if (eh && ehD < s.range * 0.9 && !retreat && !outnum && nAH + 1 >= nEH && hpF > 0.55 && (!danger(eh) || diveOK)) aim = lead(eh, ehD / s.speed); else if (woods && em && emD > 4 && emD < s.range * 0.9) aim = em; break; }   // it hauls him in: only where he would walk in anyway
+          if (s.pull === 'self') { if (eh && ehD < s.range * 0.9 && !retreat && !outnum && hpF > 0.6 && !danger(eh) && ((nEH === 1 && eh.hp / eh.maxHp < 0.6) || (nAH >= nEH && G.heroes.some(o => o.alive && o.team === team && o !== h && dist(o, eh) < 13)))) aim = lead(eh, ehD / s.speed); else if (woods && em && emD > 4 && emD < s.range * 0.9) aim = em; break; }   // it hauls him in: only where he would walk in anyway
           if (eh && ehD < s.range * 0.9 && (!s.exec || eh.hp / eh.maxHp < 0.62)) aim = lead(eh, ehD / s.speed); else if (nEM >= 3 && manaF > 0.55 && em && !retreat) aim = em; break;
         case 'cone': if (eh && ehD < s.range * 0.8) aim = eh; else if (nEM >= 3 && emD < s.range * 0.7 && manaF > 0.55) aim = em; break;
         case 'nova': if (eh && ehD < s.radius * 0.85) aim = h; else if (nEM >= 3 && emD < s.radius * 0.7 && manaF > 0.5) aim = h; break;
@@ -881,7 +881,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const tp = G.plan[team]; if (G.t < tp.next) return; tp.next = G.t + 1; const en = 1 - team;
     for (const r of G.mem[team].records) {                               // someone we were watching has not been seen for a while: say so, once
       const e = r.entity; if (!e.alive || r.visible || r.called || G.t - r.timeLastSensed < 9 || G.t - r.timeLastSensed > 20) continue; r.called = true;
-      const ln = nearestLane(r.lastSensedPosition.x, r.lastSensedPosition.z), sp = G.heroes.find(h => h.team === team && h.alive && !h.isPlayer && h.ai.lane === ln); if (sp) chat(sp, LANES[ln].name ? `${LANES[ln].name}的${e.name}不见了，小心` : `${e.name}不见了，小心草丛`);
+      const ln = nearestLane(r.lastSensedPosition.x, r.lastSensedPosition.z), sp = G.heroes.find(h => h.team === team && h.alive && !h.isPlayer && h.ai.lane === ln); if (sp && G.t > 150) chat(sp, LANES[ln].name ? `${LANES[ln].name}的${e.name}不见了，小心` : `${e.name}不见了，小心草丛`);
     }
     if (LANES.length < 2) return;                                      // one lane: nothing to plan
     let siege = -1; for (let ln = 0; ln < LANES.length; ln++) { const tw = frontStruct(team, ln); if (tw.kind === 'tower' && tw.tier === 1) continue; let c = 0; for (const e of G.heroes) if (e.team === en && e.alive && !e.hid && dist(e, tw) < 24) c++; if (c >= 3) siege = ln; }
@@ -982,7 +982,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   };
   G.ping = (x, z) => G.signal('gather', x, z);
   G.rally = false;
-  G.setRally = on => { G.rally = on === undefined ? !G.rally : !!on; if (G.rally && !P().alive) G.rally = false; ui.rally(G.rally); if (G.rally) { audio.play('horn'); const p = P(); fx.ringWave(p.x, p.z, 16, [1.9, 0.45, 0.25], 0.8); } return G.rally; };
+  G.setRally = on => { G.rally = on === undefined ? !G.rally : !!on; if (G.rally && !P().alive) G.rally = false; ui.rally(G.rally); if (G.rally) { audio.play('horn'); const p = P(); fx.ringWave(p.x, p.z, 16, [1.9, 0.45, 0.25], 0.8); const one = L => L[Math.floor(Math.random() * L.length)]; fx.say(p.x, p.h + 1.6, p.z, one(['随我开团！', '都过来，跟我上！', '集合，开打！']), true); let k = 0; for (const a of G.heroes) if (a.alive && a.team === p.team && a !== p && k < 2) { chat(a, one(['来了！', '跟上，开打', '听你的', '这就到']), true); k++; } } return G.rally; };
   G.passive = () => { const h = P(), d = h.def.passive; return { stacks: d.pct ? Math.round((1 - h.hp / h.maxHp) * 60) : d.max ? h.pStack : 0, cd: d.cd ? Math.max(0, h.pCd) : 0 }; };
   G.pick = (x, z, slack = 1.3) => {
     let best = null, bd = 1e9;

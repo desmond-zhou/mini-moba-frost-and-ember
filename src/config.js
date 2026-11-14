@@ -38,7 +38,7 @@ const mirror = list => list.flatMap(b => (b.x === 0 && b.z === 0 ? [b] : [b, { .
 const sineZ = x => 10 * Math.sin(x * Math.PI / 80), sineRiver = z => 6 * Math.sin(z * Math.PI * 1.5 / 48);
 export const MODES = {
   single: {
-    id: 'single', name: '一路 · 速战', team: 3, blurb: '一条路，3 对 3，十五分钟上下。河道上下各有一个目标，十一分钟后渊主残念现世。',
+    id: 'single', name: '一路 · 速战', team: 3, blurb: '3v3 · 约 15 分钟',
     map: { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126], base: 15, baseF: 4 },
     core: t => ({ x: sideSign(t) * 64, z: sineZ(sideSign(t) * 64) }), fountain: t => ({ x: sideSign(t) * 75, z: sineZ(sideSign(t) * 75) }),
     lanes: () => [{ ...funcLane('', sineZ, 64, [24, 46]), glsl: '10.0 * sin(p.x * 0.0392699)' }], mid: 0,
@@ -54,10 +54,10 @@ export const MODES = {
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
     // 一路's own nudges, set after the bots started playing their roles (v1.2.0-alpha.3). Shared numbers stay as they are.
-    tune: { bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.02 }, keeper: { hp: 0.97 }, bloodlord: { ad: 1.04, hp: 1.05 }, shade: { ad: 1.07, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.07 }, linshuang: { ad: 0.93 }, ranger: { ad: 0.92, hp: 0.97 }, gunner: { ad: 0.96 }, mage: { ap: 0.95, hp: 0.98 }, cryo: { ap: 0.9, hp: 0.95 }, storm: { ap: 0.97 }, healer: { pow: 1.1, hp: 1.08 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
+    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.02 }, keeper: { hp: 0.97 }, bloodlord: { ad: 1.04, hp: 1.05 }, shade: { ad: 1.07, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.07 }, linshuang: { ad: 0.93 }, ranger: { ad: 0.92, hp: 0.97 }, gunner: { ad: 0.96 }, mage: { ap: 0.95, hp: 0.98 }, cryo: { ap: 0.9, hp: 0.95 }, storm: { ap: 0.97 }, healer: { pow: 1.1, hp: 1.08 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
   },
   tri: {
-    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, solid: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。野区有山脊相隔，河道有血海残魂与镇渊傀，十五分钟后渊主残念现世。',
+    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, solid: true, blurb: '5v5 · 约 20 分钟',
     // frost holds the lower-left corner, ember the upper-right (the camera looks north, so -z is up the screen)
     map: { hx: 80, hz: 80, ax: Math.SQRT1_2, az: -Math.SQRT1_2, biome: 1.24, mini: [168, 168], base: 25, baseF: 13 },   // base: radius of each sect's precinct
     core: t => ({ x: sideSign(t) * 56, z: -sideSign(t) * 56 }), fountain: t => ({ x: sideSign(t) * 68, z: -sideSign(t) * 68 }),
@@ -403,7 +403,7 @@ export const REALM = ['筑基初期', '筑基中期', '筑基后期', '筑基巅
 export const realmOf = L => `${REALM[L - 1]}（${L}）`;
 export const RANK = {
   basic: { max: 3, lvl: [1, 3, 5], dmg: [0.85, 1.05, 1.3], cd: [1, 0.92, 0.84], name: ['入门', '小成', '大成'] },
-  ult: { max: 3, lvl: [4, 8, 12], dmg: [1, 1.3, 1.6], cd: [1, 0.86, 0.72], name: ['初悟', '大成', '圆满'] },
+  ult: { max: 3, lvl: [4, 8, 12], dmg: [1, 1.3, 1.6], cd: [1, 0.86, 0.72], name: ['初悟', '小成', '大成'] },
   top: 1.25,
 };
 

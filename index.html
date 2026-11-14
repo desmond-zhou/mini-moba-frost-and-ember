@@ -232,6 +232,35 @@ body.touch #toast { bottom: calc(210px + var(--sab)); }
 body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bottom: auto; top: calc(var(--mh, 126px) + 22px + var(--sat)); } body.touch #sys small { display: none; }
 @media (max-width: 760px) { body.touch #sys { top: calc(var(--mh, 82px) + 22px + var(--sat)); } }
 @media (prefers-reduced-motion: reduce) { #feed div { animation: none; } }
+/* ---- the fallen: the count is the thing to read ---- */
+#dead em { display: block; font: 900 clamp(54px, 11vw, 96px)/1 var(--f-display); font-style: normal; color: var(--brass); font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
+#top .ros.dead i { filter: grayscale(1) brightness(.5); }
+/* ---- title: the choice of mode is two short buttons; on a small screen 出战 stays in reach ---- */
+#modeSel button { min-width: 0; flex: 0 1 230px; padding: 8px 14px; text-align: center; } #modeSel button span { display: block; margin-top: 2px; }
+.help { max-width: 760px; margin-left: auto; margin-right: auto; font-size: 12px; line-height: 1.9; }
+@media (max-width: 760px), (max-height: 520px) {
+  #title .row { position: sticky; bottom: 0; z-index: 3; margin: 0 calc(-1 * var(--gl)); padding: 8px var(--gl) calc(8px + var(--sab)); background: linear-gradient(transparent, rgba(5, 8, 13, .94) 30%); }
+  #modeSel { flex-wrap: nowrap; gap: 8px; margin: 2px 0 8px; } #modeSel button { flex: 1 1 0; padding: 7px 6px; } #modeSel button b { font-size: 15px; } #modeSel button span { font-size: 11px; }
+  #title .ver { position: static; text-align: center; opacity: .5; } #title h1.mark { margin-top: 4px; }
+}
+@media (max-height: 520px) { #title h1.mark { font-size: 34px; margin: 0; } #title .sub { display: none; } }
+@media (max-width: 760px) { #modeSel { width: 100%; } #modeSel button b { white-space: nowrap; font-size: 14.5px; letter-spacing: .04em; } }
+body.touch #feed { top: calc(128px + var(--sat)); font-size: 11.5px; } body.touch #feed div:nth-last-child(n+3) { display: none; }
+@media (max-height: 520px) and (orientation: landscape) { body.touch #feed { top: calc(96px + var(--sat)); } }
+/* ---- phone HUD: nothing sits on anything else ---- */
+body.touch #chat { max-width: min(300px, 62vw); pointer-events: none; } body.touch #chat div:nth-last-child(n+3) { display: none; }
+body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08em; }
+@media (max-width: 760px) { #top .pips { display: none; } #top { padding: 4px 12px; gap: 6px; } }
+@media (max-width: 760px) and (orientation: portrait) {
+  body.touch { --lift: 44px; }
+  body.touch #stick { top: calc(100% - var(--sab) - 112px - var(--lift)); } body.touch #atkBtn { bottom: calc(var(--sab) + 50px + var(--lift)); } body.touch #skills { bottom: var(--lift); }
+  body.touch #mid { width: min(58vw, 240px); } body.touch #announce { top: 27%; } body.touch #toast { bottom: calc(260px + var(--sab)); } body.touch #chan { bottom: calc(282px + var(--sab)); }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  body.touch #chat { left: calc(var(--gl) + var(--mw, 180px) + 12px); top: calc(52px + var(--sat)); } body.touch #announce { top: 30%; }
+  body.touch #eco { top: calc(8px + var(--sat)); }
+}
+
 </style>
 
 <div id="app">
@@ -246,7 +275,7 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
     <div id="toast"></div>
     <div id="chan" hidden><i id="chanFill"></i><span>归宗</span></div>
     <div id="score" hidden></div>
-    <div id="dead" hidden><b>已陨落</b><span id="deadT"></span></div>
+    <div id="dead" hidden><b>已陨落</b><em id="deadT"></em><span>秒后重聚</span></div>
     <div id="tip" hidden></div>
     <div id="touch" hidden><div id="stick"><i></i></div><button id="atkBtn" type="button">攻击</button></div>
     <div id="bar">
@@ -284,7 +313,7 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
     <h1 class="mark">霜烬之争</h1>
     <div class="sub" id="sub">十八位修士 · 3V3 · 摧毁敌方阵眼</div>
     <div id="modeSel"></div>
-    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.5</div>
+    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.6</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div class="row"><div class="seg" id="diff"></div><button class="go" id="goBtn" type="button">出战</button></div>
