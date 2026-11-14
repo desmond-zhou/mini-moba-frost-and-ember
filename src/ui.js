@@ -21,7 +21,7 @@ const store = { get(k, d) { try { return localStorage.getItem('frostember.' + k)
 
 export function createUI(isTouch, audio) {
   const ui = { shopOpen: false, onCast: null, onBuy: null };
-  const el = {}; for (const id of ['hud', 'title', 'end', 'cards', 'detail', 'diff', 'portrait', 'rosF', 'rosE', 'goBtn', 'help', 'kF', 'kE', 'clock', 'pipF', 'pipE', 'buff', 'feed', 'announce', 'toast', 'dead', 'deadT', 'tip', 'touch', 'pName', 'pLvl', 'skills', 'hpFill', 'hpTxt', 'mpFill', 'mpTxt', 'xpFill', 'gold', 'kda', 'items', 'shop', 'shopGrid', 'shopBtn', 'shopX', 'mini', 'endMark', 'endSub', 'endTable', 'againBtn', 'muteBtn', 'qBtn', 'pas', 'chan', 'chanFill', 'score', 'recallBtn', 'top', 'shopNote', 'menu', 'menuBtn', 'mResume', 'mRestart', 'mQuit', 'vMusic', 'vSfx', 'ult', 'modeSel', 'sub', 'sig', 'seatSel']) el[id] = $(id);
+  const el = {}; for (const id of ['hud', 'title', 'end', 'cards', 'detail', 'diff', 'portrait', 'rosF', 'rosE', 'goBtn', 'help', 'kF', 'kE', 'clock', 'pipF', 'pipE', 'buff', 'feed', 'announce', 'toast', 'dead', 'deadT', 'tip', 'touch', 'pName', 'pLvl', 'skills', 'hpFill', 'hpTxt', 'mpFill', 'mpTxt', 'xpFill', 'gold', 'kda', 'items', 'shop', 'shopGrid', 'shopBtn', 'shopX', 'mini', 'endMark', 'endSub', 'endTable', 'againBtn', 'muteBtn', 'qBtn', 'pas', 'chan', 'chanFill', 'score', 'recallBtn', 'top', 'shopNote', 'menu', 'menuBtn', 'mResume', 'mRestart', 'mQuit', 'vMusic', 'vSfx', 'ult', 'modeSel', 'sub', 'sig', 'seatSel', 'chat']) el[id] = $(id);
   document.body.classList.toggle('touch', isTouch);
   el.touch.hidden = !isTouch;
   const cache = new Map();
@@ -39,7 +39,7 @@ export function createUI(isTouch, audio) {
     el.cards.innerHTML = HERO_ORDER.map(k => { const h = HEROES[k]; return `<button type="button" class="card" data-k="${k}"><i class="pt" style="background-image:url(${face(h)})"></i><h3>${h.name}</h3><div class="role">${h.role}</div><div class="ics">${h.skills.map(sk => `<i style="background-image:url(${icon(h, sk)})"></i>`).join('')}</div></button>`; }).join('');
     const detail = () => { const h = HEROES[hero]; el.detail.innerHTML = `<i class="big" style="background-image:url(${face(h)})"></i><h3>${h.name}<small>${h.title}</small></h3><p>${h.blurb}</p><ul><li class="pv"><i style="background-image:url(${pasIcon(h)})"></i><div><b>被动 · ${h.passive.name}</b><span>${h.passive.desc}</span></div></li>${h.skills.map(sk => `<li><i style="background-image:url(${icon(h, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}</b><span>${sk.desc}</span></div></li>`).join('')}</ul>`; };
     el.diff.innerHTML = Object.entries(T.difficulty).map(([k, d]) => `<button type="button" data-k="${k}">${d.name}</button>`).join('');
-    const paint = () => { for (const c of el.cards.children) c.classList.toggle('on', c.dataset.k === hero); for (const c of el.diff.children) c.classList.toggle('on', c.dataset.k === diffK); for (const c of el.modeSel.children) c.classList.toggle('on', c.dataset.k === mode); el.sub.textContent = `十二位修士 · ${MODES[mode].team}V${MODES[mode].team} · 摧毁敌方阵眼`;
+    const paint = () => { for (const c of el.cards.children) c.classList.toggle('on', c.dataset.k === hero); for (const c of el.diff.children) c.classList.toggle('on', c.dataset.k === diffK); for (const c of el.modeSel.children) c.classList.toggle('on', c.dataset.k === mode); el.sub.textContent = `${HERO_ORDER.length === 18 ? '十八' : HERO_ORDER.length}位修士 · ${MODES[mode].team}V${MODES[mode].team} · 摧毁敌方阵眼`;
       // 三路: pick your seat. ★ marks the ones this cultivator suits; 自动 takes the first of them. The others fill the rest.
       const five = MODES[mode].team === 5, fit = SEAT_FIT[hero] || [], at = seat < 0 ? fit[0] : seat; el.seatSel.hidden = !five;
       if (five) el.seatSel.innerHTML = `位置 <button type="button" data-k="-1" class="${seat < 0 ? 'on' : ''}">自动</button>` + SEATS.map((q, i) => `<button type="button" data-k="${i}" class="${seat === i ? 'on ' : ''}${fit.includes(i) ? 'fit' : ''}">${q.pos}</button>`).join('') + `<em>${SEATS[at].pos}：${SEATS[at].note}${fit.includes(at) ? '' : ' · 这个位置不是 ' + HEROES[hero].name + ' 的长项'}</em>`;
@@ -49,7 +49,7 @@ export function createUI(isTouch, audio) {
     el.goBtn.onclick = () => { store.set('hero', hero); store.set('diff', diffK); store.set('mode', mode); store.set('seat', String(seat)); el.title.hidden = true; onStart(hero, diffK, mode, MODES[mode].team === 5 ? seat : -1); };
     el.help.innerHTML = isTouch
       ? '左侧摇杆移动，松开摇杆自动攻击附近敌人。招式按钮点一下自动瞄准；按住往外拖可以自己瞄，松手释放。点右上角灵石打开万宝阁（只在没离开山门、归宗回来或陨落时能买，走回来不算），旁边是归宗（站定 4 秒，挨打或移动会打断）。小地图下面三个按钮是信号：集合（到我这来）、进攻（打我面前的目标）、撤退。电脑会尽量照办，但不会去送死。按住小地图可以看别处，轻点小地图是在那里集合；点顶部比分看计分板。躲进高草丛，外面的敌人就看不见你，出手或挨打才会暴露。'
-      : '<kbd>鼠标左/右键</kbd>移动或攻击目标 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd>按住瞄准、松开释放（右键取消） <kbd>A</kbd>再点左键是攻击移动（路上一有敌人进入范围就打最近的） <kbd>S</kbd>停止 <kbd>B</kbd>归宗 <kbd>P</kbd>万宝阁 <kbd>Tab</kbd>计分板 <kbd>滚轮</kbd>缩放<br>小地图：左键按住查看，右键移动过去，<kbd>Alt</kbd>+点击是在那里集合。信号：<kbd>Z</kbd>集合 <kbd>X</kbd>进攻 <kbd>C</kbd>撤退，对着鼠标指的地方或目标发；也可以点小地图下面的三个按钮（以自己为准）。电脑会尽量照办，但不会去送死。躲进高草丛，外面的敌人看不见你，出手或挨打才会暴露。归宗要站定 4 秒，挨打或下命令会打断。万宝阁只在刚出生还没离开山门、归宗回来、或陨落时能买；出去后自己走回来不算。<br>镇压弟子和邪祟拿灵石，置办法器，推掉两座灵塔后摧毁敌方阵眼。境界从筑基初期到元婴巅峰共十二层，每突破一层得一点感悟（绝招共三重，对应三个大境界的巅峰：筑基巅峰初悟、金丹巅峰大成、元婴巅峰圆满），按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 或点招式上方的 + 号学习和提升招式。灵塔先打弟子；在塔下打敌方修士会被立刻锁定，连续挨塔打每发伤害再加 65%（第五发起是 3.6 倍），离开一会儿才降温。队友和对手每局从其余十一人里随机。';
+      : '<kbd>鼠标左/右键</kbd>移动或攻击目标 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd>按住瞄准、松开释放（右键取消） <kbd>A</kbd>再点左键是攻击移动（路上一有敌人进入范围就打最近的） <kbd>S</kbd>停止 <kbd>B</kbd>归宗 <kbd>P</kbd>万宝阁 <kbd>Tab</kbd>计分板 <kbd>滚轮</kbd>缩放<br>小地图：左键按住查看，右键移动过去，<kbd>Alt</kbd>+点击是在那里集合。信号：<kbd>Z</kbd>集合 <kbd>X</kbd>进攻 <kbd>C</kbd>撤退，对着鼠标指的地方或目标发；也可以点小地图下面的三个按钮（以自己为准）。电脑会尽量照办，但不会去送死。躲进高草丛，外面的敌人看不见你，出手或挨打才会暴露。归宗要站定 4 秒，挨打或下命令会打断。万宝阁只在刚出生还没离开山门、归宗回来、或陨落时能买；出去后自己走回来不算。<br>镇压弟子和邪祟拿灵石，置办法器，推掉两座灵塔后摧毁敌方阵眼。境界从筑基初期到元婴巅峰共十二层，每突破一层得一点感悟（绝招共三重，对应三个大境界的巅峰：筑基巅峰初悟、金丹巅峰大成、元婴巅峰圆满），按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 或点招式上方的 + 号学习和提升招式。灵塔先打弟子；在塔下打敌方修士会被立刻锁定，连续挨塔打每发伤害再加 65%（第五发起是 3.6 倍），离开一会儿才降温。队友和对手每局从其余修士里随机。';
     paint(); el.hud.hidden = true; el.end.hidden = true; el.title.hidden = false;
   };
 
@@ -94,6 +94,7 @@ export function createUI(isTouch, audio) {
     el.top.onpointerdown = e => { if (e.pointerType === 'touch' || isTouch) { e.preventDefault(); ui.showScore(el.score.hidden); } };
     ui.showScore(false); el.chan.hidden = true; el.tip.hidden = true;
     if (p.seat) setTimeout(() => ui.toast(`你的位置：${p.seat} · ${SEATS.find(q => q.pos === p.seat).note}`), 900);
+    el.chat.innerHTML = '';
     el.feed.innerHTML = ''; el.hud.hidden = false; el.end.hidden = true; ui.toggleShop(false);
   };
   // the pause menu: the world stops while it is open (main.js checks ui.menuOpen)
@@ -126,6 +127,8 @@ export function createUI(isTouch, audio) {
     if (r < R.max) { const nr = r + 1; next = `<em class="nx">${r ? '下一重' : '学会后'}「${R.name[nr - 1]}」${s.b !== undefined ? `：${word} ${Math.round(G.skillDmg(i, nr))}` : ''}${R.cd[nr - 1] < 1 ? `，调息 -${Math.round((1 - R.cd[nr - 1]) * 100)}%` : ''}${nr === R.max ? '，控制和增益时间 +25%' : ''}（需 ${realmOf(R.lvl[nr - 1])}）</em>`; }
     el.tip.innerHTML = `<i style="background-image:url(${icon(p.def, s)})"></i><div><b>${s.key} · ${s.name}</b> <span class="rk">${r ? R.name[r - 1] : '未学'}</span>${scaleTag(s)}<br>${s.desc}<em>${nums}</em>${sc}${next}</div>`; el.tip.hidden = false;
   }
+  // what your side's bots say to each other: a face, a name, a few words; three lines at most, each gone in a few seconds
+  ui.chat = (h, text) => { const d = document.createElement('div'); d.innerHTML = `<i class="fp" style="background-image:url(${faceOf(h)})"></i><b>${h.name}</b>${text}`; el.chat.append(d); while (el.chat.children.length > 3) el.chat.firstChild.remove(); setTimeout(() => d.remove(), 5200); };
   ui.announce = (text, cls) => { el.announce.textContent = text; el.announce.className = cls || ''; el.announce.animate([{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.12 }, { opacity: 1, offset: 0.8 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 2600, easing: 'ease-out' }); };
   ui.toast = text => { if (!text) return; el.toast.textContent = text; el.toast.animate([{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: 1300 }); };
   const who = u => (u.kind === 'hero' ? `<i class="fp" style="background-image:url(${faceOf(u)})"></i><span class="${u.team === FROST ? 'frost' : 'ember'}">${u.name}</span>` : u.name || (u.kind === 'minion' ? '弟子' : '护山大阵'));

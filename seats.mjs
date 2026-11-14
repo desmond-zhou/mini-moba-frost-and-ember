@@ -1,7 +1,7 @@
 // seats.mjs — which seat suits which cultivator. Reads batch output where the tracked hero ("me") was forced into a seat
 // (node batch.mjs <n> <off> <maxT> mirror tri <seat>) and compares each cultivator in a seat with the others in that seat.
 import fs from 'fs';
-const SEAT = ['镇关', '中军', '养剑', '护法', '巡山'], NAME = { warden: '韩不语', keeper: '周远川', bloodlord: '血屠子', berserker: '老铁', shade: '柳红衣', archer: '沈焰', ranger: '苏紫烟', gunner: '吴镇岳', mage: '周易', cryo: '寒漪', storm: '沈渊', healer: '孙伯' };
+const SEAT = ['镇关', '中军', '养剑', '护法', '巡山'], NAME = { warden: '韩不语', keeper: '周远川', bloodlord: '血屠子', berserker: '老铁', shade: '柳红衣', archer: '沈焰', ranger: '苏紫烟', gunner: '吴镇岳', mage: '周易', cryo: '寒漪', storm: '沈渊', healer: '孙伯', yanzhao: '言照雪', yuanshan: '周远山', qingya: '陆青崖', wenren: '闻人遥', linshuang: '林霜', peiji: '裴寂' };
 const C = {};                                                                      // C[seat][hero] = sums
 for (const f of process.argv.slice(2)) for (const l of fs.readFileSync(f, 'utf8').split('\n').filter(x => x[0] === '{')) {
   const r = JSON.parse(l), me = r.heroes.find(h => h.me); if (!me || !me.seat) continue; const min = r.t / 60, s = SEAT.indexOf(me.seat);
