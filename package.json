@@ -1,6 +1,6 @@
 {
   "name": "mini-moba",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "霜烬之争 — a single-file xianxia mini MOBA: three.js, everything procedural, no asset files",
   "scripts": {
     "dev": "node serve.mjs",
@@ -16,5 +16,6 @@
     "puppeteer-core": "^25.17.0",
     "three": "^0.187.0"
   },
-  "private": true
+  "private": true,
+  "author": "Desmond Zhou 周易"
 }

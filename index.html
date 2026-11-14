@@ -124,6 +124,7 @@ body.touch #chan { bottom: calc(232px + var(--sab)); }
 #menu button.big { color: #1a1408; background: linear-gradient(#ffe7a8, #d6a441); border-color: #ffe7a8; } #menu button.big small { color: #5a4718; }
 #menu label { display: grid; grid-template-columns: 44px 1fr; align-items: center; gap: 10px; font-size: 13px; color: var(--dim); margin-top: 4px; } #menu input[type=range] { width: 100%; accent-color: #d6a441; }
 #menu .row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 4px; } #menu .row button { font-size: 12px; font-weight: 400; color: var(--dim); padding: 7px; }
+.credit { margin-top: 18px; font-size: 11.5px; letter-spacing: .08em; color: var(--dim); text-align: center; }
 .ver { position: absolute; right: var(--gr); bottom: calc(8px + var(--sab)); font-size: 11px; letter-spacing: .1em; color: var(--dim); opacity: .7; }
 #ult { position: absolute; left: 0; right: 0; top: 60%; text-align: center; opacity: 0; pointer-events: none; text-shadow: 0 3px 18px rgba(0, 0, 0, .9); }
 #ult b { display: block; font: 400 clamp(46px, 9vw, 104px)/1 var(--f-brush); letter-spacing: .2em; margin-right: -.2em; color: #ffe9b0; } #ult small { font: 700 13px var(--f-ui); letter-spacing: .5em; margin-right: -.5em; color: var(--brass); }
@@ -255,11 +256,12 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
   </div>
   <div id="title" class="screen" hidden>
     <h1 class="mark">霜烬之争</h1>
-    <div class="sub">十二位修士 · 3V3 · 摧毁敌方阵眼</div><div class="ver">v1.0.2</div>
+    <div class="sub">十二位修士 · 3V3 · 摧毁敌方阵眼</div><div class="ver">v1.0.3</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div class="row"><div class="seg" id="diff"></div><button class="go" id="goBtn" type="button">出战</button></div>
     <p class="help" id="help"></p>
+    <div class="credit">制作 · Desmond Zhou 周易　微信 desmondzhou　© 2026 版权所有</div>
   </div>
   <div id="end" class="screen" hidden>
     <h1 class="mark" id="endMark"></h1>
