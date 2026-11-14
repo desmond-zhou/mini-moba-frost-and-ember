@@ -3,16 +3,23 @@
 // are painted on a canvas at load, displaced boulders, undergrowth, grass, drifting motes.
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { MAP, laneZ, riverX, CAMPS, POS, FROST, EMBER, BRUSH, brushAt } from './config.js';
+import { MAP, LANES, RIVER, TOWERS, CAMPS, POS, FROST, EMBER, BRUSH, brushAt, biomeX, biomeGLSL, MODE } from './config.js';
 import { rng, vnoise, smooth } from './util.js';
 import { vcMat, part, build, G, K, kind, uTime, tNoise, COMMON_GLSL } from './mat.js';
 
-const GROUND_PARS = `
-  uniform sampler2D tNoise; uniform float uTime; uniform vec3 uCamps[5]; uniform vec3 uBrush[12];
+const F = v => { const t = Number(v).toFixed(6); return t.includes('.') ? t : t + '.0'; };
+// Where the lanes and the river are. 一路 has them as formulas, written straight into the shader. 三路's are free-form paths,
+// so they are baked once into a texture: distance to the nearest lane, how far along it, distance to the river, and which
+// side of the lane (the last two give the cobbles their rows).
+const analytic = () => LANES.length === 1 && LANES[0].func;
+const fieldGLSL = () => (analytic()
+  ? `float lz = ${LANES[0].glsl}; float dl = abs(p.y - lz); vec2 laneQ = vec2(p.x, p.y - lz); float riverD = abs(p.x - (${RIVER.glsl}));`
+  : 'vec4 LN = texture2D(tLane, (p - uLaneBox.xy) / uLaneBox.zw); float dl = LN.r; vec2 laneQ = vec2(LN.g, LN.a); float riverD = LN.b;');
+const P2 = (v) => `vec2(${F(v.x)}, ${F(v.z)})`;
+const groundPars = () => `
+  uniform sampler2D tNoise; uniform float uTime; uniform vec3 uCamps[${CAMPS.length}]; uniform vec3 uBrush[${BRUSH.length}]; uniform sampler2D tLane; uniform vec4 uLaneBox;
   varying vec3 vWPos;
   vec3 gAlb; vec3 gEmis; float gRough; float gH; float gMetal = 0.0;
-  float laneZ(float x){ return 10.0 * sin(x * 0.0392699); }
-  float riverX(float z){ return 6.0 * sin(z * 0.0981748); }
   float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   ${COMMON_GLSL}
   void groundEval(vec2 p){
@@ -23,21 +30,20 @@ const GROUND_PARS = `
     float macro = nA.r, mid = nB.r, fine = nC.g, grit = nD.g;
     float pulse = 0.65 + 0.35 * sin(uTime * 1.4 + macro * 22.0);
 
-    float bx = p.x + (macro - 0.5) * 30.0 + (mid - 0.5) * 8.0;
+    float bx = ${biomeGLSL('p', 'y')} + (macro - 0.5) * 30.0 + (mid - 0.5) * 8.0;
     float fr = 1.0 - smoothstep(-52.0, -16.0, bx);
     float em = smoothstep(16.0, 52.0, bx);
 
-    float lz = laneZ(p.x);
-    float dl = abs(p.y - lz);
+    ${fieldGLSL()}
     float laneM = 1.0 - smoothstep(4.7, 6.3, dl + (mid - 0.5) * 2.6);
-    float dPl = min(length(p - vec2(-64.0, laneZ(-64.0))), length(p - vec2(64.0, laneZ(64.0))));
-    float dFo = min(length(p - vec2(-75.0, laneZ(-75.0))), length(p - vec2(75.0, laneZ(75.0))));
+    float dPl = min(length(p - ${P2(POS.core(FROST))}), length(p - ${P2(POS.core(EMBER))}));
+    float dFo = min(length(p - ${P2(POS.fountain(FROST))}), length(p - ${P2(POS.fountain(EMBER))}));
     float plaza = 1.0 - smoothstep(13.5, 15.5, min(dPl, dFo + 4.0) + (mid - 0.5) * 2.0);
     float paved = max(laneM, plaza);
     float worn = 1.0 - smoothstep(5.5, 10.0, dl + (mid - 0.5) * 5.0);
     float camp = 0.0;
-    for (int i = 0; i < 5; i++) camp = max(camp, 1.0 - smoothstep(uCamps[i].z * 0.55, uCamps[i].z, length(p - uCamps[i].xy) + (mid - 0.5) * 3.0));
-    float shore = abs(p.x - riverX(p.y)) + (mid - 0.5) * 1.8;
+    for (int i = 0; i < ${CAMPS.length}; i++) camp = max(camp, 1.0 - smoothstep(uCamps[i].z * 0.55, uCamps[i].z, length(p - uCamps[i].xy) + (mid - 0.5) * 3.0));
+    float shore = riverD + (mid - 0.5) * 1.8;
     float water = (1.0 - smoothstep(3.5, 4.5, shore)) * (1.0 - 0.8 * laneM);
     float wet = 1.0 - smoothstep(4.2, 7.5, shore);
 
@@ -61,14 +67,14 @@ const GROUND_PARS = `
     vec3 dirt = soil * mix(vec3(1.0), vec3(1.5, 1.9, 2.4), fr * 0.6) * mix(1.0, 0.6, em);
     land = mix(land, dirt, max(worn * 0.8, camp));
     float brIn = 0.0, brRim = 0.0;
-    for (int i = 0; i < 12; i++) { float bd = distance(p, uBrush[i].xy) - uBrush[i].z + (nB.r - 0.5) * 0.9; brIn = max(brIn, 1.0 - smoothstep(-0.5, 0.4, bd)); brRim = max(brRim, 1.0 - smoothstep(0.0, 0.42, abs(bd + 0.05))); }
+    for (int i = 0; i < ${BRUSH.length}; i++) { float bd = distance(p, uBrush[i].xy) - uBrush[i].z + (nB.r - 0.5) * 0.9; brIn = max(brIn, 1.0 - smoothstep(-0.5, 0.4, bd)); brRim = max(brRim, 1.0 - smoothstep(0.0, 0.42, abs(bd + 0.05))); }
     land = mix(land, land * vec3(0.3, 0.42, 0.3), brIn * 0.85); land = mix(land, vec3(0.006, 0.012, 0.005), brRim * 0.7);
     float landH = mid * 0.5 + fine * 0.2 + grit * 0.07 - crack * 0.14;
     float rough = mix(0.96, 0.6, fr * (1.0 - smoothstep(0.58, 0.74, nB.g)));
     vec3 emis = vec3(2.6, 0.55, 0.06) * crack * pulse * (1.0 - paved);
 
     // --- cobbles: uneven rows that follow the lane, every stone tilted and worn differently ---
-    vec2 q = vec2(p.x, p.y - lz);
+    vec2 q = laneQ;
     float bh = 1.3, row = floor(q.y / bh);
     float bw = 1.9 + 0.9 * hash21(vec2(row, 3.7));
     float qx = q.x / bw + hash21(vec2(row, 9.1));
@@ -127,11 +133,11 @@ const GROUND_PARS = `
   }`;
 
 export function terrain(x, z) {
-  const dl = Math.abs(z - laneZ(x)), dr = Math.abs(x - riverX(z));
-  const dPl = Math.min(Math.hypot(x + 64, z - laneZ(-64)), Math.hypot(x - 64, z - laneZ(64)));
-  const dFo = Math.min(Math.hypot(x + 75, z - laneZ(-75)), Math.hypot(x - 75, z - laneZ(75)));
+  let dl = 1e9; for (const L of LANES) dl = Math.min(dl, L.dist(x, z));
+  const dr = RIVER.dist(x, z), d2 = q => Math.hypot(x - q.x, z - q.z);
+  const dPl = Math.min(d2(POS.core(FROST)), d2(POS.core(EMBER))), dFo = Math.min(d2(POS.fountain(FROST)), d2(POS.fountain(EMBER)));
   let camp = 99; for (const c of CAMPS) camp = Math.min(camp, Math.hypot(x - c.x, z - c.z) - c.r);
-  const bx = x + (vnoise(x * 0.04, z * 0.04) - 0.5) * 30;
+  const bx = biomeX(x, z) + (vnoise(x * 0.04, z * 0.04) - 0.5) * 30;
   return { dl, dr, dPl: Math.min(dPl, dFo + 4), camp, fr: 1 - smooth(-52, -16, bx), em: smooth(16, 52, bx), inside: Math.abs(x) < MAP.hx && Math.abs(z) < MAP.hz };
 }
 
@@ -184,13 +190,13 @@ function leafMat(map, a2c) {
       .replace('#include <common>', '#include <common>\nuniform sampler2D tNoise; uniform float uTime; varying vec3 vWP;\n' + COMMON_GLSL)
       .replace('#include <color_fragment>', `#include <color_fragment>
         vec3 lwn = inverseTransformDirection(normalize(vNormal), viewMatrix);
-        float lfr = 1.0 - smoothstep(-52.0, -16.0, vWP.x);
+        float lfr = 1.0 - smoothstep(-52.0, -16.0, ${biomeGLSL('vWP')});
         float lsnow = lfr * smoothstep(0.3, 0.75, lwn.y) * smoothstep(0.25, 0.6, texture2D(tNoise, vWP.xz * 0.45).g);
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.48, 0.56), lsnow * 0.9);`)
       .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nnormal = normalize(vNormal);')   // same lighting on both faces of a leaf card
       .replace('#include <opaque_fragment>', 'outgoingLight = outgoingLight * cloudShade(vWP.xz) + diffuseColor.rgb * vec3(0.16, 0.2, 0.26);\n#include <opaque_fragment>');   // a little sky light always filters through foliage
   };
-  m.customProgramCacheKey = () => 'leaf';
+  m.customProgramCacheKey = () => 'leaf' + MODE.id;
   return m;
 }
 // a textured card: centre, size, facing normal (nx,ny,nz), roll; shading normal bends away from the canopy centre
@@ -209,7 +215,8 @@ function card(list, cx, cy, cz, w, h, nx, ny, nz, roll, ox, oy, oz, shade = 1) {
 
 export function createWorld(R) {
   const { scene, renderer } = R;
-  const W = { obstacles: [] };
+  const W = { obstacles: [] }, owned = [], add = (...o) => { for (const q of o) { scene.add(q); owned.push(q); } };
+  const AREA = (MAP.hx * MAP.hz) / (80 * 48);                            // scatter counts scale with the size of the map
   const rand = rng(20261111);
 
   // ---- sun + sky. The sky is never seen directly: it is baked into image-based lighting so metal, water and wet stone reflect it ----
@@ -236,13 +243,13 @@ export function createWorld(R) {
   scene.environment = pm.fromScene(sky, 0, 0.1, 200).texture; scene.environmentIntensity = 0.85; pm.dispose();
 
   const hemi = new THREE.HemisphereLight(0x7f9cff, 0x2a2018, 0.2);
-  scene.add(hemi);
+  add(hemi);
   const sun = new THREE.DirectionalLight(0xffb878, 3.6);
   sun.castShadow = true;
   const sc = sun.shadow.camera; sc.left = -52; sc.right = 52; sc.top = 52; sc.bottom = -52; sc.near = 1; sc.far = 190;
   sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.06;
   sun.shadow.mapSize.set(R.quality.shadow, R.quality.shadow);
-  scene.add(sun, sun.target);
+  add(sun, sun.target);
   W.sun = sun; W.sunDir = sunDir;
   W.focusLight = (x, z) => {
     const fx = Math.round(x / 2) * 2, fz = Math.round(z / 2) * 2;
@@ -252,13 +259,23 @@ export function createWorld(R) {
 
   // ---- ground ----
   const gmat = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
-  const gu = { tNoise, uTime, uCamps: { value: CAMPS.map(c => new THREE.Vector3(c.x, c.z, c.r)) }, uBrush: { value: BRUSH.map(b => new THREE.Vector3(b.x, b.z, b.r)) } };
+  let tLane = null, laneBox = new THREE.Vector4(0, 0, 1, 1);
+  if (!analytic()) {
+    const N = 384, pad = 30, x0 = -MAP.hx - pad, z0 = -MAP.hz - pad, w = (MAP.hx + pad) * 2, h = (MAP.hz + pad) * 2, data = new Uint16Array(N * N * 4), H = THREE.DataUtils.toHalfFloat;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const x = x0 + (i + 0.5) / N * w, z = z0 + (j + 0.5) / N * h; let bd = 1e9, bs = 0, bo = 0;
+      for (const L of LANES) { const r = L.path.near(x, z); if (r[0] < bd) { bd = r[0]; bs = r[1]; bo = r[2]; } }
+      const k = (j * N + i) * 4; data[k] = H(Math.min(bd, 200)); data[k + 1] = H(bs); data[k + 2] = H(Math.min(RIVER.dist(x, z), 200)); data[k + 3] = H(Math.max(-200, Math.min(200, bo)));
+    }
+    tLane = new THREE.DataTexture(data, N, N, THREE.RGBAFormat, THREE.HalfFloatType); tLane.magFilter = tLane.minFilter = THREE.LinearFilter; tLane.needsUpdate = true; laneBox.set(x0, z0, w, h);
+  }
+  const gu = { tNoise, uTime, tLane: { value: tLane }, uLaneBox: { value: laneBox }, uCamps: { value: CAMPS.map(c => new THREE.Vector3(c.x, c.z, c.r)) }, uBrush: { value: BRUSH.map(b => new THREE.Vector3(b.x, b.z, b.r)) } };
   gmat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, gu);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\n' + GROUND_PARS)
+      .replace('#include <common>', '#include <common>\n' + groundPars())
       .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\ngroundEval(vWPos.xz);')
       .replace('#include <map_fragment>', 'diffuseColor.rgb = gAlb;')
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = gRough;')
@@ -268,7 +285,7 @@ export function createWorld(R) {
       .replace('#include <opaque_fragment>', 'outgoingLight = min((outgoingLight - totalEmissiveRadiance) * cloudShade(vWPos.xz) + totalEmissiveRadiance, vec3(2.6));\n#include <opaque_fragment>');
   };
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(460, 360).rotateX(-Math.PI / 2), gmat);
-  ground.receiveShadow = true; scene.add(ground);
+  ground.receiveShadow = true; add(ground);
 
   // ---- scatter helpers ----
   const dummy = new THREE.Object3D(), color = new THREE.Color();
@@ -279,10 +296,11 @@ export function createWorld(R) {
       im.setMatrixAt(i, dummy.matrix); color.setRGB(it.c[0], it.c[1], it.c[2]); im.setColorAt(i, color);
     });
     im.castShadow = cast; im.receiveShadow = true; im.frustumCulled = false; im.userData.noAO = noAO;
-    scene.add(im); return im;
+    add(im); return im;
   }
   const structs = [];
-  for (const t of [FROST, EMBER]) structs.push({ ...POS.core(t), r: 11 }, { ...POS.fountain(t), r: 9 }, { ...POS.tower(t, 1), r: 9 }, { ...POS.tower(t, 2), r: 9 });
+  for (const t of [FROST, EMBER]) structs.push({ ...POS.core(t), r: 11 }, { ...POS.fountain(t), r: 9 });
+  for (const t of TOWERS) structs.push({ x: t.x, z: t.z, r: 9 });
   const clear = (x, z, m = 0) => {
     const t = terrain(x, z);
     if (t.dl < 9 + m || t.dr < 7.5 + m || t.dPl < 19 + m || t.camp < 2.5 + m) return null;
@@ -343,7 +361,7 @@ export function createWorld(R) {
     placed.push(it);
     if (!border) W.obstacles.push({ x, z, r: 0.75 });
   };
-  for (let i = 0; i < 2600; i++) tryTree((rand() * 2 - 1) * (MAP.hx - 2), (rand() * 2 - 1) * (MAP.hz - 2), false);
+  for (let i = 0; i < 2600 * AREA; i++) tryTree((rand() * 2 - 1) * (MAP.hx - 2), (rand() * 2 - 1) * (MAP.hz - 2), false);
   for (let i = 0; i < 1500; i++) {
     const x = (rand() * 2 - 1) * (MAP.hx + 24), z = (rand() * 2 - 1) * (MAP.hz + 22);
     if (Math.abs(x) > MAP.hx + 2.5 || Math.abs(z) > MAP.hz + 2.5) tryTree(x, z, true);
@@ -383,7 +401,7 @@ export function createWorld(R) {
     rocks.push({ x, z, y: s * 0.18, s, sy: s * (0.7 + rand() * 0.5), ry: rand() * 6.28, rx: (rand() - 0.5) * 0.4, c });
     if (obstacle) W.obstacles.push({ x, z, r: s * 0.9 });
   };
-  for (let i = 0; i < 400 && rocks.length < 46; i++) {
+  for (let i = 0; i < 400 * AREA && rocks.length < 46 * AREA; i++) {
     const x = (rand() * 2 - 1) * (MAP.hx - 3), z = (rand() * 2 - 1) * (MAP.hz - 3), t = clear(x, z, 1.5);
     if (!t || brushAt(x, z, 3) >= 0) continue;
     if (W.obstacles.some(o => Math.hypot(o.x - x, o.z - z) < 5.5)) continue;
@@ -395,8 +413,8 @@ export function createWorld(R) {
     const x = Math.max(-ex, Math.min(ex, Math.cos(a) * ex * 1.5)), z = Math.max(-ez, Math.min(ez, Math.sin(a) * ez * 1.5));
     rockAt(x, z, 1.4 + rand() * 2.0, terrain(x, z), false);
   }
-  for (let i = 0; i < 110; i++) {
-    const z = (rand() * 2 - 1) * MAP.hz, x = riverX(z) + (rand() < 0.5 ? -1 : 1) * (4.3 + rand() * 2.2), t = terrain(x, z);
+  for (let i = 0; i < 110 * MAP.hz / 48; i++) {
+    const rp = RIVER.at(rand(), (rand() < 0.5 ? -1 : 1) * (4.3 + rand() * 2.2)), x = rp.x, z = rp.z, t = terrain(x, z);
     if (t.dl > 7) rockAt(x, z, 0.3 + rand() * 0.55, t, false);
   }
   instanced(rg, vcMat({ world: true }), rocks);
@@ -411,7 +429,7 @@ export function createWorld(R) {
   }
   const gg = new THREE.BufferGeometry();
   gg.setAttribute('position', new THREE.Float32BufferAttribute(bl, 3)); gg.setAttribute('color', new THREE.Float32BufferAttribute(bc, 3)); gg.setAttribute('normal', new THREE.Float32BufferAttribute(bn, 3));
-  const tufts = [], nT = Math.round(30000 * R.quality.grass);
+  const tufts = [], nT = Math.round(30000 * R.quality.grass * AREA);
   for (let i = 0; i < nT * 3 && tufts.length < nT; i++) {
     const x = (rand() * 2 - 1) * (MAP.hx + 4), z = (rand() * 2 - 1) * (MAP.hz + 4), t = terrain(x, z);
     if (t.dl < 6.4 || t.dr < 4.9 || t.dPl < 16 || t.camp < -1) continue;
@@ -463,7 +481,7 @@ export function createWorld(R) {
       void main(){
         vec3 box = vec3(100.0, 16.0, 80.0), s = position;
         vec3 p; p.xz = mod(s.xz * box.xz - uCenter.xz, box.xz) - box.xz * 0.5 + uCenter.xz;
-        float fr = 1.0 - smoothstep(-40.0, -14.0, p.x), em = smoothstep(14.0, 40.0, p.x);
+        float pbx = ${biomeGLSL('p')}; float fr = 1.0 - smoothstep(-40.0, -14.0, pbx), em = smoothstep(14.0, 40.0, pbx);
         float vy = mix(mix(0.25, -1.1, fr), 1.5, em);
         p.y = mod(s.y * box.y + uTime * vy * (0.6 + s.x), box.y) + 0.3;
         p.x += sin(uTime * 0.7 + s.y * 40.0) * 0.8; p.z += cos(uTime * 0.5 + s.x * 37.0) * 0.8;
@@ -475,9 +493,15 @@ export function createWorld(R) {
       }`,
     fragmentShader: `varying vec4 vC; void main(){ float d = length(gl_PointCoord - 0.5); float a = smoothstep(0.5, 0.0, d); gl_FragColor = vec4(vC.rgb, vC.a * a * a); }`,
   });
-  const motes = new THREE.Points(mg, mm); motes.frustumCulled = false; motes.renderOrder = 19; scene.add(motes);
+  const motes = new THREE.Points(mg, mm); motes.frustumCulled = false; motes.renderOrder = 19; add(motes);
   const setScale = s => { mm.uniforms.uScale.value = s.ph / (2 * Math.tan(R.camera.fov * Math.PI / 360)); };
   R.onResize.push(setScale); setScale(R.size);
+  W.dispose = () => {
+    const k = R.onResize.indexOf(setScale); if (k >= 0) R.onResize.splice(k, 1);
+    for (const o of owned) { scene.remove(o); if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); if (o.shadow && o.shadow.map) o.shadow.map.dispose(); if (o.dispose && o.isInstancedMesh) o.dispose(); }
+    if (scene.environment) { scene.environment.dispose(); scene.environment = null; }
+    if (tLane) tLane.dispose();
+  };
   W.update = (focus) => { mm.uniforms.uCenter.value.set(focus.x, 0, focus.z); };
   return W;
 }

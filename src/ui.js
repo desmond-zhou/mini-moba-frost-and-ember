@@ -1,11 +1,15 @@
 // ui.js — DOM HUD: title / hero select, score, hero console, shop, minimap, kill feed, end screen.
-import { HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, TIER_NAME, RANK, REALM, realmOf, T, MAP, laneZ, riverX, CAMPS, BRUSH, FROST, EMBER, NEUTRAL, TEAM_COL } from './config.js';
+import { HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, TIER_NAME, RANK, REALM, realmOf, T, MAP, MODE, MODES, LANES, RIVER, CAMPS, BRUSH, FROST, EMBER, NEUTRAL, TEAM_COL } from './config.js';
 import { skillIcon, itemIcon } from './icons.js';
 import { portrait } from './portraits.js';
 
 // the colour a hero's abilities glow with on the player's side (same mix as in game.js)
 const accent = d => { const tg = TEAM_COL[FROST].glow, c = [tg[0] * 0.38 + d.tint[0] * 0.62, tg[1] * 0.38 + d.tint[1] * 0.62, tg[2] * 0.38 + d.tint[2] * 0.62], mx = Math.max(...c); return c.map(v => v / mx); };
 const icon = (d, s) => skillIcon(s.icon, accent(d));
+// what an ability's numbers grow with: 攻击力 (weapons, the martial path) or 术法强度 (spirit arts)
+const scaleOf = s => { const out = []; if (s.ad) out.push(['ad', '攻击力', s.ad]); if (s.ap) out.push(['ap', '术法强度', s.ap]); return out; };
+const scaleTag = s => scaleOf(s).map(([k, n]) => `<em class="sc ${k}">${n}</em>`).join('');
+const scaleTxt = s => scaleOf(s).map(([, n, v]) => `${n} ×${v}`).join(' + ');
 const pasIcon = d => skillIcon(d.passive.icon, [1.0, 0.82, 0.42]);
 const face = d => portrait(d.id, accent(d));
 const faceOf = h => portrait(h.def.id, h.fxCol);
@@ -17,7 +21,7 @@ const store = { get(k, d) { try { return localStorage.getItem('frostember.' + k)
 
 export function createUI(isTouch, audio) {
   const ui = { shopOpen: false, onCast: null, onBuy: null };
-  const el = {}; for (const id of ['hud', 'title', 'end', 'cards', 'detail', 'diff', 'portrait', 'rosF', 'rosE', 'goBtn', 'help', 'kF', 'kE', 'clock', 'pipF', 'pipE', 'buff', 'feed', 'announce', 'toast', 'dead', 'deadT', 'tip', 'touch', 'pName', 'pLvl', 'skills', 'hpFill', 'hpTxt', 'mpFill', 'mpTxt', 'xpFill', 'gold', 'kda', 'items', 'shop', 'shopGrid', 'shopBtn', 'shopX', 'mini', 'endMark', 'endSub', 'endTable', 'againBtn', 'muteBtn', 'qBtn', 'pas', 'chan', 'chanFill', 'score', 'recallBtn', 'top', 'shopNote', 'menu', 'menuBtn', 'mResume', 'mRestart', 'mQuit', 'vMusic', 'vSfx', 'ult']) el[id] = $(id);
+  const el = {}; for (const id of ['hud', 'title', 'end', 'cards', 'detail', 'diff', 'portrait', 'rosF', 'rosE', 'goBtn', 'help', 'kF', 'kE', 'clock', 'pipF', 'pipE', 'buff', 'feed', 'announce', 'toast', 'dead', 'deadT', 'tip', 'touch', 'pName', 'pLvl', 'skills', 'hpFill', 'hpTxt', 'mpFill', 'mpTxt', 'xpFill', 'gold', 'kda', 'items', 'shop', 'shopGrid', 'shopBtn', 'shopX', 'mini', 'endMark', 'endSub', 'endTable', 'againBtn', 'muteBtn', 'qBtn', 'pas', 'chan', 'chanFill', 'score', 'recallBtn', 'top', 'shopNote', 'menu', 'menuBtn', 'mResume', 'mRestart', 'mQuit', 'vMusic', 'vSfx', 'ult', 'modeSel', 'sub']) el[id] = $(id);
   document.body.classList.toggle('touch', isTouch);
   el.touch.hidden = !isTouch;
   const cache = new Map();
@@ -26,15 +30,17 @@ export function createUI(isTouch, audio) {
 
   // ---------- title ----------
   ui.showTitle = onStart => {
-    let hero = store.get('hero', 'mage'), diffK = store.get('diff', 'normal');
-    if (!HEROES[hero]) hero = 'mage'; if (!T.difficulty[diffK]) diffK = 'normal';
+    let hero = store.get('hero', 'mage'), diffK = store.get('diff', 'normal'), mode = store.get('mode', MODE.id);
+    if (!HEROES[hero]) hero = 'mage'; if (!T.difficulty[diffK]) diffK = 'normal'; if (!MODES[mode]) mode = 'single';
+    el.modeSel.innerHTML = Object.values(MODES).map(m => `<button type="button" data-k="${m.id}"><b>${m.name}</b><span>${m.blurb}</span></button>`).join('');
+    el.modeSel.onclick = e => { const c = e.target.closest('button'); if (c) { mode = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.cards.innerHTML = HERO_ORDER.map(k => { const h = HEROES[k]; return `<button type="button" class="card" data-k="${k}"><i class="pt" style="background-image:url(${face(h)})"></i><h3>${h.name}</h3><div class="role">${h.role}</div><div class="ics">${h.skills.map(sk => `<i style="background-image:url(${icon(h, sk)})"></i>`).join('')}</div></button>`; }).join('');
-    const detail = () => { const h = HEROES[hero]; el.detail.innerHTML = `<i class="big" style="background-image:url(${face(h)})"></i><h3>${h.name}<small>${h.title}</small></h3><p>${h.blurb}</p><ul><li class="pv"><i style="background-image:url(${pasIcon(h)})"></i><div><b>被动 · ${h.passive.name}</b><span>${h.passive.desc}</span></div></li>${h.skills.map(sk => `<li><i style="background-image:url(${icon(h, sk)})"></i><div><b>${sk.key} · ${sk.name}</b><span>${sk.desc}</span></div></li>`).join('')}</ul>`; };
+    const detail = () => { const h = HEROES[hero]; el.detail.innerHTML = `<i class="big" style="background-image:url(${face(h)})"></i><h3>${h.name}<small>${h.title}</small></h3><p>${h.blurb}</p><ul><li class="pv"><i style="background-image:url(${pasIcon(h)})"></i><div><b>被动 · ${h.passive.name}</b><span>${h.passive.desc}</span></div></li>${h.skills.map(sk => `<li><i style="background-image:url(${icon(h, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}</b><span>${sk.desc}</span></div></li>`).join('')}</ul>`; };
     el.diff.innerHTML = Object.entries(T.difficulty).map(([k, d]) => `<button type="button" data-k="${k}">${d.name}</button>`).join('');
-    const paint = () => { for (const c of el.cards.children) c.classList.toggle('on', c.dataset.k === hero); for (const c of el.diff.children) c.classList.toggle('on', c.dataset.k === diffK); detail(); };
+    const paint = () => { for (const c of el.cards.children) c.classList.toggle('on', c.dataset.k === hero); for (const c of el.diff.children) c.classList.toggle('on', c.dataset.k === diffK); for (const c of el.modeSel.children) c.classList.toggle('on', c.dataset.k === mode); el.sub.textContent = `十二位修士 · ${MODES[mode].team}V${MODES[mode].team} · 摧毁敌方阵眼`; detail(); };
     el.cards.onclick = e => { const c = e.target.closest('.card'); if (c) { hero = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.diff.onclick = e => { const c = e.target.closest('button'); if (c) { diffK = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
-    el.goBtn.onclick = () => { store.set('hero', hero); store.set('diff', diffK); el.title.hidden = true; onStart(hero, diffK); };
+    el.goBtn.onclick = () => { store.set('hero', hero); store.set('diff', diffK); store.set('mode', mode); el.title.hidden = true; onStart(hero, diffK, mode); };
     el.help.innerHTML = isTouch
       ? '左侧摇杆移动，松开摇杆自动攻击附近敌人。招式按钮点一下自动瞄准；按住往外拖可以自己瞄，松手释放。点右上角灵石打开万宝阁（只在没离开山门、归宗回来或陨落时能买，走回来不算），旁边是归宗（站定 4 秒，挨打或移动会打断）。按住小地图可以看别处，轻点小地图给队友发信号；点顶部比分看计分板。躲进高草丛，外面的敌人就看不见你，出手或挨打才会暴露。'
       : '<kbd>鼠标左/右键</kbd>移动或攻击目标 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd>按住瞄准、松开释放（右键取消） <kbd>A</kbd>再点左键是攻击移动（路上一有敌人进入范围就打最近的） <kbd>S</kbd>停止 <kbd>B</kbd>归宗 <kbd>P</kbd>万宝阁 <kbd>Tab</kbd>计分板 <kbd>滚轮</kbd>缩放<br>小地图：左键按住查看，右键移动过去，<kbd>Alt</kbd>+点击给队友发信号。躲进高草丛，外面的敌人看不见你，出手或挨打才会暴露。归宗要站定 4 秒，挨打或下命令会打断。万宝阁只在刚出生还没离开山门、归宗回来、或陨落时能买；出去后自己走回来不算。<br>镇压弟子和邪祟拿灵石，置办法器，推掉两座灵塔后摧毁敌方阵眼。境界从筑基初期到元婴巅峰共十二层，每突破一层得一点感悟（绝招共三重，对应三个大境界的巅峰：筑基巅峰初悟、金丹巅峰大成、元婴巅峰圆满），按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 或点招式上方的 + 号学习和提升招式。灵塔先打弟子；在塔下打敌方修士会被立刻锁定，连续挨塔打每发伤害再加 65%（第五发起是 3.6 倍），离开一会儿才降温。队友和对手每局从其余十一人里随机。';
@@ -42,16 +48,20 @@ export function createUI(isTouch, audio) {
   };
 
   // ---------- match HUD ----------
+  let fogCv = null, fogImg = null;
   let skillEls = [], shopTiles = [], roster = [], scoreRows = [], scoreHead = [], lastItems = '', miniBg = null, miniT = 0, G = null, tipT = 0;
   ui.bind = (game, actions) => {
-    G = game; const p = G.player, d = p.def; cache.clear(); lastItems = '';
+    G = game; const p = G.player, d = p.def; cache.clear(); lastItems = ''; miniBg = null;
+    el.mini.classList.toggle('sq', MAP.mini[0] === MAP.mini[1]); el.mini.width = MAP.mini[0] * 2; el.mini.height = MAP.mini[1] * 2;
+    requestAnimationFrame(() => el.hud.style.setProperty('--mh', Math.round(el.mini.getBoundingClientRect().height) + 'px'));   // things stacked under the minimap follow its height
+    for (const [pe, t] of [[el.pipF, FROST], [el.pipE, EMBER]]) { pe.innerHTML = '<i></i>'.repeat(G.structs[t].list.length + 1); pe.classList.toggle('many', G.structs[t].list.length > 3); }
     el.pName.textContent = ''; el.portrait.style.backgroundImage = `url(${faceOf(p)})`;
     el.skills.innerHTML = d.skills.map((s, i) => `<div class="sk" data-i="${i}"><button type="button" class="up" hidden aria-label="提升">＋</button><button type="button" class="skill${i === 3 ? ' ult' : ''}" data-i="${i}" style="background-image:url(${icon(d, s)})"><span class="key">${s.key}</span><span class="nm">${s.name}</span><span class="cost">${s.mana}</span><span class="pips">${'<i></i>'.repeat(3)}</span><i class="cd"></i><b class="cdn"></b></button></div>`).join('');
     skillEls = [...el.skills.querySelectorAll('.skill')].map(b => ({ b, cd: b.querySelector('.cd'), cdn: b.querySelector('.cdn'), up: b.parentElement.querySelector('.up'), pips: [...b.querySelectorAll('.pips i')], was: 0 }));
     skillEls.forEach(({ b, up }, i) => {
-      b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); actions.skillDown(i, e); b.animate([{ transform: 'scale(.9)' }, { transform: 'scale(1)' }], { duration: 160 }); };
-      b.onpointermove = e => actions.skillMove(i, e); b.onpointerup = e => actions.skillUp(i, e); b.onpointercancel = e => actions.skillUp(i, e, true);
-      up.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); G.learn(i); };
+      b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); actions.skillDown(i, e); b.animate([{ transform: 'scale(.9)' }, { transform: 'scale(1)' }], { duration: 160 }); if (isTouch) { showTip(i); tipT = 0; } };
+      b.onpointermove = e => actions.skillMove(i, e); b.onpointerup = e => { actions.skillUp(i, e); if (isTouch) tipT = 1.2; }; b.onpointercancel = e => { actions.skillUp(i, e, true); if (isTouch) el.tip.hidden = true; };
+      up.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); G.learn(i); if (isTouch) { showTip(i); tipT = 3.5; } };
       if (!isTouch) { b.onpointerenter = () => showTip(i); b.onpointerleave = () => { el.tip.hidden = true; }; up.onpointerenter = () => showTip(i); up.onpointerleave = () => { el.tip.hidden = true; }; }
     });
     // the shop: three grades, each tile shows what it is made from and what it would cost you right now
@@ -80,7 +90,15 @@ export function createUI(isTouch, audio) {
   };
   // the pause menu: the world stops while it is open (main.js checks ui.menuOpen)
   ui.menuOpen = false; ui.onMenu = {};
-  ui.toggleMenu = on => { ui.menuOpen = on === undefined ? !ui.menuOpen : on; el.menu.hidden = !ui.menuOpen; if (ui.menuOpen) { ui.toggleShop(false); ui.showScore(false); } };
+  ui.toggleMenu = on => {
+    ui.menuOpen = on === undefined ? !ui.menuOpen : on; el.menu.hidden = !ui.menuOpen;
+    if (ui.menuOpen) {
+      ui.toggleShop(false); ui.showScore(false); el.tip.hidden = true;
+      if (G) { const p = G.player, d = p.def;                          // every ability spelled out: the one place to read them on a phone
+        $('mSkills').innerHTML = `<li><i style="background-image:url(${pasIcon(d)});border-radius:50%"></i><div><b>被动 · ${d.passive.name}</b><span>${d.passive.desc}</span></div></li>` + d.skills.map((sk, i) => { const R = i === 3 ? RANK.ult : RANK.basic, r = p.ranks[i], e = G.skill(i), word = sk.kind === 'shield' ? '罡气' : sk.kind === 'heal' ? '治疗' : '伤害';
+          return `<li><i style="background-image:url(${icon(d, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}<u>${r ? R.name[r - 1] : '未学'}</u></b><span>${sk.desc}</span><span class="n">灵力 ${sk.mana} · 调息 ${(e.cd * (1 - p.cdr)).toFixed(1)} 秒${sk.b !== undefined ? ` · ${word} ${Math.round(G.skillDmg(i, Math.max(1, r)))}` : ''}${scaleTxt(sk) ? ` · 随 ${scaleTxt(sk)}` : ''}</span></div></li>`; }).join(''); }
+    }
+  };
   el.menuBtn.onclick = () => { audio.init(); ui.toggleMenu(); }; el.mResume.onclick = () => ui.toggleMenu(false);
   el.mRestart.onclick = () => { ui.toggleMenu(false); if (ui.onMenu.restart) ui.onMenu.restart(); }; el.mQuit.onclick = () => { ui.toggleMenu(false); if (ui.onMenu.quit) ui.onMenu.quit(); };
   el.menu.onpointerdown = e => { if (e.target === el.menu) ui.toggleMenu(false); };
@@ -95,9 +113,10 @@ export function createUI(isTouch, audio) {
     const p = G.player, s = G.skill(i), R = i === 3 ? RANK.ult : RANK.basic, r = p.ranks[i], word = s.kind === 'shield' ? '罡气' : s.kind === 'heal' ? '治疗' : '伤害';
     let nums = `灵力 ${s.mana} · 调息 ${(s.cd * (1 - p.cdr)).toFixed(1)} 秒`;
     if (s.b !== undefined) nums += ` · ${word} ${Math.round(G.skillDmg(i, Math.max(1, r)))}`;
+    const sc = scaleTxt(s) ? `<em class="scl">${word}随 ${scaleTxt(s)} 提高</em>` : '';
     let next = '';
     if (r < R.max) { const nr = r + 1; next = `<em class="nx">${r ? '下一重' : '学会后'}「${R.name[nr - 1]}」${s.b !== undefined ? `：${word} ${Math.round(G.skillDmg(i, nr))}` : ''}${R.cd[nr - 1] < 1 ? `，调息 -${Math.round((1 - R.cd[nr - 1]) * 100)}%` : ''}${nr === R.max ? '，控制和增益时间 +25%' : ''}（需 ${realmOf(R.lvl[nr - 1])}）</em>`; }
-    el.tip.innerHTML = `<i style="background-image:url(${icon(p.def, s)})"></i><div><b>${s.key} · ${s.name}</b> <span class="rk">${r ? R.name[r - 1] : '未学'}</span><br>${s.desc}<em>${nums}</em>${next}</div>`; el.tip.hidden = false;
+    el.tip.innerHTML = `<i style="background-image:url(${icon(p.def, s)})"></i><div><b>${s.key} · ${s.name}</b> <span class="rk">${r ? R.name[r - 1] : '未学'}</span>${scaleTag(s)}<br>${s.desc}<em>${nums}</em>${sc}${next}</div>`; el.tip.hidden = false;
   }
   ui.announce = (text, cls) => { el.announce.textContent = text; el.announce.className = cls || ''; el.announce.animate([{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.12 }, { opacity: 1, offset: 0.8 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 2600, easing: 'ease-out' }); };
   ui.toast = text => { if (!text) return; el.toast.textContent = text; el.toast.animate([{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: 1300 }); };
@@ -113,13 +132,18 @@ export function createUI(isTouch, audio) {
     const X = x => (x + MAP.hx) * kx, Z = z => (z + MAP.hz) * kz;
     if (!miniBg) {
       miniBg = document.createElement('canvas'); miniBg.width = w; miniBg.height = h; const b = miniBg.getContext('2d');
-      const gr = b.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#1a2c44'); gr.addColorStop(0.5, '#12241a'); gr.addColorStop(1, '#3a1c12'); b.fillStyle = gr; b.fillRect(0, 0, w, h);
-      b.lineCap = 'round'; b.strokeStyle = '#1d5b68'; b.lineWidth = 9 * kx; b.beginPath(); for (let z = -MAP.hz; z <= MAP.hz; z += 2) b.lineTo(X(riverX(z)), Z(z)); b.stroke();
-      b.strokeStyle = '#5a5648'; b.lineWidth = 10 * kx; b.beginPath(); for (let x = -75; x <= 75; x += 2) b.lineTo(X(x), Z(laneZ(x))); b.stroke();
+      const gr = MAP.az ? b.createLinearGradient(0, h, w, 0) : b.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#1a2c44'); gr.addColorStop(0.5, '#12241a'); gr.addColorStop(1, '#3a1c12'); b.fillStyle = gr; b.fillRect(0, 0, w, h);
+      b.lineCap = b.lineJoin = 'round'; b.strokeStyle = '#1d5b68'; b.lineWidth = 9 * kx; b.beginPath(); for (let t = 0; t <= 1.0001; t += 1 / 48) { const q = RIVER.at(Math.min(1, t), 0); b.lineTo(X(q.x), Z(q.z)); } b.stroke();
+      b.strokeStyle = '#5a5648'; b.lineWidth = (LANES.length > 1 ? 7 : 10) * kx; for (const L of LANES) { b.beginPath(); for (let k = 0; k <= 80; k++) { const q = L.at(L.s0 + (L.s1 - L.s0) * k / 80, 0); b.lineTo(X(q.x), Z(q.z)); } b.stroke(); }
       b.fillStyle = 'rgba(96,150,70,.5)'; for (const br of BRUSH) { b.beginPath(); b.arc(X(br.x), Z(br.z), br.r * kx, 0, 6.3); b.fill(); }
       b.fillStyle = 'rgba(255,214,110,.5)'; for (const cp of CAMPS) { b.beginPath(); b.arc(X(cp.x), Z(cp.z), cp.kind === 'guardian' ? 7 : 4.5, 0, 6.3); b.fill(); }
     }
     g.drawImage(miniBg, 0, 0);
+    if (G.fog) {                                                       // fog: one pixel per cell, stretched over the map
+      const F = G.fog; if (!fogCv || fogCv.width !== F.w) { fogCv = document.createElement('canvas'); fogCv.width = F.w; fogCv.height = F.h; fogImg = fogCv.getContext('2d').createImageData(F.w, F.h); }
+      const d = fogImg.data; for (let i = 0; i < F.data.length; i++) { d[i * 4] = 2; d[i * 4 + 1] = 4; d[i * 4 + 2] = 9; d[i * 4 + 3] = (1 - Math.min(1, F.data[i] * 1.3)) * 150; }
+      fogCv.getContext('2d').putImageData(fogImg, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(fogCv, 0, 0, w, h);
+    }
     const col = t => TEAM_COL[t].css, me = G.player.team;
     for (const u of G.units) {
       if (!u.alive || (u.hid && u.team !== me)) continue; const x = X(u.x), z = Z(u.z);
@@ -134,7 +158,7 @@ export function createUI(isTouch, audio) {
   ui.update = dt => {
     const p = G.player;
     txt(el.kF, String(G.kills[FROST])); txt(el.kE, String(G.kills[EMBER])); txt(el.clock, fmt(G.t));
-    [el.pipF, el.pipE].forEach((pe, t) => { const s = G.structs[t]; [s.t1, s.t2, s.core].forEach((u, i) => { const off = !u.alive; if (cache.get(pe.children[i]) !== off) { cache.set(pe.children[i], off); pe.children[i].classList.toggle('off', off); } }); });
+    [el.pipF, el.pipE].forEach((pe, t) => { const s = G.structs[t]; [...s.list, s.core].forEach((u, i) => { const off = !u.alive; if (cache.get(pe.children[i]) !== off) { cache.set(pe.children[i], off); pe.children[i].classList.toggle('off', off); } }); });
     const bt = G.buffT[p.team], be = G.buffT[1 - p.team];
     const heat = p.alive && p.heat > 0 ? `灵塔灼烧 ${p.heat} 层 · 下一发 ×${(1 + T.heatStep * p.heat).toFixed(1)}` : '';
     const brush = p.alive && p.brush >= 0 ? (p.hid ? '隐于草丛 · 敌人看不见你' : '草丛中 · 已暴露') : '';

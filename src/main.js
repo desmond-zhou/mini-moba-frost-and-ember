@@ -8,7 +8,7 @@ import { createUI } from './ui.js';
 import { createInput } from './input.js';
 import { createGame } from './game.js';
 import { uTime } from './mat.js';
-import { laneZ, riverX } from './config.js';
+import { LANES, MID, RIVER, biomeX, MODE, MODES, setMode } from './config.js';
 
 const fatal = document.getElementById('fatal');
 addEventListener('error', e => { fatal.textContent = '出错了：' + (e.message || e.error); });
@@ -17,7 +17,8 @@ function boot() {
   const qs = new URLSearchParams(location.search);
   const isTouch = qs.get('touch') === '1' || (qs.get('touch') !== '0' && (matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 900)));
   const R = createRender(document.getElementById('view'), qs.get('q') || pickQuality());
-  const fx = createFx(R), W = createWorld(R), M = createModels(R, fx), audio = createAudio(isTouch), ui = createUI(isTouch, audio), input = createInput(R, fx, ui, audio, isTouch);
+  if (MODES[qs.get('mode')]) setMode(qs.get('mode'));
+  let W = createWorld(R); const fx = createFx(R), M = createModels(R, fx), audio = createAudio(isTouch), ui = createUI(isTouch, audio), input = createInput(R, fx, ui, audio, isTouch);
   R.sun = W.sun;
   if (qs.get('dyn') === '0') R.dyn.enabled = false;
   R.onQuality = q => { W.setShadowSize(q.shadow); ui.el.qBtn.textContent = '画质 ' + q.label; };
@@ -27,17 +28,18 @@ function boot() {
   let G = null, state = 'title', time = 0, last = performance.now(), frames = 0;
   const focus = { x: 0, z: 0 }, cam = R.camera;
   let lastPick = ['mage', 'normal'];
-  function start(hero, difficulty) {
-    lastPick = [hero, difficulty]; ui.toggleMenu(false);
+  function start(hero, difficulty, mode = MODE.id) {
+    lastPick = [hero, difficulty, mode]; ui.toggleMenu(false);
+    if (MODES[mode] && mode !== MODE.id) { W.dispose(); setMode(mode); W = createWorld(R); R.sun = W.sun; W.setShadowSize(R.quality.shadow); }   // other ground: build that world
     M.reset(); fx.reset();
     G = createGame(R, W, M, fx, audio, ui, { hero, difficulty });
     G.autoPlay = qs.get('bot') === '1'; input.G = G; ui.bind(G, input); state = 'playing'; audio.init();
     focus.x = G.focus.x; focus.z = G.focus.z;
   }
   const toTitle = () => { state = 'title'; G = null; input.G = null; M.reset(); fx.reset(); ui.showTitle(start); };
-  ui.onMenu = { restart: () => start(lastPick[0], lastPick[1]), quit: () => toTitle() };
+  ui.onMenu = { restart: () => start(lastPick[0], lastPick[1], lastPick[2]), quit: () => toTitle() };
   ui.showTitle(start);
-  if (qs.get('auto')) { ui.el.title.hidden = true; start(qs.get('auto'), qs.get('diff') || 'normal'); }
+  if (qs.get('auto')) { ui.el.title.hidden = true; start(qs.get('auto'), qs.get('diff') || 'normal', MODE.id); }
 
   function frame(now) {
     const raw = now - last; last = now;
@@ -49,7 +51,7 @@ function boot() {
     audio.intensity = 0;
     let hurt = 0, sat = 1.06, shake = fx.shakeAmt, zoom = input.zoom * (cam.aspect < 1.25 ? Math.min(1.55, 1.18 / Math.sqrt(cam.aspect)) : 1);
     if (state === 'title') {
-      const fxp = Math.sin(time * 0.045) * 52; focus.x = fxp; focus.z = laneZ(fxp); zoom = 0.82;
+      const L = LANES[MID], q = L.at((L.s0 + L.s1) / 2 + Math.sin(time * 0.045) * (L.s1 - L.s0) * 0.405, 0); focus.x = q.x; focus.z = q.z; zoom = 0.82;
     } else {
       if (!paused) { G.update(dt, time); input.update(); ui.update(dt); }
       const k = 1 - Math.exp(-dt * (G.over ? 2 : 9));
@@ -58,7 +60,7 @@ function boot() {
       const p = G.player; audio.intensity = p.alive && p.combatT < 4.5 && !G.over ? 1 : 0; hurt = Math.max(G.hurtFlash || 0, p.alive ? Math.max(0, 0.35 - p.hp / p.maxHp) * 1.6 : 0); if (!p.alive && !G.over) sat = 0.2;
       if (G.over && G.overT > 3 && state !== 'end') { state = 'end'; audio.play(G.winner === p.team ? 'level' : 'death'); ui.showEnd(toTitle); }
     }
-    audio.ambient(focus.x, focus.z, riverX(focus.z) - focus.x, state === 'playing' && G.player.alive && G.player.hp / G.player.maxHp < 0.3, dt);
+    audio.ambient(biomeX(focus.x, focus.z), focus.z, RIVER.signed(focus.x, focus.z), state === 'playing' && G.player.alive && G.player.hp / G.player.maxHp < 0.3, dt);
     fx.update(dt); W.update(focus); W.focusLight(focus.x, focus.z);
     const sx = (Math.random() - 0.5) * shake * 1.4, sy = (Math.random() - 0.5) * shake * 1.4;
     zoom *= 1 - 0.1 * Math.sin(Math.PI * fx.zoomK);                      // leaning in for an ultimate
