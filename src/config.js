@@ -56,7 +56,7 @@ export const MODES = {
     tune: {}, heroTune: { healer: { hp: 1.06, ap: 1.1 } },
   },
   tri: {
-    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。开发中：电脑会分路、打野抓人、后期集结，但还比较初级。',
+    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。野区有山脊相隔，河道有血海残魂与镇渊傀，十五分钟后渊主残念现世。',
     // frost holds the lower-left corner, ember the upper-right (the camera looks north, so -z is up the screen)
     map: { hx: 80, hz: 80, ax: Math.SQRT1_2, az: -Math.SQRT1_2, biome: 1.24, mini: [168, 168], base: 25, baseF: 13 },   // base: radius of each sect's precinct
     core: t => ({ x: sideSign(t) * 56, z: -sideSign(t) * 56 }), fountain: t => ({ x: sideSign(t) * 68, z: -sideSign(t) * 68 }),
@@ -68,24 +68,31 @@ export const MODES = {
     river: () => { const p = polyline([[-74, -74], [-52, -56], [-36, -30], [-12, -14], [0, 0], [12, 14], [36, 30], [52, 56], [74, 74]]); return { path: p, dist: (x, z) => p.near(x, z)[0], signed: (x, z) => -p.near(x, z)[2], at: (t, o) => p.at(t * p.len, o) }; },
     camps: [
       ...mirror([{ x: -44, z: 8, r: 6.5, kind: 'golem', n: 2 }, { x: -40, z: -22, r: 6.5, kind: 'golem', n: 2 }, { x: -8, z: 44, r: 6.5, kind: 'golem', n: 2 }, { x: 22, z: 40, r: 6.5, kind: 'golem', n: 2 }]),
-      { x: -26, z: -24, r: 8, kind: 'guardian', n: 1 }, { x: 26, z: 24, r: 8, kind: 'guardian', n: 1 },
+      { x: -26, z: -24, r: 8, kind: 'guardian', n: 1 }, { x: 26, z: 24, r: 8, kind: 'puppet', n: 1 },   // upper river: 血海残魂 (and later 渊主残念); lower river: 镇渊傀
     ],
     brush: mirror([
       { x: -14, z: -1, r: 3.3 }, { x: -1, z: 14, r: 3.3 }, { x: -54, z: -34, r: 3.4 }, { x: -34, z: -54, r: 3.4 },
       { x: -33, z: 12, r: 3.3 }, { x: -8, z: 34, r: 3.3 }, { x: -51, z: -3, r: 3.3 }, { x: 3, z: 53, r: 3.3 },
       { x: -47, z: -31, r: 3.3 }, { x: -22, z: -8, r: 3.2 },
     ]),
+    // Ridges that wall the jungle off from the lanes, with gaps to go in by. Given for frost's upper quarter; the other three
+    // quarters are its reflection across the middle lane and across the centre of the map.
+    ridges: [[[-57, 24], [-57, 4]], [[-57, -12], [-57, -26]], [[-48, 34], [-38, 24]], [[-30, 16], [-18, 4]]],
     // 三路's own numbers. Everything not named here falls back to the shared table.
     tune: {
-      waveEvery: 28, coreHp: 5200, lateAt: 720, lateK: 0.3, respawnK: 1.15, startGold: 300,
-      groupAt: 600,                                                    // from here on the bots gather to push a lane together, again and again
+      waveEvery: 28, coreHp: 5200, towerHp: 3000, lateAt: 780, lateK: 0.3, respawnK: 1.15, startGold: 300,
+      groupAt: 660,                                                    // from here on the bots gather to push a lane together, again and again
       // a full-time jungler lives off these, so each camp pays less and comes back slower than in 一路
       neutral: {
         golem: { hp: 520, ad: 26, range: 2.2, period: 1.2, wind: 0.35, ms: 6, r: 1.3, h: 3.4, gold: 26, xp: 40, respawn: 62 },
         guardian: { hp: 2600, ad: 70, range: 3.4, period: 1.4, wind: 0.45, ms: 5.5, r: 2.5, h: 6.6, gold: 90, xp: 220, respawn: 100 },
+        puppet: { hp: 2300, ad: 62, range: 3.2, period: 1.3, wind: 0.42, ms: 5.5, r: 2.3, h: 6.0, gold: 80, xp: 200, respawn: 110 },
+        abyss: { hp: 6800, ad: 125, range: 4.2, period: 1.3, wind: 0.45, ms: 5.5, r: 3.3, h: 8.6, gold: 160, xp: 420, respawn: 170 },
       },
+      bossAt: 900,                                                     // 渊主残念 takes over the upper pit from here on
+      surge: { puppet: [1.4, 55], abyss: [2.0, 90] },                 // how much stronger the side's disciples get, and for how long
     },
-    heroTune: {},                                                   // e.g. storm: { hp: 1.06 } — multipliers on base stats, this mode only
+    heroTune: { keeper: { hp: 1.06 }, storm: { hp: 1.04, ap: 1.06 }, mage: { ap: 1.05 }, yuanshan: { ap: 1.05 } },   // multipliers on base stats, this mode only
   },
 };
 
@@ -97,6 +104,15 @@ export const SEATS = [
   { pos: '护法', lane: 2, off: 1.4, note: '下路，护着养剑位' },
   { pos: '巡山', lane: 0, off: 1.4, jungle: true, note: '清野区，看哪路有机会就去抓人，哪路吃紧去哪路' },
 ];
+// How much each seat cares for each thing a bot can choose to do with its time. The brain scores every option 0–1 and
+// multiplies by these; the highest wins. (Retreating, answering a signal and the side's group calls are not choices.)
+export const SEAT_BIAS = {
+  镇关: { lane: 1.0, escort: 0, jungle: 0.4, gank: 0.6, ambush: 0.6, help: 0 },
+  中军: { lane: 1.0, escort: 0, jungle: 0.5, gank: 0.95, ambush: 0.95, help: 0 },
+  养剑: { lane: 1.1, escort: 0, jungle: 0.3, gank: 0.3, ambush: 0.5, help: 0 },
+  护法: { lane: 0.7, escort: 1.3, jungle: 0, gank: 0.8, ambush: 0.6, help: 0 },
+  巡山: { lane: 0.3, escort: 0, jungle: 1.4, gank: 1.3, ambush: 1.0, help: 1.0 },
+};
 // Best seats first, per cultivator. The first is the seat they were built for wherever simulation does not argue against it;
 // after it come seats where they scored clearly above average (docs/打位演算.md). Rerun `node seats.mjs` when the bots change.
 export const SEAT_FIT = {
@@ -109,6 +125,7 @@ export const SEAT_FIT = {
 export let MODE = MODES.single;
 export const MAP = { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126], base: 15, baseF: 4 };
 export const LANES = [], CAMPS = [], BRUSH = [], TOWERS = [];
+export const RIDGES = [], RIDGE_ENDS = [];                          // wall segments [[x,z],[x,z]] and a point just past each end, for paths to round
 export let MID = 0, RIVER = null;
 export const laneZ = (x, lane = MID) => LANES[lane].f(x);            // 一路 only
 // where a point sits between the two bases: negative toward frost, positive toward ember
@@ -420,6 +437,11 @@ export function setMode(id) {
   Object.assign(MAP, m.map); RIVER = m.river();
   LANES.length = 0; LANES.push(...m.lanes()); CAMPS.length = 0; CAMPS.push(...m.camps); BRUSH.length = 0; BRUSH.push(...m.brush);
   for (const k of Object.keys(T)) delete T[k]; Object.assign(T, T_BASE, m.tune);
+  RIDGES.length = 0; RIDGE_ENDS.length = 0;
+  for (const [a, b] of m.ridges || []) for (const f of [p => p, p => [-p[1], -p[0]], p => [-p[0], -p[1]], p => [p[1], p[0]]]) {
+    const A = f(a), B = f(b), d = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / d, uz = (B[1] - A[1]) / d;
+    RIDGES.push([A, B]); RIDGE_ENDS.push({ x: A[0] - ux * 3.6, z: A[1] - uz * 3.6 }, { x: B[0] + ux * 3.6, z: B[1] + uz * 3.6 });
+  }
   TOWERS.length = 0;
   for (const team of [FROST, EMBER]) LANES.forEach((L, lane) => L.towers.forEach((_, i) => { const s = L.towerS(team, i + 1); TOWERS.push({ team, lane, tier: i + 1, s, ...L.at(s, L.towerOff(team)) }); }));
   return m;
