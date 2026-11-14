@@ -966,7 +966,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.recall = () => { const h = P(); if (MODE.noRecall) { ui.toast('一路不能归宗：万宝阁只在出山前和陨落时开'); return false; } if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在山门内，万宝阁开着'); return ok; };
   G.pings = []; G.recalls = 0; G.gCall = [0, 0]; G.botStat = { ambush: 0, hunt: 0, hide: 0, shop: 0, jungle: 0, guardian: 0, gank: 0, group: 0 };
   G.plan = [0, 1].map(() => ({ mode: 'rest', lane: 0, until: 0, next: 0 }));
-  G.surgeT = [0, 0]; G.surgeK = [1, 1];                              // 破阵 / 渊息: this side's disciples march stronger let pingAt = -9;
+  G.surgeT = [0, 0]; G.surgeK = [1, 1];                              // 破阵 / 渊息: this side's disciples march stronger
+  let pingAt = -9;
   // Signals: 集合 (come here), 进攻 (take this), 撤退 (fall back). A mark on the ground and the map, a sound, and every allied
   // bot in earshot weighs it (see botThink). unit = what was pointed at, for 进攻.
   let sigId = 0;
