@@ -1,8 +1,8 @@
 // game.js — rules of the match: units, combat, abilities, minion waves, towers, jungle camps, economy, bot AI.
-import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, nearestLane, RIVER, RIDGE_ENDS, POS, SEATS, SEAT_FIT, SUPPORTS, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
+import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, nearestLane, RIVER, RIDGE_ENDS, POS, SEATS, SEAT_FIT, SEAT_BIAS, SUPPORTS, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
 import { clamp, dist, dist2, angLerp, lerp } from './util.js';
 import * as THREE from 'three';
-import { Graph, AStar, NavNode, NavEdge, Vector3 as YVec } from 'yuka';
+import { Graph, AStar, NavNode, NavEdge, Vector3 as YVec, Think, GoalEvaluator, MemorySystem } from 'yuka';
 import { createVfx } from './vfx.js';
 import { BARKS } from './barks.js';
 
@@ -44,6 +44,33 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       tex.needsUpdate = true;
     };
   }
+  // ---------------- the brain (三路) ----------------
+  // What a bot does with its own time is a choice among a handful of options. Each is a Yuka GoalEvaluator: it scores the
+  // option 0–1 from what the bot can see (ctx), Think multiplies by the seat's bias and takes the best, and the winner
+  // leaves its pick on the bot for botThink to act on.
+  class Want extends GoalEvaluator {
+    constructor(mode, bias, score) { super(bias); this.mode = mode; this.score = score; this.pick = null; }
+    calculateDesirability(h) { this.pick = null; const v = this.characterBias > 0 ? this.score(h.ai.ctx, this, h) : 0; return v > 0 ? v : 0; }
+    setGoal(h) { h.ai.pick = { mode: this.mode, ...(this.pick || {}) }; }
+  }
+  function makeBrain(h, bias) {
+    const b = new Think(h);
+    b.addEvaluator(new Want('lane', bias.lane, () => 0.5));
+    b.addEvaluator(new Want('escort', bias.escort, c => (c.carry ? 0.6 : 0)));                                   // 护法 stays with 养剑
+    b.addEvaluator(new Want('jungle', bias.jungle, (c, ev) => {
+      if (c.hpF < 0.5 || (c.eh && c.ehD < 9) || c.grouped) return 0; if (!h.ai.jungler && (!c.holding || h.level < 2 || c.woodsTaken)) return 0;
+      const camp = c.nearestCamp(h.ai.jungler ? 999 : 48); if (!camp) return 0; ev.pick = { camp }; return 0.62 - dist(h, camp.c) / 400 + (c.teamJungler ? 0 : 0.35);
+    }));
+    b.addEvaluator(new Want('gank', bias.gank, (c, ev) => {
+      if (h.level < 3 || c.hpF < 0.6 || G.t < (h.ai.gankAt || 0) || c.grouped || (!h.ai.jungler && !c.holding)) return 0;
+      const g = c.bestGank(); if (!g) return 0; ev.pick = g; return clamp(0.34 + g.sc * 0.3, 0, 0.95);
+    }));
+    b.addEvaluator(new Want('ambush', bias.ambush, (c, ev) => { if (G.t < h.ai.ambushAt || !h.ai.sly || c.hpF < 0.6 || c.eh || !c.hasFront || c.grouped) return 0; const br = c.ambushSpot(); if (!br) return 0; ev.pick = { brush: br }; return 0.56; }));
+    b.addEvaluator(new Want('help', bias.help, (c, ev) => { ev.pick = { lane: c.neediest() }; return 0.45; }));       // 巡山 with nothing to clear
+    return b;
+  }
+  // what each side remembers of the other: where each of them was last seen, and when (Yuka MemorySystem)
+  G.mem = [new MemorySystem(), new MemorySystem()];
   // Team talk. A bot says in a few words what it is about to do; only your own side's is shown, never two lines from the
   // same mouth close together, and not everyone at once.
   let chatAt = -9;
@@ -165,7 +192,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       SEATS.forEach((q, i) => { if (seats[i]) return; const pool = fits(i).filter(k => !used.has(k)), best = pool.filter(k => SEAT_FIT[k][0] === i); const c = shuffle(best.length ? best : pool)[0] || shuffle(HERO_ORDER.filter(k => !used.has(k)))[0]; seats[i] = c; used.add(c); });
       return seats;
     };
-    const seatUp = (k, i, team, me) => { const h = makeHero(k, team, me, i, SEATS[i].lane, SEATS[i].off); h.seat = SEATS[i].pos; h.ai.home = SEATS[i].lane; h.ai.jungler = !!SEATS[i].jungle; if (h.ai.jungler) h.ai.jungleAt = 8; return h; };
+    const seatUp = (k, i, team, me) => { const h = makeHero(k, team, me, i, SEATS[i].lane, SEATS[i].off); h.seat = SEATS[i].pos; h.ai.home = SEATS[i].lane; h.ai.jungler = !!SEATS[i].jungle; h.ai.thinkAt = 6 + Math.random() * 2; h.ai.brain = makeBrain(h, SEAT_BIAS[SEATS[i].pos]); return h; };
     draft(mine, opts.seat ?? -1).forEach((k, i) => { const h = seatUp(k, i, FROST, k === mine); if (k === mine) G.player = h; });
     draft(null, -1).forEach((k, i) => seatUp(k, i, EMBER, false));
   }
@@ -632,7 +659,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
 
   // ---------------- bots ----------------
   function botThink(h, dtT) {
-    const ai = h.ai, team = h.team, dir = team === FROST ? 1 : -1, f = POS.fountain(team), hpF = h.hp / h.maxHp;
+    const ai = h.ai, team = h.team, dir = team === FROST ? 1 : -1, f = POS.fountain(team), hpF = h.hp / h.maxHp, TRI = LANES.length > 1 && !!ai.brain;
     if (LANES.length > 1) {
       const plan = G.plan[team], g = ai.gank;
       if (g && (G.t > g.until || !g.u.alive || hpF < 0.4 || (g.u.hid && G.t - g.seen > 4))) ai.gank = null; else if (g && !g.u.hid) g.seen = G.t;
@@ -667,44 +694,47 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const sn = ai.seen, hunt = !eh && !retreat && sn && sn.go && G.t - sn.t < 4 && sn.u.alive && sn.u.hid && hpF > 0.45 && (!danger(sn) || diveOK);
     // home to spend: enough for the next piece, nobody around, nothing pressing
     if (!retreat && !eh && h.combatT > 4 && G.t > ai.shopAt && (dist(h, f) > 42 || (!h.atHome && dist(h, f) < T.shopR)) && h.gold >= botWant(h)) { ai.shopAt = G.t + 30; if (startRecall(h)) { G.botStat.shop++; chat(h, '回去置办法器，马上来'); return; } }
-    // now and then, lie in wait in the grass beside the lane
-    if (ai.state === 'lane' && G.t > ai.ambushAt) {
-      ai.ambushAt = G.t + 22 + Math.random() * 26;
-      if (ai.sly && hpF > 0.6 && !eh && hasFront) { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } if (best) { G.botStat.ambush++; ai.state = 'ambush'; ai.amb = best; ai.ambS = pj(best); ai.ambUntil = G.t + 8 + Math.random() * 6; } }
-    }
-    if (ai.state === 'ambush' && (G.t > ai.ambUntil || hpF < 0.5 || (eh && ehD < h.range + 5) || (h.combatT < 0.4 && !h.hid) || !hasFront || Math.abs(front - ai.ambS) > 18)) ai.state = 'lane';   // time is up, or the prey has come
-    const ambush = ai.state === 'ambush';
-    // the woods: when the lane is quiet and holding, one of the side slips off to clear a camp on its own half
     const campUp = c => c.units.some(u => u.alive), holding = hasFront && dir * (front - sOf(ownS)) > 8;
-    if (ai.state === 'lane' && G.t > ai.jungleAt) {
-      const nearestCamp = far => { let best = null, bd = far; for (const c of G.camps) { if (c.c.kind === 'guardian' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } } return best; };
-      if (ai.jungler) {                                                // 巡山: camp after camp; when they are all down, help on the lane until one is back
-        ai.jungleAt = G.t + 2.5;
-        // a gank, when a lane offers one: someone seen on our half of it or already hurt, away from their tower, with one of ours there
-        if (!ai.gank && h.level >= 3 && hpF > 0.6 && G.t > (ai.gankAt || 0) && G.plan[team].mode !== 'group') {
-          let best = null, bs = 0.85;
-          for (const e of G.heroes) {
-            if (e.team === team || !e.alive || e.hid) continue; const ln = nearestLane(e.x, e.z), Lg = LANES[ln]; if (Lg.dist(e.x, e.z) > 12) continue;
-            const tw = frontStruct(1 - team, ln); if (tw.kind === 'tower' && dist(e, tw) < tw.range + 5) continue;
-            const pals = G.heroes.filter(o => o.team === team && o.alive && o !== h && dist(o, e) < 17).length; if (!pals) continue;
-            const over = dir * ((Lg.s0 + Lg.s1) / 2 - Lg.proj(e.x, e.z)) / 28, sc = over + (1 - e.hp / e.maxHp) * 1.3 + pals * 0.25 - dist(h, e) / 110; if (sc > bs) { bs = sc; best = { u: e, lane: ln }; }
-          }
-          if (best) { ai.gank = { ...best, until: G.t + 18, seen: G.t }; ai.gankAt = G.t + 32; ai.lane = best.lane; G.botStat.gank++; chat(h, `我去抓${LANES[best.lane].name}的${best.u.name}`); }
-        }
-        if (!ai.gank && G.plan[team].mode !== 'group') {
-          const best = hpF > 0.5 && !(eh && ehD < 9) ? nearestCamp(999) : null;
-          if (best) { ai.state = 'jungle'; ai.camp = best; ai.jungleUntil = G.t + 40; G.botStat.jungle++; }
-          else {                                                       // nothing to clear: stand with the lane that is most outnumbered
-            let need = -9; for (let ln = 0; ln < LANES.length; ln++) { let foes = 0, mine = 0; for (const o of G.heroes) { if (!o.alive || o === h) continue; if (o.team !== team) { if (!o.hid && nearestLane(o.x, o.z) === ln) foes++; } else if (o.ai.lane === ln) mine++; } const v = foes - mine + (ln === ai.home ? 0.1 : 0); if (v > need) { need = v; ai.help = ln; } }
-          }
-        }
-      } else {
+    const nearestCamp = far => { let best = null, bd = far; for (const c of G.camps) { if (c.c.kind === 'guardian' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } } return best; };
+    const ambushSpot = () => { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } return best; };
+    if (!TRI) {
+      // 一路: now and then, lie in wait in the grass beside the lane; when the lane is quiet and holding, slip off to clear a camp
+      if (ai.state === 'lane' && G.t > ai.ambushAt) {
+        ai.ambushAt = G.t + 22 + Math.random() * 26;
+        if (ai.sly && hpF > 0.6 && !eh && hasFront) { const best = ambushSpot(); if (best) { G.botStat.ambush++; ai.state = 'ambush'; ai.amb = best; ai.ambS = pj(best); ai.ambUntil = G.t + 8 + Math.random() * 6; } }
+      }
+      if (ai.state === 'lane' && G.t > ai.jungleAt) {
         ai.jungleAt = G.t + 25 + Math.random() * 25;
-        if (hpF > 0.7 && !eh && h.level >= 2 && !SUPPORTS.includes(h.def.id) && holding && !G.heroes.some(o => o !== h && o.team === team && o.alive && (o.ai.state === 'jungle' || o.ai.jungler))) {
+        if (hpF > 0.7 && !eh && h.level >= 2 && !SUPPORTS.includes(h.def.id) && holding && !G.heroes.some(o => o !== h && o.team === team && o.alive && o.ai.state === 'jungle')) {
           const best = nearestCamp(48); if (best) { ai.state = 'jungle'; ai.camp = best; ai.jungleUntil = G.t + 28; G.botStat.jungle++; }
         }
       }
+    } else if (ai.state === 'lane' && !ai.gank && G.t > ai.thinkAt) {
+      // 三路: free to choose. Lay out what this bot can see and let its brain pick.
+      ai.thinkAt = G.t + 1.4 + Math.random() * 0.4;
+      const mates = G.heroes.filter(o => o.team === team && o.alive && o !== h);
+      ai.ctx = {
+        eh, ehD, hpF, hasFront, holding, grouped: G.plan[team].mode === 'group', nearestCamp, ambushSpot,
+        carry: h.seat === '护法' ? mates.find(o => o.seat === '养剑') || null : null,
+        teamJungler: mates.some(o => o.ai.jungler), woodsTaken: mates.some(o => o.ai.state === 'jungle' || o.ai.jungler),
+        // a gank worth making: someone seen on our half of a lane or already hurt, away from their tower, with one of ours there
+        bestGank: () => { let best = null, bs = 0.85; for (const e of G.heroes) {
+          if (e.team === team || !e.alive || e.hid) continue; const ln = nearestLane(e.x, e.z), Lg = LANES[ln]; if (Lg.dist(e.x, e.z) > 12 || (!ai.jungler && ln === ai.home)) continue;
+          const tw = frontStruct(1 - team, ln); if (tw.kind === 'tower' && dist(e, tw) < tw.range + 5) continue;
+          const pals = mates.filter(o => dist(o, e) < 17).length; if (!pals) continue;
+          const over = dir * ((Lg.s0 + Lg.s1) / 2 - Lg.proj(e.x, e.z)) / 28, sc = over + (1 - e.hp / e.maxHp) * 1.3 + pals * 0.25 - dist(h, e) / 110; if (sc > bs) { bs = sc; best = { u: e, lane: ln, sc }; } } return best; },
+        // the lane most outnumbered, for a jungler with nothing to clear
+        neediest: () => { let need = -9, pickL = ai.home; for (let ln = 0; ln < LANES.length; ln++) { let foes = 0, mine = 0; for (const o of G.heroes) { if (!o.alive || o === h) continue; if (o.team !== team) { if (!o.hid && nearestLane(o.x, o.z) === ln) foes++; } else if (o.ai.lane === ln) mine++; } const v = foes - mine + (ln === ai.home ? 0.1 : 0); if (v > need) { need = v; pickL = ln; } } return pickL; },
+      };
+      ai.pick = null; ai.brain.arbitrate(); const pk = ai.pick || { mode: 'lane' }; ai.escort = null; ai.mode = pk.mode;
+      if (pk.mode === 'jungle') { ai.state = 'jungle'; ai.camp = pk.camp; ai.jungleUntil = G.t + (ai.jungler ? 40 : 28); G.botStat.jungle++; }
+      else if (pk.mode === 'gank') { ai.gank = { u: pk.u, lane: pk.lane, until: G.t + 18, seen: G.t }; ai.gankAt = G.t + (ai.jungler ? 32 : 55); ai.lane = pk.lane; G.botStat.gank++; chat(h, `我去抓${LANES[pk.lane].name}的${pk.u.name}`); }
+      else if (pk.mode === 'ambush') { ai.ambushAt = G.t + 22 + Math.random() * 26; G.botStat.ambush++; ai.state = 'ambush'; ai.amb = pk.brush; ai.ambS = pj(pk.brush); ai.ambUntil = G.t + 8 + Math.random() * 6; }
+      else if (pk.mode === 'help') ai.help = pk.lane;
+      else if (pk.mode === 'escort') ai.escort = ai.ctx.carry;
     }
+    if (ai.state === 'ambush' && (G.t > ai.ambUntil || hpF < 0.5 || (eh && ehD < h.range + 5) || (h.combatT < 0.4 && !h.hid) || !hasFront || Math.abs(front - ai.ambS) > 18)) ai.state = 'lane';   // time is up, or the prey has come
+    const ambush = ai.state === 'ambush';
     // the 血海残魂: once everyone is 金丹, healthy and the lane is safe, the whole side goes for it together
     if (ai.state === 'lane' && G.t > 240 && G.t > G.gCall[team] && h.level >= 5 && hpF > 0.7 && !eh && G.buffT[team] <= 0) {
       G.gCall[team] = G.t + 40;
@@ -765,12 +795,13 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       else {
         let tgt = null;
         if (eh && (!danger(eh) || (diveOK && eh.hp / eh.maxHp < 0.5)) && (ehD < h.range + 4 || eh.hp / eh.maxHp < 0.45 || !em)) tgt = eh;
-        else if (em && (!danger(em) || diveOK)) tgt = em;
+        else if (em && (!danger(em) || diveOK) && !(ai.escort && ai.escort.alive && dist(h, ai.escort) < 14 && em.hp < em.maxHp * 0.4)) tgt = em;   // a 护法 leaves the last hit to the one it is guarding
         else if (vulnerable(etw) && dTw < 17 && diveOK) tgt = etw;
         if (tgt) h.order = { type: 'attack', target: tgt };
         else {
           const own = frontStruct(team, ai.lane);
           let gs = hasFront ? front - dir * (h.ranged ? 4.5 : 1.5) : sOf(own) + dir * 4;
+          if (ai.escort && ai.escort.alive && ai.escort.ai.lane === ai.lane) gs = pj(ai.escort) + dir * (h.ranged ? -1.5 : 1.8);          // beside (or just ahead of) the carry
           if (etw.kind === 'tower' && !diveOK) { const lim = es - dir * (twR + 3.5); gs = dir > 0 ? Math.min(gs, lim) : Math.max(gs, lim); }
           const q = at(gs); if (Math.abs(gs - hs) > 1.2 || (!L.func && dist(h, q) > 3)) h.order = { type: 'move', x: q.x, z: q.z }; else h.order = null;
         }
@@ -809,6 +840,10 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // getting shorter as the match ages. Three or more of them seen at one of our inner towers and everyone goes there instead.
   function teamThink(team) {
     const tp = G.plan[team]; if (G.t < tp.next) return; tp.next = G.t + 1; const en = 1 - team;
+    for (const r of G.mem[team].records) {                               // someone we were watching has not been seen for a while: say so, once
+      const e = r.entity; if (!e.alive || r.visible || r.called || G.t - r.timeLastSensed < 9 || G.t - r.timeLastSensed > 20) continue; r.called = true;
+      const ln = nearestLane(r.lastSensedPosition.x, r.lastSensedPosition.z), sp = G.heroes.find(h => h.team === team && h.alive && !h.isPlayer && h.ai.lane === ln); if (sp) chat(sp, `${LANES[ln].name}的${e.name}不见了，小心`);
+    }
     let siege = -1; for (let ln = 0; ln < LANES.length; ln++) { const tw = frontStruct(team, ln); if (tw.kind === 'tower' && tw.tier === 1) continue; let c = 0; for (const e of G.heroes) if (e.team === en && e.alive && !e.hid && dist(e, tw) < 24) c++; if (c >= 3) siege = ln; }
     if (siege >= 0) { if (tp.mode !== 'group' || tp.lane !== siege) { const sp = G.heroes.find(h => h.team === team && h.alive && !h.isPlayer); if (sp) chat(sp, `${LANES[siege].name}被压了，回防！`, true); } tp.mode = 'group'; tp.lane = siege; tp.until = Math.max(tp.until, G.t + 10); return; }
     if (tp.mode === 'group') { if (G.t > tp.until) { tp.mode = 'rest'; tp.until = G.t + clamp(34 - (G.t - T.groupAt) / 25, 10, 34); } return; }
@@ -975,6 +1010,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         e.hid = !(sight && bush);
       }
       if (FOG && (fogT -= dt) <= 0) { fogT = 0.12; paintFog(); }
+      if (LANES.length > 1) for (const e of G.heroes) { if (!e.alive) continue; const m = G.mem[1 - e.team]; if (!e.hid) { if (!m.hasRecord(e)) m.createRecord(e); const r = m.getRecord(e); r.timeLastSensed = G.t; r.lastSensedPosition.set(e.x, 0, e.z); r.visible = true; r.called = false; } else if (m.hasRecord(e)) m.getRecord(e).visible = false; }
       while (G.pings.length && G.t - G.pings[0].t > 4) G.pings.shift();
       while (sayQ.length && sayQ[0].at <= G.t) { const q = sayQ.shift(); if (q.h.alive) say(q.h, 'kill', q.chance); }
       for (const e of G.units) {

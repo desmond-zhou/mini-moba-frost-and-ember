@@ -100,6 +100,15 @@ export const SEATS = [
   { pos: '护法', lane: 2, off: 1.4, note: '下路，护着养剑位' },
   { pos: '巡山', lane: 0, off: 1.4, jungle: true, note: '清野区，看哪路有机会就去抓人，哪路吃紧去哪路' },
 ];
+// How much each seat cares for each thing a bot can choose to do with its time. The brain scores every option 0–1 and
+// multiplies by these; the highest wins. (Retreating, answering a signal and the side's group calls are not choices.)
+export const SEAT_BIAS = {
+  镇关: { lane: 1.0, escort: 0, jungle: 0.4, gank: 0.6, ambush: 0.6, help: 0 },
+  中军: { lane: 1.0, escort: 0, jungle: 0.5, gank: 0.95, ambush: 0.95, help: 0 },
+  养剑: { lane: 1.1, escort: 0, jungle: 0.3, gank: 0.3, ambush: 0.5, help: 0 },
+  护法: { lane: 0.7, escort: 1.3, jungle: 0, gank: 0.8, ambush: 0.6, help: 0 },
+  巡山: { lane: 0.3, escort: 0, jungle: 1.4, gank: 1.3, ambush: 1.0, help: 1.0 },
+};
 // Best seats first, per cultivator. The first is the seat they were built for wherever simulation does not argue against it;
 // after it come seats where they scored clearly above average (docs/打位演算.md). Rerun `node seats.mjs` when the bots change.
 export const SEAT_FIT = {
