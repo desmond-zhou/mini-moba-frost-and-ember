@@ -148,7 +148,7 @@ export const TEAM_COL = [
 const S = (key, id, name, kind, o, desc) => ({ key, id, name, kind, vfx: o.vfx || id, icon: o.icon || id, desc, ...o });
 export const HEROES = {
   warden: {
-    id: 'warden', size: 1.42, tint: [1.0, 0.85, 0.55], style: 'sword', name: '韩不语', short: '韩', title: '刑律堂首座 · 镇关', role: '体修 · 近战', blurb: '人称哑刑官，三十年没说过一句话，话都封在那把重尺里。尺落之处，没人站得稳。',
+    id: 'warden', size: 1.42, tint: [1.0, 0.85, 0.55], style: 'sword', name: '韩不语', short: '韩', title: '刑律堂首座 · 镇关', role: '体修 · 近战', blurb: '人称哑刑官，三十年没说过一句话。有人说他是发过誓，有人说他只是觉得没什么可说的。要说的都封在那把重尺里，一尺一尺替他讲。他走在最前面，从不回头看同门跟没跟上。尺落之处，没人站得稳。',
     hp: 1060, hpG: 114, mana: 260, manaG: 22, ad: 62, adG: 4, ap: 0, apG: 0, ms: 6.8, range: 2.9, period: 0.95, wind: 0.26, ranged: false, r: 1.05, h: 5.2,
     build: ['heichi', 'xingluo', 'tingxue'],
     passive: { name: '不动如山', icon: 'bulwark', max: 5, desc: '被修士、灵塔或邪祟打中时叠一层，每层减伤 4%，最多 5 层；4 秒没挨打就散去。' },
@@ -160,7 +160,7 @@ export const HEROES = {
     ],
   },
   mage: {
-    id: 'mage', size: 1.28, tall: 0.1, tint: [0.75, 0.4, 1.0], style: 'staff', name: '周易', short: '易', title: '天衍传人', role: '术修 · 远程', blurb: '天衍传人，拿命盘推演星辰的落点。算得准的时候，一颗星就够了。',
+    id: 'mage', size: 1.28, tall: 0.1, tint: [0.75, 0.4, 1.0], style: 'staff', name: '周易', short: '易', title: '天衍传人', role: '术修 · 远程', blurb: '天衍传人，拿命盘推演星辰的落点。他算过很多人的命，算得最不准的是自己的。出手之前他总要停一停，旁人以为是犹豫，其实是在等星走到该在的位置。他身子骨不结实，也不需要结实。算得准的时候，一颗星就够了。',
     hp: 860, hpG: 96, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 14, apG: 7.5, ms: 6.4, range: 9.2, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.4,
     build: ['mingpan', 'zhaohun', 'xingluo'],
     passive: { name: '推演', icon: 'i_disc', desc: '招式命中敌方修士时回复 5% 灵力，并让所有招式的调息缩短 0.6 秒。' },
@@ -172,7 +172,7 @@ export const HEROES = {
     ],
   },
   ranger: {
-    id: 'ranger', size: 1.22, tint: [0.4, 1.0, 0.6], style: 'bow', name: '苏紫烟', short: '烟', title: '听雪剑主', role: '剑修 · 远程', blurb: '听雪剑主，隔着半条路出剑。剑气一道接着一道，去了的那一道，还会回来。',
+    id: 'ranger', size: 1.22, tint: [0.4, 1.0, 0.6], style: 'bow', name: '苏紫烟', short: '烟', title: '听雪剑主', role: '剑修 · 远程', blurb: '听雪剑主，陆青崖的弟子。师父被逐那年她没有哭，只是把剑练得更远了些。如今她隔着半条路出剑，不肯让人近身，也不肯让人看清。剑气一道接着一道，像雪落下来没有声音。去了的那一道，还会回来。',
     hp: 830, hpG: 93, mana: 300, manaG: 24, ad: 54, adG: 3.7, ap: 0, apG: 0, ms: 6.6, range: 9.2, period: 0.98, wind: 0.18, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'xingluo', 'dunying'],
     passive: { name: '剑意相续', icon: 'i_tingxue', desc: '每次出招后，下一次普攻伤害 +35%、减速 30%，并让「听雪」的调息缩短 1.2 秒。' },
@@ -184,7 +184,7 @@ export const HEROES = {
     ],
   },
   shade: {
-    id: 'shade', size: 1.2, tint: [1.0, 0.2, 0.55], style: 'dual', name: '柳红衣', short: '红', title: '血魂暗子', role: '影修 · 近战', blurb: '血魂宗埋了多年的暗子。一抹红影散进血雾里，再看见她的时候，往往已经是最后一眼。',
+    id: 'shade', size: 1.2, tint: [1.0, 0.2, 0.55], style: 'dual', name: '柳红衣', short: '红', title: '血魂暗子', role: '影修 · 近战', blurb: '血魂宗埋了多年的暗子，一身红衣。没人说得清她什么时候进来的，也没人见过她从正门出去。她不喜欢久战，也不喜欢被人记住长相。一抹红影散进血雾里，四下就静了。再看见她的时候，往往已经是最后一眼。',
     hp: 1100, hpG: 118, mana: 280, manaG: 22, ad: 74, adG: 4.8, ap: 0, apG: 0, ms: 7.4, range: 2.7, period: 0.72, wind: 0.16, ranged: false, r: 0.95, h: 4.9,
     build: ['dunying', 'tingxue', 'heichi'],
     passive: { name: '索命', icon: 'dagger', desc: '对气血低于 40% 的目标伤害 +25%；参与镇压修士后回复自身 20% 气血。' },
@@ -196,7 +196,7 @@ export const HEROES = {
     ],
   },
   healer: {
-    id: 'healer', size: 1.16, tall: 0.35, tint: [0.75, 1.0, 0.3], style: 'staff', name: '孙伯', short: '孙', title: '藏经阁扫地人', role: '丹修 · 辅助', blurb: '在藏经阁扫了三十年地、装了三十年糊涂的老人。葫芦里的丹药管够，有他在，同门总能多撑一口气。',
+    id: 'healer', size: 1.16, tall: 0.35, tint: [0.75, 1.0, 0.3], style: 'staff', name: '孙伯', short: '孙', title: '藏经阁扫地人', role: '丹修 · 辅助', blurb: '在藏经阁扫了三十年地、装了三十年糊涂的老人。经阁里的书他都翻过，只是从来不说。腰间一只旧葫芦，倒出来的丹药总比看上去装得下的多。年轻人往前冲的时候，他就在后面慢慢跟着，谁也没落下过。有他在，同门总能多撑一口气。',
     hp: 910, hpG: 98, mana: 440, manaG: 36, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 9, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.2,
     build: ['mingpan', 'xingluo', 'zhaohun'],
     passive: { name: '药香', icon: 'i_gourd', desc: '身边的同门（含自己）每秒多回复 1% 气血。' },
@@ -208,7 +208,7 @@ export const HEROES = {
     ],
   },
   cryo: {
-    id: 'cryo', size: 1.27, tint: [0.6, 0.95, 1.0], style: 'staff', name: '寒漪', short: '漪', title: '玄霜宗长老', role: '冰修 · 远程', blurb: '玄霜宗长老，走到哪里哪里结冰。进了她的雪，就别想走得快。',
+    id: 'cryo', size: 1.27, tint: [0.6, 0.95, 1.0], style: 'staff', name: '寒漪', short: '漪', title: '玄霜宗长老', role: '冰修 · 远程', blurb: '玄霜宗长老，走到哪里哪里结冰。她说话很轻，轻到你得凑近了听，凑近了就冷。她不追人，也用不着追。路是她封的，雪是她下的。进了她的雪，就别想走得快。',
     hp: 840, hpG: 94, mana: 430, manaG: 34, ad: 46, adG: 2.5, ap: 14, apG: 7.5, ms: 6.4, range: 8.8, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.3,
     build: ['mingpan', 'xingluo', 'zhaohun'],
     passive: { name: '霜蚀', icon: 'frostnova', desc: '普攻附带 20% 减速；对已被减速或定身的目标伤害 +12%。' },
@@ -220,7 +220,7 @@ export const HEROES = {
     ],
   },
   berserker: {
-    id: 'berserker', size: 1.46, tint: [1.0, 0.3, 0.12], style: 'axe', name: '老铁', short: '铁', title: '北荒刀客', role: '刀修 · 近战', blurb: '北荒来的向导，一口崩了刃的厚背刀。伤得越重刀越快，北荒人都是这么活下来的。',
+    id: 'berserker', size: 1.46, tint: [1.0, 0.3, 0.12], style: 'axe', name: '老铁', short: '铁', title: '北荒刀客', role: '刀修 · 近战', blurb: '北荒来的向导，一口崩了刃的厚背刀。问他为什么不换一把，他说崩了刃的地方正好卡骨头。北荒没有大夫，受了伤只有一个法子：比对面活得久一点。所以他伤得越重，刀越快。北荒人都是这么活下来的。',
     hp: 1240, hpG: 130, mana: 250, manaG: 20, ad: 68, adG: 4.4, ap: 0, apG: 0, ms: 6.9, range: 3.0, period: 0.88, wind: 0.24, ranged: false, r: 1.05, h: 5.3,
     build: ['heichi', 'dunying', 'tingxue'],
     passive: { name: '越战越勇', icon: 'rage', pct: true, desc: '气血越低出刀越快、皮越硬：濒死时攻速 +60%，受到的伤害 -22%。' },
@@ -232,7 +232,7 @@ export const HEROES = {
     ],
   },
   gunner: {
-    id: 'gunner', size: 1.33, tint: [1.0, 0.72, 0.2], style: 'gun', name: '吴镇岳', short: '岳', title: '天元宗峰主', role: '符修 · 远程', blurb: '天元宗峰主，一架破魂弩配一腰雷火符。他扎稳了马步，面前那一片就没有活路。',
+    id: 'gunner', size: 1.33, tint: [1.0, 0.72, 0.2], style: 'gun', name: '吴镇岳', short: '岳', title: '天元宗峰主', role: '符修 · 远程', blurb: '天元宗峰主，一架破魂弩配一腰雷火符。同辈里他修为不算最高，脾气是最大的，嫌御剑太慢，嫌讲理更慢。他的道理都写在符上，一张讲不通就再来一叠。他扎稳了马步，就不打算再挪地方。面前那一片，也就没有活路了。',
     hp: 810, hpG: 90, mana: 310, manaG: 24, ad: 61, adG: 4.3, ap: 0, apG: 0, ms: 6.5, range: 9.4, period: 1.04, wind: 0.22, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'dunying', 'heichi'],
     passive: { name: '连珠', icon: 'shell', max: 4, desc: '每第四次普攻换上雷火符：伤害 +25%，并炸伤目标周围的敌人。' },
@@ -244,7 +244,7 @@ export const HEROES = {
     ],
   },
   storm: {
-    id: 'storm', size: 1.3, tall: 0.4, tint: [0.95, 0.9, 0.35], style: 'staff', name: '沈渊', short: '渊', title: '天刑台执法副使', role: '雷修 · 远程', blurb: '天刑台执法副使，掌印引雷。一道是警告，两道是判词，第三道落下就不必再动了。',
+    id: 'storm', size: 1.3, tall: 0.4, tint: [0.95, 0.9, 0.35], style: 'staff', name: '沈渊', short: '渊', title: '天刑台执法副使', role: '雷修 · 远程', blurb: '天刑台执法副使，掌印引雷。他办案不问缘由，只问有没有印。印落在谁身上，雷就认得谁。一道是警告，两道是判词。第三道落下，就不必再动了。',
     hp: 830, hpG: 92, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7.5, ms: 6.5, range: 9, period: 1.0, wind: 0.2, ranged: true, r: 0.95, h: 5.3,
     build: ['mingpan', 'zhaohun', 'xingluo'],
     passive: { name: '雷印', icon: 'bolt2', desc: '招式命中会在敌人身上留一道雷印，叠满三道即引爆：按最大气血造成伤害并定身 0.5 秒，之后 3.2 秒内不再留印。' },
@@ -256,7 +256,7 @@ export const HEROES = {
     ],
   },
   keeper: {
-    id: 'keeper', size: 1.5, tint: [0.4, 0.6, 1.0], style: 'shield', name: '周远川', short: '川', title: '天衍城守门人', role: '盾修 · 近战', blurb: '在雪原守了五十年的门，门后是天衍城。他一声喝，千军万马也只能先过他这一关。',
+    id: 'keeper', size: 1.5, tint: [0.4, 0.6, 1.0], style: 'shield', name: '周远川', short: '川', title: '天衍城守门人', role: '盾修 · 近战', blurb: '在雪原守了五十年的门，门后是天衍城。五十年里换过三任城主，没换过守门人。他不记得自己拦下过多少人，只记得没有一个是从他身上跨过去的。盾举起来的时候，风雪都要绕道。他一声喝，千军万马也只能先过他这一关。',
     hp: 1260, hpG: 134, mana: 280, manaG: 22, ad: 56, adG: 3.4, ap: 0, apG: 0, ms: 6.6, range: 2.9, period: 1.05, wind: 0.28, ranged: false, r: 1.1, h: 5.3,
     build: ['heichi', 'xingluo', 'tingxue'],
     passive: { name: '守门', icon: 'ward', cd: 45, desc: '气血低于 40% 时自动撑起相当于 16% 最大气血的罡气，持续 4 秒。每 45 秒一次。' },
@@ -268,7 +268,7 @@ export const HEROES = {
     ],
   },
   bloodlord: {
-    id: 'bloodlord', size: 1.46, tint: [1.0, 0.1, 0.12], style: 'dual', name: '血屠子', short: '屠', title: '血魂宗主', role: '血修 · 近战', blurb: '以血养身的魔道宗主，见血才算开席。血锁缠上谁，他人就到了谁面前；席不散，他不倒。',
+    id: 'bloodlord', size: 1.46, tint: [1.0, 0.1, 0.12], style: 'dual', name: '血屠子', short: '屠', title: '血魂宗主', role: '血修 · 近战', blurb: '以血养身的魔道宗主，见血才算开席。他不急，也不躲，像个等菜上齐的主人。血锁缠上谁，他人就到了谁面前。伤口在他身上留不住，别人的血会替他补上。席不散，他不倒。',
     hp: 1290, hpG: 136, mana: 300, manaG: 24, ad: 66, adG: 4.1, ap: 0, apG: 0, ms: 6.7, range: 3.0, period: 1.0, wind: 0.24, ranged: false, r: 1.1, h: 5.3,
     build: ['heichi', 'dunying', 'xingluo'],
     passive: { name: '血食', icon: 'bloodsea', desc: '附近有敌方弟子或邪祟死去时回复 3.5% 气血，死的是修士则回复 14%。' },
@@ -280,7 +280,7 @@ export const HEROES = {
     ],
   },
   archer: {
-    id: 'archer', size: 1.27, tint: [1.0, 0.52, 0.12], style: 'bow', name: '沈焰', short: '焰', title: '火岛守岛人', role: '焰修 · 远程', blurb: '一盏心火守了火岛三百年。火从指尖一发接一发弹出去，盯上了谁，就越烧越旺。',
+    id: 'archer', size: 1.27, tint: [1.0, 0.52, 0.12], style: 'bow', name: '沈焰', short: '焰', title: '火岛守岛人', role: '焰修 · 远程', blurb: '一盏心火守了火岛三百年。岛上没有别人，他就对着火说话，说久了，火也肯听他的。火从指尖一发接一发弹出去，不歇，也不乱。他认准了谁，就只看着谁。盯得越久，烧得越旺。',
     hp: 790, hpG: 88, mana: 300, manaG: 24, ad: 56, adG: 3.8, ap: 0, apG: 0, ms: 6.7, range: 9.8, period: 0.78, wind: 0.16, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'dunying', 'heichi'],
     passive: { name: '焚心', icon: 'starbolt', max: 5, desc: '连续烧同一个目标，每一发攻速 +6%，最多 5 层；换目标或停手 3 秒后清零。' },
@@ -294,7 +294,7 @@ export const HEROES = {
 
   // ---- six more, to fill the seats that were thin: two who protect, two who hunt, one more archer, one more wall ----
   yanzhao: {
-    id: 'yanzhao', size: 1.2, tint: [0.72, 0.8, 1.0], style: 'staff', name: '言照雪', short: '雪', title: '蔽目之体', role: '幕修 · 辅助', blurb: '天生蔽目之体，能遮住不该被看见的东西。幕落下来，同门的伤轻了，人也不见了。',
+    id: 'yanzhao', size: 1.2, tint: [0.72, 0.8, 1.0], style: 'staff', name: '言照雪', short: '雪', title: '蔽目之体', role: '幕修 · 辅助', blurb: '天生蔽目之体，眼上常年覆着一条银纱。她看不见的东西很多，能替人遮住的东西更多。站在她身边的人，伤总是比预想的轻一些。她手里那盏灯从来不亮，因为用不着。幕落下来的时候，同门的伤轻了，人也不见了。',
     hp: 930, hpG: 100, mana: 430, manaG: 35, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 8.8, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.1,
     build: ['xingluo', 'mingpan', 'zhaohun'],
     passive: { name: '蔽目之体', icon: 'smoke', desc: '身边的同门（含自己）受到修士的伤害 -8%。' },
@@ -306,7 +306,7 @@ export const HEROES = {
     ],
   },
   yuanshan: {
-    id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '周远山', short: '山', title: '携钱南下的人', role: '卜修 · 辅助', blurb: '周易的祖父，五十年前带着天衍钱南下。铜钱落地，吉凶已定——凶的那一面，总是朝着对面。',
+    id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '周远山', short: '山', title: '携钱南下的人', role: '卜修 · 辅助', blurb: '周易的祖父，五十年前带着天衍钱南下，没有再回去。他说自己这辈子只算准过一件事，就是孙子会比他强。铜钱在他指间转了五十年，边都磨圆了。他不替自己求吉，只替后辈挡灾。铜钱落地，吉凶已定——凶的那一面，总是朝着对面。',
     hp: 960, hpG: 102, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.4, range: 8.6, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.3,
     build: ['xingluo', 'mingpan', 'zhaohun'],
     passive: { name: '余荫', icon: 'i_disc', desc: '身边的同门气血跌破 30% 时，替他挡一次：给一层相当于其 18% 最大气血的罡气。每人 30 秒一次。' },
@@ -318,7 +318,7 @@ export const HEROES = {
     ],
   },
   qingya: {
-    id: 'qingya', size: 1.34, tint: [0.5, 1.0, 0.85], style: 'sword', name: '陆青崖', short: '崖', title: '清正', role: '剑修 · 近战', blurb: '蒙冤被逐的剑修，宗主后来只为他题了"清正"二字。独来独往惯了，露了破绽的人接不住他那一剑。',
+    id: 'qingya', size: 1.34, tint: [0.5, 1.0, 0.85], style: 'sword', name: '陆青崖', short: '崖', title: '清正', role: '剑修 · 近战', blurb: '蒙冤被逐的剑修，教出过听雪剑主和哑刑官。被逐的那些年他一个人在山野里走，剑没有生锈，人也没有。后来宗主为他题了两个字：清正。他没有回去领。独来独往惯了，露了破绽的人接不住他那一剑。',
     hp: 1190, hpG: 126, mana: 280, manaG: 22, ad: 74, adG: 4.8, ap: 0, apG: 0, ms: 7.2, range: 2.9, period: 0.85, wind: 0.2, ranged: false, r: 1.0, h: 5.2,
     build: ['tingxue', 'heichi', 'dunying'],
     passive: { name: '独行', icon: 'pierce', desc: '普攻吸血 12%。对邪祟的伤害 +40%，每清掉一只回复 4% 气血。' },
@@ -330,7 +330,7 @@ export const HEROES = {
     ],
   },
   wenren: {
-    id: 'wenren', size: 1.26, tint: [1.0, 0.35, 0.6], style: 'dual', name: '闻人遥', short: '遥', title: '大司刑关门弟子', role: '刑修 · 近战', blurb: '练功走火，出手再无分寸。在山野间游荡，血线一甩，落单的人就到了他面前。',
+    id: 'wenren', size: 1.26, tint: [1.0, 0.35, 0.6], style: 'dual', name: '闻人遥', short: '遥', title: '大司刑关门弟子', role: '刑修 · 近战', blurb: '大司刑的关门弟子，本该接掌天刑台。师父伏法那一夜，他练功走了火，从此出手再无分寸。他不回宗门，只在山野间游荡，像在找什么人，又像谁都可以。血线一甩，落单的人就到了他面前。倒下一个，他已经在看下一个了。',
     hp: 1150, hpG: 122, mana: 280, manaG: 22, ad: 75, adG: 4.8, ap: 0, apG: 0, ms: 7.3, range: 2.8, period: 0.78, wind: 0.17, ranged: false, r: 0.95, h: 5.0,
     build: ['dunying', 'tingxue', 'heichi'],
     passive: { name: '走火入魔', icon: 'rage', desc: '对邪祟的伤害 +35%。参与镇压修士后，「掠影」立刻可以再用。' },
@@ -342,7 +342,7 @@ export const HEROES = {
     ],
   },
   linshuang: {
-    id: 'linshuang', size: 1.24, tint: [0.55, 0.85, 1.0], style: 'archer', name: '林霜', short: '霜', title: '冰岛守岛人', role: '弓修 · 远程', blurb: '三百年前的天衍传人，守着冰岛。她开弓很慢，箭很重；隔得越远，那一箭越冷。',
+    id: 'linshuang', size: 1.24, tint: [0.55, 0.85, 1.0], style: 'archer', name: '林霜', short: '霜', title: '冰岛守岛人', role: '弓修 · 远程', blurb: '三百年前的天衍传人，守着冰岛，与火岛隔海相望。她等过一个人，等了很久，后来就不数日子了。她开弓很慢，像是每一箭都要想清楚。箭很重，中了的人脚下会结霜。隔得越远，那一箭越冷。',
     hp: 800, hpG: 89, mana: 300, manaG: 24, ad: 70, adG: 5.2, ap: 0, apG: 0, ms: 6.5, range: 10.4, period: 1.16, wind: 0.24, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'dunying', 'heichi'],
     passive: { name: '霜弦', icon: 'icelance', desc: '开弓慢，箭重，弦远：对 7 步以外的目标，普攻伤害 +18%。' },
@@ -354,7 +354,7 @@ export const HEROES = {
     ],
   },
   peiji: {
-    id: 'peiji', size: 1.48, tint: [0.88, 0.9, 1.0], style: 'axe', name: '裴寂', short: '寂', title: '天刑台代管', role: '律修 · 近战', blurb: '天刑台如今归他管。他站在哪里，哪里就是规矩；令牌一亮，四周的人都得到他面前听判。',
+    id: 'peiji', size: 1.48, tint: [0.88, 0.9, 1.0], style: 'axe', name: '裴寂', short: '寂', title: '天刑台代管', role: '律修 · 近战', blurb: '天刑台如今归他管。前一任伏了法，这把椅子他坐得并不舒服，但坐得很直。他不爱多话，判词向来只有几个字。他站在哪里，哪里就是规矩。令牌一亮，四周的人都得到他面前听判。',
     hp: 1170, hpG: 126, mana: 280, manaG: 22, ad: 57, adG: 3.5, ap: 0, apG: 0, ms: 6.6, range: 3.0, period: 1.0, wind: 0.26, ranged: false, r: 1.1, h: 5.3,
     build: ['heichi', 'xingluo', 'tingxue'],
     passive: { name: '铁律', icon: 'gate', desc: '被他的招式打中的敌人，3 秒内受到的所有伤害 +7%。' },

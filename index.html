@@ -241,7 +241,7 @@ body.veiled #hud::after { content: ''; position: fixed; inset: 0; pointer-events
 #dead em { display: block; font: 900 clamp(54px, 11vw, 96px)/1 var(--f-display); font-style: normal; color: var(--brass); font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
 #top .ros.dead i { filter: grayscale(1) brightness(.5); }
 /* ---- title: the choice of mode is two short buttons; on a small screen 出战 stays in reach ---- */
-#modeSel { flex-wrap: nowrap; } #modeSel button { min-width: 0; flex: 0 1 230px; padding: 8px 14px; text-align: center; } #modeSel button span { display: block; margin-top: 2px; }
+#modeSel { flex-wrap: nowrap; } #modeSel button { min-width: 0; flex: 0 1 230px; padding: 8px 14px; text-align: center; } #modeSel button b { white-space: nowrap; } #modeSel button span { display: block; margin-top: 2px; }
 .help { max-width: 760px; margin-left: auto; margin-right: auto; font-size: 12px; line-height: 1.9; }
 @media (max-width: 760px), (max-height: 520px) {
   #title .row { position: sticky; bottom: 0; z-index: 3; margin: 0 calc(-1 * var(--gl)); padding: 8px var(--gl) calc(8px + var(--sab)); background: linear-gradient(transparent, rgba(5, 8, 13, .94) 30%); }
