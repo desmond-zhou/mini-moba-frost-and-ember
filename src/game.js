@@ -1050,7 +1050,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.skill = i => eff(P(), i);
   G.skillDmg = (i, rank) => { const h = P(), keep = h.ranks[i]; h.ranks[i] = rank; const s = eff(h, i), v = s.b !== undefined ? skillDmg(h, s, i) : 0; h.ranks[i] = keep; return v; };
   // 感悟: what is waiting to be chosen, and choosing it
-  G.insight = () => { const h = P(), t = h.insPend[0]; return t === undefined ? null : { tier: t, opts: INSIGHT[h.def.id][t].map(q => ({ name: q[0], desc: q[1], skill: h.def.skills[3] })) }; };
+  // the choice is only offered in a quiet moment: out of combat for a few breaths and nobody of theirs close by (or while fallen)
+  const calm = h => !h.alive || (h.combatT > 3.5 && !G.heroes.some(e => e.alive && e.team !== h.team && !e.hid && dist(e, h) < 16));
+  G.insight = () => { const h = P(), t = h.insPend[0]; if (t !== undefined) { if (calm(h)) h.insShow = G.t; else if (G.t - (h.insShow || -9) > 0.4) return null; } return t === undefined ? null : { tier: t, opts: INSIGHT[h.def.id][t].map(q => ({ name: q[0], desc: q[1], skill: h.def.skills[3] })) }; };
   // which of two turnings suits the other side: wide when they bunch up in melee, longer holds against the nimble, harder hits into the
   // thick-skinned, finishing power into the frail, reach against those who fight from range, a shorter 调息 when they can heal it back
   const WHY = { area: '对面爱扎堆', cc: '对面腿脚快', fast: '不给他们躲的工夫', dmg: '对面皮厚', exec: '对面身板脆', cd: '这一仗要打久', range: '对面手长', dur: '把他们多困一会儿', sustain: '同门得多撑几口气', spread: '人多，得照应周全' };
@@ -1068,7 +1070,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     else if (h.team === G.player.team) chat(h, 'ins', true, { i: q[0], w: WHY[q[4]], d: q[1] });   // allies report what they took and why; the other side keeps it to itself
     return true;
   };
-  G.chooseInsight = k => takeInsight(P(), k);
+  G.chooseInsight = k => (G.insight() ? takeInsight(P(), k) : false);
 
   // ---------------- frame update ----------------
   const BAR = { kill: [1.0, 0.9, 0.3], self: [0.3, 0.95, 0.42], ally: [0.3, 0.62, 1.0], enemy: [1.0, 0.27, 0.2], neutral: [0.95, 0.78, 0.3] };
