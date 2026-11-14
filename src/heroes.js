@@ -199,16 +199,13 @@ const OUTFIT = {
     for (let i = 0; i < 3; i++) { const a = i * 2.094; part(P.orbit, G.sph(0.11, 10, 8), tc.glow, Math.cos(a) * 1.15, 1.5 + i * 0.4, Math.sin(a) * 1.15, 0, 0, 0, 1, 1.25, 1, 2.2); }
     return { scale: 1.38, shX: 0.46, cape: cape(P, '#3a0a10', 0.86, 0.8, 1.75, '#0d0507') };
   },
-  // 沈焰 · 火岛守岛人：赤衣束袖，背一壶火羽箭，左手长弓
+  // 沈焰 · 火岛守岛人：赤衣束袖，不带兵器；腰间一盏铜火灯，两手各托一团心火
   archer(P, tc) {
     body(P, { girth: 0.98, top: '#8a2f14', leg: '#33261d', boot: '#241a14', fore: LEATHER, arm: '#8a2f14' });
     collar(P, '#e0a040'); sash(P, tc.main, true); kind(K.cloth); part(P.chest, G.box(0.1, 1.2, 0.05), LEATHER, -0.1, 0.45, 0.27, 0, 0, -0.6);
-    part(P.chest, G.cyl(0.16, 0.14, 0.95, 10), LEATHER, 0.28, 0.42, -0.3, 0, 0, -0.45);
-    kind(K.metal); for (let i = 0; i < 4; i++) part(P.chest, G.box(0.03, 0.34, 0.03), tc.glow, 0.44 + i * 0.045, 0.92, -0.3 + (i % 2) * 0.05, 0, 0, -0.45, 1, 1, 1, 2.0);
+    kind(K.metal); part(P.chest, G.cyl(0.13, 0.16, 0.3, 8), BRASS, 0.34, -0.3, 0.2); part(P.chest, G.oct(0.11), tc.glow, 0.34, -0.3, 0.2, 0, 0, 0, 1, 1.5, 1, 2.6);   // the lamp at his belt
     hairCap(P, HAIR, 0.45); topknot(P, HAIR, '#e0a040'); kind(K.cloth); part(P.head, G.box(0.42, 0.055, 0.2), '#c8401a', 0, 0.42, 0.02); part(P.head, G.box(0.05, 0.34, 0.02), '#c8401a', -0.12, 0.3, -0.21, 0.3);
-    kind(K.wood); part(P.faL, G.tor(0.98, 0.045, 6, 26, PI), '#5e2f18', 0, HAND + 0.28, 0, 0, PI / 2, PI, 1, 0.28, 1);
-    kind(K.paint); part(P.faL, G.cyl(0.012, 0.012, 1.96, 4), tc.glow, 0, HAND + 0.28, 0, PI / 2, 0, 0, 1, 1, 1, 1.6);
-    kind(K.metal); part(P.faL, G.box(0.06, 0.2, 0.06), BRASS, 0, HAND, 0); part(P.faL, G.oct(0.06), tc.glow, 0, HAND - 0.02, 0.98, 0, 0, 0, 1, 1, 1.6, 2.0); part(P.faL, G.oct(0.06), tc.glow, 0, HAND - 0.02, -0.98, 0, 0, 0, 1, 1, 1.6, 2.0);
+    kind(K.paint); for (const [F, r] of [[P.faL, 0.17], [P.faR, 0.13]]) { part(F, G.oct(r), tc.glow, 0, HAND - 0.16, 0.06, 0, 0, 0, 1, 1.45, 1, 3.0); part(F, G.oct(r * 0.55), '#fff0c0', 0, HAND - 0.14, 0.06, 0, 0.6, 0, 1, 1.3, 1, 3.4); part(F, G.tor(r * 1.5, 0.014, 5, 16), tc.glow, 0, HAND - 0.16, 0.06, PI / 2, 0, 0, 1, 1, 1, 2.0); }   // a flame held in each palm
     return { scale: 1.3, shX: 0.4, cape: cape(P, '#6e2410', 0.5, 0.78, 1.0, '#e0a040') };
   },
   // 言照雪 · 蔽目之体：素白长衣，眼上覆一条银纱，手里一盏不亮的灯

@@ -280,15 +280,15 @@ export const HEROES = {
     ],
   },
   archer: {
-    id: 'archer', size: 1.27, tint: [1.0, 0.52, 0.12], style: 'archer', name: '沈焰', short: '焰', title: '火岛守岛人', role: '弓修 · 远程', blurb: '一张火弓守了火岛三百年。全靠普攻吃饭，连珠一开输出最高，但被近身就很危险。',
+    id: 'archer', size: 1.27, tint: [1.0, 0.52, 0.12], style: 'bow', name: '沈焰', short: '焰', title: '火岛守岛人', role: '焰修 · 远程', blurb: '一盏心火守了火岛三百年。不用弓，指尖弹出的火一发接一发连成线；心火一旺出手最快，但被近身就很危险。',
     hp: 790, hpG: 88, mana: 300, manaG: 24, ad: 56, adG: 3.8, ap: 0, apG: 0, ms: 6.7, range: 9.8, period: 0.78, wind: 0.16, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'dunying', 'heichi'],
-    passive: { name: '焚心', icon: 'firearrow', max: 5, desc: '连续射同一个目标，每箭攻速 +6%，最多 5 层；换目标或停手 3 秒后清零。' },
+    passive: { name: '焚心', icon: 'starbolt', max: 5, desc: '连续烧同一个目标，每一发攻速 +6%，最多 5 层；换目标或停手 3 秒后清零。' },
     skills: [
-      S('Q', 'quickdraw', '连珠', 'haste', { cd: 11, mana: 40, dur: 4, ms: 0.1, as: 0.65, vfx: 'rage', icon: 'quick' }, '短时间内普攻速度大幅提升。'),
-      S('W', 'firearrow', '火羽', 'proj', { range: 18, speed: 34, width: 0.9, cd: 6, mana: 35, b: 55, l: 13, ad: 0.9, pierce: true, slow: [0.3, 1.2] }, '射出一支贯穿敌人的火羽箭，造成伤害并减速。'),
-      S('E', 'firestep', '掠火', 'dash', { range: 6, speed: 30, cd: 7, mana: 30, reset: true }, '踏着火光滑出一小段，并立刻可以再射一箭。'),
-      S('R', 'sunarrow', '焚天', 'proj', { range: 40, speed: 32, width: 1.5, cd: 60, mana: 100, b: 200, l: 50, ad: 1.2, splash: 4.5, stun: 0.9 }, '射出一支能飞越半个战场的巨箭，命中第一个敌人后爆炸并定身。'),
+      S('Q', 'quickdraw', '连珠', 'haste', { cd: 11, mana: 40, dur: 4, ms: 0.1, as: 0.65, vfx: 'rage', icon: 'quick' }, '心火暴涨，短时间内弹指出火的速度大幅提升。'),
+      S('W', 'firearrow', '流火', 'proj', { range: 18, speed: 34, width: 0.9, cd: 6, mana: 35, b: 55, l: 13, ad: 0.9, pierce: true, slow: [0.3, 1.2], icon: 'starbolt' }, '甩出一道贯穿敌人的流火，造成伤害，被燎到的人脚步变慢。'),
+      S('E', 'firestep', '掠火', 'dash', { range: 6, speed: 30, cd: 7, mana: 30, reset: true }, '踏着火光滑出一小段，并立刻可以再出一发。'),
+      S('R', 'sunarrow', '焚天', 'proj', { range: 40, speed: 32, width: 1.5, cd: 60, mana: 100, b: 200, l: 50, ad: 1.2, splash: 4.5, stun: 0.9, icon: 'meteor' }, '把三百年的心火凝成一团放出去，能飞越半个战场，撞上第一个敌人后炸开并定身。'),
     ],
   },
 

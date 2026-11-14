@@ -99,8 +99,7 @@ const EXTRA = {
     g.fillStyle = '#c8401a'; g.fillRect(62, 56, 68, 8); g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(62, 62, 68, 2.5);                                                 // red headband
     g.strokeStyle = '#c8401a'; g.lineWidth = 5; g.beginPath(); g.moveTo(128, 60); g.quadraticCurveTo(146, 70, 142, 96); g.stroke();
     g.strokeStyle = '#e0a040'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(88, 34); g.lineTo(104, 34); g.stroke();
-    g.strokeStyle = '#5e2f18'; g.lineWidth = 5; g.beginPath(); g.moveTo(26, 192); g.quadraticCurveTo(8, 120, 34, 44); g.stroke(); g.strokeStyle = tc; g.lineWidth = 1.2; g.beginPath(); g.moveTo(30, 190); g.lineTo(35, 46); g.stroke();   // the bow over his shoulder
-    for (let i = 0; i < 3; i++) { const x = 150 + i * 9; g.strokeStyle = '#5e4630'; g.lineWidth = 2; g.beginPath(); g.moveTo(x, 150); g.lineTo(x + 6, 112); g.stroke(); g.fillStyle = tc; g.shadowColor = tc; g.shadowBlur = 8; g.beginPath(); g.moveTo(x + 6, 104); g.lineTo(x + 11, 116); g.lineTo(x + 1, 116); g.closePath(); g.fill(); g.shadowBlur = 0; }  // fire-fletched arrows
+    g.shadowColor = tc; g.shadowBlur = 16; for (const [x, y, r] of [[34, 150, 13], [160, 132, 9]]) { g.fillStyle = tc; g.beginPath(); g.moveTo(x, y - r * 1.9); g.quadraticCurveTo(x + r * 1.2, y - r * 0.2, x, y + r); g.quadraticCurveTo(x - r * 1.2, y - r * 0.2, x, y - r * 1.9); g.fill(); g.fillStyle = '#fff0c0'; g.beginPath(); g.arc(x, y + r * 0.1, r * 0.42, 0, 7); g.fill(); } g.shadowBlur = 0;   // a flame over each shoulder
     g.fillStyle = tc; g.shadowColor = tc; g.shadowBlur = 8; for (const [x, y, r] of [[46, 30, 2], [160, 52, 1.8], [150, 86, 1.4]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } g.shadowBlur = 0;
   } },
   storm: { over(g, tc) {

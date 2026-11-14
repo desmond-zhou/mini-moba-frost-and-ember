@@ -75,7 +75,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // same mouth close together, and not everyone at once.
   let chatAt = -9;
   const PAIRS = [
-    ['archer', 'linshuang', ['霜，这回并肩。', '嗯。火别灭。'], ['霜……别让我为难。', '各守各的岛。出箭吧。']],
+    ['archer', 'linshuang', ['霜，这回并肩。', '嗯。火别灭。'], ['霜……别让我为难。', '各守各的岛。出手吧。']],
     ['mage', 'yuanshan', ['祖父，看我推演。', '钱我带着，你放手去算。'], ['祖父，得罪了。', '让我看看你学了几成。']],
     ['ranger', 'qingya', ['师父，听雪我练熟了。', '出剑，别回头。'], ['师父，请赐教。', '让为师看看你的听雪。']],
     ['warden', 'qingya', ['……师父。', '不语，守好关。'], ['……', '还是不肯开口？出尺吧。']],
@@ -280,7 +280,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const big = e.kind === 'tower', o = big ? 0 : 0.9;
       const heat = big && t.kind === 'hero' ? t.heat || 0 : 0, tc = heat ? [col[0] * (1 - heat * 0.15) + 1.0 * heat * 0.25, col[1] * (1 - heat * 0.2) + 0.25 * heat * 0.2, col[2] * (1 - heat * 0.22) + 0.08 * heat * 0.2] : col;
       shoot(e, e.x + Math.cos(e.facing) * o, big ? e.view.muzzleY : e.h * 0.58, e.z + Math.sin(e.facing) * o, { homing: t, speed: big ? 26 : 34, dmg: dmg * (1 + T.heatStep * heat), basic: true, crit, tower: big, slow, boom, emp: fat > 1 && !boom, color: tc, size: big ? 0.55 + heat * 0.1 : hero ? (crit ? 0.42 : 0.34) * fat : 0.2, long: hero ? 2.4 : 1, bright: big ? 4 + heat * 0.6 : hero ? 3.6 + (fat - 1) * 2 : 2.4 });
-      if (big) audio.play('tower', e.x, e.z); else if (hero) audio.play(e.def.style === 'staff' ? 'cast' : e.def.style === 'gun' ? 'xbow' : e.def.id === 'ranger' ? 'sword' : 'bow', e.x, e.z, e.def.id === 'ranger' ? 0.6 : 1);
+      if (big) audio.play('tower', e.x, e.z); else if (hero) audio.play(e.def.style === 'staff' ? 'cast' : e.def.style === 'gun' ? 'xbow' : e.def.id === 'ranger' ? 'sword' : e.def.id === 'archer' ? 'fire' : 'bow', e.x, e.z, e.def.id === 'ranger' ? 0.6 : 1);
     } else { damage(e, t, dmg, { basic: true, crit }); if (slow) applySlow(t, slow); }
     if (near(e)) V.basic(e, t, col, crit);
   }
