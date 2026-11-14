@@ -1079,6 +1079,11 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (G.t >= G.nextWave) {
         G.nextWave += T.waveEvery; G.wave++;
         if (G.wave === 1) { ui.announce('两宗弟子已下山', ''); audio.play('horn'); }
+        if (G.wave > 3 && G.t - (G.moodAt || 0) > 50) {                 // how the match is going, said by whoever feels it — either side
+          const pt = G.player.team, lead = (G.kills[pt] - G.kills[1 - pt]) + (G.structs[pt].list.filter(x => x.alive).length - G.structs[1 - pt].list.filter(x => x.alive).length) * 2.5;
+          if (Math.abs(lead) >= 6) { G.moodAt = G.t; const pick = t => { const L = G.heroes.filter(h => h.team === t && h.alive && !h.isPlayer); return L[Math.floor(Math.random() * L.length)]; }, foe = pick(1 - pt), ally = pick(pt);
+            if (foe) chat(foe, lead > 0 ? 'behind' : 'ahead', true); if (ally && Math.random() < 0.6) chat(ally, lead > 0 ? 'ahead' : 'behind'); }
+        }
         if (G.wave === 2 && !G.pairSaid) {                              // people with history say so once, early
           G.pairSaid = true; const by = id => G.heroes.filter(h => h.def.id === id); let done = false;
           for (const [a, b, same, opp] of PAIRS) { if (done) break; for (const A of by(a)) { if (done) break; for (const B of by(b)) { const L = A.team === B.team ? same : opp, pt = G.player.team; fx.say(A.x, A.h + 1.6, A.z, L[0], A.team === pt); fx.say(B.x, B.h + 1.6, B.z, L[1], B.team === pt); const line = (h, t) => { if (!h.isPlayer) ui.chat(h, t); }; if (A.team === pt || B.team === pt) { line(A, L[0]); line(B, L[1]); } done = true; break; } } }
