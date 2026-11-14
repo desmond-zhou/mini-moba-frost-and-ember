@@ -1,30 +1,76 @@
 // config.js — map layout, hero kits, items, tuning. Everything the game needs to know that is not code.
-export const MAP = { hx: 80, hz: 48 };
 export const FROST = 0, EMBER = 1, NEUTRAL = 2;
-export const laneZ = x => 10 * Math.sin(x * Math.PI / 80);
-export const riverX = z => 6 * Math.sin(z * Math.PI * 1.5 / 48);
 export const sideSign = team => (team === FROST ? -1 : 1);
 
-export const POS = {
-  core: t => ({ x: sideSign(t) * 64, z: laneZ(sideSign(t) * 64) }),
-  fountain: t => ({ x: sideSign(t) * 75, z: laneZ(sideSign(t) * 75) }),
-  tower: (t, tier) => { const x = sideSign(t) * (tier === 1 ? 24 : 46); return { x, z: laneZ(x) + (t === FROST ? 3.4 : -3.4) }; },
+// ---------------------------------------------------------------------------------------------------------------------
+// Two modes share every mechanic (abilities, passives, items, realms, brush, recall). What differs is the ground they are
+// fought on and a handful of numbers, and each mode keeps its own: 一路's are frozen, 三路's are tuned on their own.
+//
+// The bases always sit at the left and right ends. A lane is a curve z = f(x) between them, so "forward" is always along x.
+// 三路 is a spindle: three lanes that part in the middle of the map and close again at each base, with the river running
+// down through all of them. (It is the usual three-lane map, just not turned 45 degrees.)
+// ---------------------------------------------------------------------------------------------------------------------
+const sine = (amp, k) => ({ type: 'sine', amp, k, f: x => amp * Math.sin(x * k), slope: () => 0 });
+const arc = (z0, k, q) => ({ type: 'arc', z0, k, q, f: x => z0 * Math.pow(Math.max(Math.cos(x * k), 1e-4), q), slope: x => { const c = Math.max(Math.cos(x * k), 1e-4); return -z0 * q * Math.pow(c, q - 1) * Math.sin(x * k) * k; } });
+const mirror = list => list.flatMap(b => (b.x === 0 && b.z === 0 ? [b] : [b, { ...b, x: -b.x, z: -b.z }]));   // the map is point-symmetric
+
+export const MODES = {
+  single: {
+    id: 'single', name: '一路 · 速战', team: 3, blurb: '一条路，3 对 3，十五分钟上下。',
+    map: { hx: 80, hz: 48, core: 64, fountain: 75, biome: 1 },
+    lanes: [{ name: '', ...sine(10, Math.PI / 80), outer: 24, inner: 46 }], mid: 0,
+    river: { amp: 6, k: Math.PI * 1.5 / 48 },
+    camps: [
+      { x: -30, z: 25, r: 7, kind: 'golem', n: 2 }, { x: 30, z: -25, r: 7, kind: 'golem', n: 2 },
+      { x: -15, z: -28, r: 7, kind: 'golem', n: 2 }, { x: 15, z: 28, r: 7, kind: 'golem', n: 2 },
+      { x: -1.5, z: 36, r: 9, kind: 'guardian', n: 1 },
+    ],
+    brush: [
+      { x: -15, z: -15.4, r: 3.6 }, { x: 15, z: 15.4, r: 3.6 }, { x: -13, z: 4.6, r: 3.4 }, { x: 13, z: -4.6, r: 3.4 },
+      { x: -4, z: 21, r: 3.6 }, { x: 4, z: -21, r: 3.6 }, { x: -22, z: 17, r: 3.6 }, { x: 22, z: -17, r: 3.6 },
+      { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
+    ],
+    tune: {},
+  },
+  tri: {
+    id: 'tri', name: '三路 · 宗门大战', team: 5, blurb: '上中下三路，5 对 5，二十分钟上下。开发中：电脑还只会各守一路。',
+    map: { hx: 104, hz: 58, core: 86, fountain: 98, biome: 1.3 },
+    lanes: [
+      { name: '上路', ...arc(-38, Math.PI / 192, 0.6), outer: 34, inner: 56, high: 72 },
+      { name: '中路', ...sine(4, Math.PI / 104), outer: 26, inner: 50, high: 70 },
+      { name: '下路', ...arc(38, Math.PI / 192, 0.6), outer: 34, inner: 56, high: 72 },
+    ], mid: 1,
+    river: { amp: 6, k: Math.PI * 1.5 / 58 },
+    camps: [
+      ...mirror([{ x: -44, z: -15, r: 6.5, kind: 'golem', n: 2 }, { x: -20, z: -19, r: 6.5, kind: 'golem', n: 2 }, { x: -44, z: 15, r: 6.5, kind: 'golem', n: 2 }, { x: -20, z: 19, r: 6.5, kind: 'golem', n: 2 }]),
+      { x: 2.5, z: -19, r: 8, kind: 'guardian', n: 1 }, { x: -2.5, z: 19, r: 8, kind: 'guardian', n: 1 },
+    ],
+    brush: mirror([
+      { x: -12, z: -28.5, r: 3.4 }, { x: -12, z: 28.5, r: 3.4 }, { x: -14, z: 9.5, r: 3.4 }, { x: -14, z: -9.5, r: 3.2 },
+      { x: -31, z: -22, r: 3.4 }, { x: -31, z: 22, r: 3.4 }, { x: -9, z: -47, r: 3.4 }, { x: -9, z: 47, r: 3.4 },
+      { x: -56, z: -9, r: 3.2 }, { x: -56, z: 9, r: 3.2 },
+    ]),
+    // 三路's own numbers. Everything not named here falls back to the shared table.
+    tune: { waveEvery: 28, coreHp: 5200, lateAt: 720, lateK: 0.3, respawnK: 1.15, startGold: 300 },
+  },
 };
 
-export const CAMPS = [
-  { x: -30, z: 25, r: 7, kind: 'golem', n: 2 },
-  { x: 30, z: -25, r: 7, kind: 'golem', n: 2 },
-  { x: -15, z: -28, r: 7, kind: 'golem', n: 2 },
-  { x: 15, z: 28, r: 7, kind: 'golem', n: 2 },
-  { x: -1.5, z: 36, r: 9, kind: 'guardian', n: 1 },
-];
+export let MODE = MODES.single;
+export const MAP = { hx: 80, hz: 48, core: 64, fountain: 75, biome: 1 };
+export const LANES = [], CAMPS = [], BRUSH = [], TOWERS = [], RIVER = { amp: 6, k: 1 };
+export let MID = 0;
+export const laneZ = (x, lane = MID) => LANES[lane].f(x);
+// distance from a point to a lane's centre line, and which lane is nearest (the side lanes are steep near the bases, so the
+// plain difference in z is corrected by the slope)
+export const laneDist = (x, z, lane) => { const L = LANES[lane], s = L.slope(x); return Math.abs(z - L.f(x)) / Math.sqrt(1 + s * s); };
+export const nearestLane = (x, z) => { let best = 0, bd = 1e9; for (let i = 0; i < LANES.length; i++) { const d = laneDist(x, z, i); if (d < bd) { bd = d; best = i; } } return best; };
+export const riverX = z => RIVER.amp * Math.sin(z * RIVER.k);
 
-// tall grass: whoever stands inside cannot be seen from outside, until they strike, cast, get hit, or an enemy walks in
-export const BRUSH = [
-  { x: -15, z: -15.4, r: 3.6 }, { x: 15, z: 15.4, r: 3.6 }, { x: -13, z: 4.6, r: 3.4 }, { x: 13, z: -4.6, r: 3.4 },
-  { x: -4, z: 21, r: 3.6 }, { x: 4, z: -21, r: 3.6 }, { x: -22, z: 17, r: 3.6 }, { x: 22, z: -17, r: 3.6 },
-  { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
-];
+export const POS = {
+  core: t => ({ x: sideSign(t) * MAP.core, z: laneZ(sideSign(t) * MAP.core) }),
+  fountain: t => ({ x: sideSign(t) * MAP.fountain, z: laneZ(sideSign(t) * MAP.fountain) }),
+  tower: (t, tier, lane = MID) => { const L = LANES[lane], x = sideSign(t) * (tier === 1 ? L.outer : tier === 2 ? L.inner : L.high); return { x, z: L.f(x) + (t === FROST ? 3.4 : -3.4) }; },
+};
 export const brushAt = (x, z, pad = 0) => { for (let i = 0; i < BRUSH.length; i++) { const b = BRUSH[i], dx = x - b.x, dz = z - b.z, r = b.r + pad; if (dx * dx + dz * dz < r * r) return i; } return -1; };
 
 export const TEAM_NAME = ['霜', '烬'];
@@ -222,7 +268,8 @@ export const RANK = {
   top: 1.25,
 };
 
-export const T = {
+const T_BASE = {
+  lateAt: 360, lateK: 0.4, respawnK: 1,                               // when waves start to snowball, and how fast; respawn scale
   maxLevel: 12, xpNeed: L => 90 + 55 * L,
   waveFirst: 6, waveEvery: 24,
   towerHp: 2650, towerAd: 150, towerRange: 13.5, towerPeriod: 1.05,
@@ -242,3 +289,17 @@ export const T = {
   respawn: L => 6 + 2.0 * L,
   difficulty: { easy: { name: '简单', enemy: 0.72, react: 1.7, aim: 2.8 }, normal: { name: '普通', enemy: 0.96, react: 1.15, aim: 1.6 }, hard: { name: '困难', enemy: 1.02, react: 0.75, aim: 0.8 } },
 };
+
+export const T = { ...T_BASE };
+// Switch mode: the map, the lanes, the camps, the brush, the towers and the tuning table are all swapped in place, so every
+// module that imported them keeps working with the new ground under it. The world has to be rebuilt afterwards.
+export function setMode(id) {
+  const m = MODES[id] || MODES.single; MODE = m; MID = m.mid;
+  Object.assign(MAP, m.map); Object.assign(RIVER, m.river);
+  LANES.length = 0; LANES.push(...m.lanes); CAMPS.length = 0; CAMPS.push(...m.camps); BRUSH.length = 0; BRUSH.push(...m.brush);
+  for (const k of Object.keys(T)) delete T[k]; Object.assign(T, T_BASE, m.tune);
+  TOWERS.length = 0;
+  for (const team of [FROST, EMBER]) m.lanes.forEach((L, lane) => { for (const tier of L.high ? [1, 2, 3] : [1, 2]) TOWERS.push({ team, lane, tier, ...POS.tower(team, tier, lane) }); });
+  return m;
+}
+setMode('single');
