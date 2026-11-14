@@ -271,6 +271,13 @@ body.touch #ins { bottom: calc(306px + var(--sab)); } body.touch #ins kbd { disp
   body.touch #ins { flex-direction: column; width: min(300px, calc(100% - 430px)); gap: 4px; } body.touch #ins button { width: 100%; flex: none; } body.touch #ins > b { align-self: flex-start; font-size: 15px; line-height: 1; }
 }
 @media (max-width: 760px) { #ins { flex-direction: column; width: min(300px, calc(100% - 24px)); } #ins button { width: 100%; } #ins > b small { display: inline; margin-left: 8px; } }
+/* the chooser, slimmed: one line an option */
+html body #ins { padding: 4px 6px; gap: 5px; box-shadow: 0 0 10px rgba(223, 189, 120, .25); } html body #ins > b { font-size: 15px; letter-spacing: .06em; } html body #ins > b small { display: none; }
+html body #ins button { width: auto; flex: 0 1 auto; grid-template-columns: 20px auto auto; gap: 6px; padding: 3px 8px 3px 4px; font-size: 11.5px; line-height: 1.3; white-space: nowrap; } html body #ins button i { width: 20px; height: 20px; }
+html body #ins button u { display: inline; margin-right: 6px; font-size: 12.5px; }
+@media (max-width: 760px) { html body.touch #ins { width: auto; max-width: calc(100% - 24px); gap: 3px; } html body.touch #ins button { width: 100%; } }
+@media (max-height: 520px) and (orientation: landscape) and (max-width: 1000px) { html body.touch #ins { width: auto; max-width: calc(100% - 420px); gap: 3px; } html body.touch #ins > b { font-size: 13px; } }
+html body.touch #ins button { padding: 7px 10px 7px 6px; font-size: 12.5px; }   /* still a finger's width tall */
 /* ---- records on the title page ---- */
 #rec { width: min(1040px, 100%); display: flex; flex-wrap: wrap; gap: 5px 6px; align-items: center; margin: 8px 0 2px; font-size: 11.5px; color: var(--dim); } #rec .rs { color: var(--bone); margin-right: 8px; } #rec .ra { margin-right: 4px; }
 #rec i { font-style: normal; padding: 2px 8px; border: 1px solid var(--line-soft); opacity: .45; position: relative; } #rec i.on { opacity: 1; color: var(--brass); border-color: var(--brass); } #rec i small { display: none; position: absolute; left: 0; bottom: calc(100% + 4px); padding: 3px 8px; white-space: nowrap; background: var(--panel-solid); border: 1px solid var(--line); color: var(--bone); z-index: 5; } #rec i:hover small, #rec i:active small { display: block; }
