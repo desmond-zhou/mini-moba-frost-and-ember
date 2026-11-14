@@ -74,7 +74,7 @@ export function createUI(isTouch, audio) {
     // the shop: three grades, each tile shows what it is made from and what it would cost you right now
     const tile = k => { const it = ITEMS[k]; return `<button type="button" class="item t${it.tier}" data-k="${k}"><i class="ic" style="background-image:url(${itemIcon(it)})"></i><b>${it.name}</b><span class="tp">${it.tip}</span>${it.parts ? `<span class="parts">${it.parts.map(q => `<i data-p="${q}" title="${ITEMS[q].name}" style="background-image:url(${itemIcon(ITEMS[q])})"></i>`).join('<u>+</u>')}</span>` : ''}<em></em></button>`; };
     const note = ['直接购买', '由一件凡器炼成', '由两件灵器合成，每种只能持有一件'];
-    el.shopGrid.innerHTML = ITEM_TIERS.map((ids, t) => `<h3>${TIER_NAME[t + 1]}<small>${note[t]}</small></h3><div class="tier">${ids.map(tile).join('')}</div>`).join('');
+    el.shopGrid.innerHTML = ITEM_TIERS.map((ids, t) => `<h3>${TIER_NAME[t + 1]}<small>${note[t]}</small></h3><div class="tier t${t + 1}">${ids.map(tile).join('')}</div>`).join('');
     shopTiles = [...el.shopGrid.querySelectorAll('.item')].map(b => ({ b, k: b.dataset.k, em: b.querySelector('em'), parts: [...b.querySelectorAll('.parts i')] }));
     el.shopGrid.onclick = e => { const c = e.target.closest('.item'); if (c) G.buy(c.dataset.k); };
     const ros = (box, team) => { const hs = G.heroes.filter(h => h.team === team); box.innerHTML = hs.map(h => `<i style="background-image:url(${faceOf(h)})"${h.isPlayer ? ' class="me"' : ''}><b></b><u></u></i>`).join(''); return hs.map((h, i) => ({ h, e: box.children[i], lv: box.children[i].querySelector('b'), dead: box.children[i].querySelector('u') })); };

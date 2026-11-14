@@ -258,7 +258,7 @@ export const HEROES = {
   keeper: {
     id: 'keeper', size: 1.5, tint: [0.4, 0.6, 1.0], style: 'shield', name: '周远川', short: '川', title: '天衍城守门人', role: '盾修 · 近战', blurb: '在雪原守了五十年的门，门后是天衍城。五十年里换过三任城主，没换过守门人。他不记得自己拦下过多少人，只记得没有一个是从他身上跨过去的。盾举起来的时候，风雪都要绕道。他一声喝，千军万马也只能先过他这一关。',
     hp: 1260, hpG: 134, mana: 280, manaG: 22, ad: 56, adG: 3.4, ap: 0, apG: 0, ms: 6.6, range: 2.9, period: 1.05, wind: 0.28, ranged: false, r: 1.1, h: 5.3,
-    build: ['heichi', 'xingluo', 'tingxue'],
+    build: ['heichi', 'xingluo', 'kunlong'],
     passive: { name: '守门', icon: 'ward', cd: 45, desc: '气血低于 40% 时自动撑起相当于 16% 最大气血的罡气，持续 4 秒。每 45 秒一次。' },
     skills: [
       S('Q', 'gate', '闭门', 'cone', { range: 6, angle: 95, cd: 8, mana: 35, b: 55, l: 12, ad: 0.6, stun: 0.9, vfx: 'gate' }, '门盾向前猛撞，伤害并定身扇形范围内的敌人。'),
@@ -296,7 +296,7 @@ export const HEROES = {
   yanzhao: {
     id: 'yanzhao', size: 1.2, tint: [0.72, 0.8, 1.0], style: 'staff', name: '言照雪', short: '雪', title: '蔽目之体', role: '幕修 · 辅助', blurb: '天生蔽目之体，眼上常年覆着一条银纱。她看不见的东西很多，能替人遮住的东西更多。站在她身边的人，伤总是比预想的轻一些。她手里那盏灯从来不亮，因为用不着。幕落下来的时候，同门的伤轻了，人也不见了。',
     hp: 930, hpG: 100, mana: 430, manaG: 35, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 8.8, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.1,
-    build: ['xingluo', 'mingpan', 'zhaohun'],
+    build: ['xingluo', 'mingpan', 'lianxing'],
     passive: { name: '蔽目之体', icon: 'smoke', desc: '身边的同门（含自己）受到修士的伤害 -8%。' },
     skills: [
       S('Q', 'veilbolt', '蔽目', 'proj', { range: 15, speed: 26, width: 0.95, cd: 7.5, mana: 45, b: 72, l: 16, ap: 0.6, stun: 0.95, vfx: 'vine', icon: 'vine' }, '放出一缕蔽目之力，命中的第一个敌人眼前一黑，被定在原地。'),
@@ -308,7 +308,7 @@ export const HEROES = {
   yuanshan: {
     id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '陆玄机', short: '玄', title: '天衍上卷持有者', role: '卜修 · 辅助', blurb: '青云宗前太上长老，守着天衍诀的上卷过了一辈子。三十年前他在乱石林被人围杀，石室的门从里面合上，再没有开过。他早就算到了那一天，也算到了后来会有人推开那扇门。几枚卦钱在他指间转了一辈子，边都磨圆了。卦钱落地，吉凶已定——凶的那一面，总是朝着对面。',
     hp: 960, hpG: 102, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.4, range: 8.6, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.3,
-    build: ['xingluo', 'mingpan', 'zhaohun'],
+    build: ['lianxing', 'mingpan', 'xingluo'],
     passive: { name: '余荫', icon: 'i_disc', desc: '身边的同门气血跌破 30% 时，替他挡一次：给一层相当于其 18% 最大气血的罡气。每人 30 秒一次。' },
     skills: [
       S('Q', 'coin', '问卦钱', 'proj', { range: 15, speed: 30, width: 0.9, cd: 5.4, mana: 38, b: 80, l: 17, ap: 0.75, slow: [0.35, 1.5], splash: 2.2, vfx: 'starbolt', icon: 'starbolt' }, '弹出一枚卦钱，命中第一个敌人后炸开，造成伤害并减速。'),
@@ -356,7 +356,7 @@ export const HEROES = {
   peiji: {
     id: 'peiji', size: 1.48, tint: [0.88, 0.9, 1.0], style: 'axe', name: '裴寂', short: '寂', title: '天刑台代管', role: '律修 · 近战', blurb: '天刑台如今归他管。前一任伏了法，这把椅子他坐得并不舒服，但坐得很直。他不爱多话，判词向来只有几个字。他站在哪里，哪里就是规矩。令牌一亮，四周的人都得到他面前听判。',
     hp: 1170, hpG: 126, mana: 280, manaG: 22, ad: 57, adG: 3.5, ap: 0, apG: 0, ms: 6.6, range: 3.0, period: 1.0, wind: 0.26, ranged: false, r: 1.1, h: 5.3,
-    build: ['heichi', 'xingluo', 'tingxue'],
+    build: ['heichi', 'xingluo', 'kunlong'],
     passive: { name: '铁律', icon: 'gate', desc: '被他的招式打中的敌人，3 秒内受到的所有伤害 +7%。' },
     skills: [
       S('Q', 'rod', '刑杖', 'cone', { range: 6.2, angle: 85, cd: 7, mana: 35, b: 58, l: 12, ad: 0.6, stun: 0.6, vfx: 'gate', icon: 'gate' }, '刑杖横扫前方扇形，造成伤害并定身。'),
@@ -416,9 +416,11 @@ export const ITEMS = {
   mingpan: I('mingpan', '命盘', 3, 560, { ap: 120, mana: 450, cdr: 0.22 }, '+120 术法强度，+450 灵力，招式调息 -22%', ['xingwen', 'qinghun'], 'i_disc'),
   zhaohun: I('zhaohun', '照魂镜', 3, 560, { ap: 95, ad: 10, ls: 0.12, sv: 0.14 }, '+95 术法强度。照出魂血：招式伤害的 14% 化为自身气血', ['xingwen', 'huaxue'], 'i_mirror'),
   xingluo: I('xingluo', '星络护腕', 3, 560, { hp: 900, mana: 400, cdr: 0.18, regen: 0.008 }, '+900 气血，+400 灵力，招式调息 -18%，气血回复大幅加快', ['zhenxue', 'qinghun'], 'i_bracer'),
+  kunlong: I('kunlong', '困龙索', 3, 560, { hp: 750, ad: 20, ms: 0.85, slowHit: [0.3, 1.2] }, '+750 气血，+20 攻击力，身法 +13%。索头缠人：普攻命中减速 30%', ['zhenxue', 'xingdun'], 'hook'),
+  lianxing: I('lianxing', '敛星佩', 3, 560, { ap: 80, hp: 600, cdr: 0.1 }, '+80 术法强度，+600 气血，招式调息 -10%。敛住星力，人也经打', ['xingwen', 'zhenxue'], 'starbolt'),
   dunying: I('dunying', '遁影镜', 3, 560, { ad: 30, ms: 1.1, ls: 0.16, crit: 0.12 }, '+30 攻击力，身法 +17%，会心 +12%，普攻吸血 16%', ['xingdun', 'huaxue'], 'i_dunying'),
 };
-export const ITEM_TIERS = [['jian', 'zhang', 'jia', 'fu', 'huiyuan', 'xuening'], ['qingfeng', 'xingwen', 'zhenxue', 'xingdun', 'qinghun', 'huaxue'], ['tingxue', 'heichi', 'mingpan', 'zhaohun', 'xingluo', 'dunying']];
+export const ITEM_TIERS = [['jian', 'zhang', 'jia', 'fu', 'huiyuan', 'xuening'], ['qingfeng', 'xingwen', 'zhenxue', 'xingdun', 'qinghun', 'huaxue'], ['tingxue', 'heichi', 'mingpan', 'zhaohun', 'xingluo', 'dunying', 'kunlong', 'lianxing']];
 export const TIER_NAME = ['', '凡器', '灵器', '法宝'];
 
 // Ability ranks. Basic abilities have three (入门 → 小成 → 大成), the ultimate three, one at the peak of each great realm (筑基巅峰 → 金丹巅峰 → 元婴巅峰). One point per hero level;

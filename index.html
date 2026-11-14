@@ -278,6 +278,7 @@ html body #ins button u { display: inline; margin-right: 6px; font-size: 12.5px;
 @media (max-width: 760px) { html body.touch #ins { width: auto; max-width: calc(100% - 24px); gap: 3px; } html body.touch #ins button { width: 100%; } }
 @media (max-height: 520px) and (orientation: landscape) and (max-width: 1000px) { html body.touch #ins { width: auto; max-width: calc(100% - 420px); gap: 3px; } html body.touch #ins > b { font-size: 13px; } }
 html body.touch #ins button { padding: 7px 10px 7px 6px; font-size: 12.5px; }   /* still a finger's width tall */
+@media (min-width: 1001px), (max-height: 520px) { html body #shop .tier.t3 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }   /* eight 法宝: two rows of four */
 /* ---- records on the title page ---- */
 #rec { width: min(1040px, 100%); display: flex; flex-wrap: wrap; gap: 5px 6px; align-items: center; margin: 8px 0 2px; font-size: 11.5px; color: var(--dim); } #rec .rs { color: var(--bone); margin-right: 8px; } #rec .ra { margin-right: 4px; }
 #rec i { font-style: normal; padding: 2px 8px; border: 1px solid var(--line-soft); opacity: .45; position: relative; } #rec i.on { opacity: 1; color: var(--brass); border-color: var(--brass); } #rec i small { display: none; position: absolute; left: 0; bottom: calc(100% + 4px); padding: 3px 8px; white-space: nowrap; background: var(--panel-solid); border: 1px solid var(--line); color: var(--bone); z-index: 5; } #rec i:hover small, #rec i:active small { display: block; }
@@ -372,7 +373,7 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     <h1 class="mark">霜烬之争</h1>
     <div class="sub" id="sub">十八位修士 · 3V3 · 摧毁敌方阵眼</div>
     <div id="modeSel"></div>
-    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.18</div>
+    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.19</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div id="rec"></div>
