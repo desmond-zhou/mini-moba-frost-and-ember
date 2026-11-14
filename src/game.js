@@ -1063,7 +1063,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const t = h.insPend.shift(); if (t === undefined) return false; const q = INSIGHT[h.def.id][t][k ? 1 : 0]; h.ins.push(q);
     if (near(h)) { fx.pillar(h.x, h.z, 1.4, 12, h.fxCol, 0.6); fx.ringWave(h.x, h.z, 9, h.fxCol, 0.5); }
     if (h.isPlayer) { audio.play('star'); ui.announce(`感悟 · ${q[0]}`, 'good'); ui.buzz(40); }
-    else chat(h, [voice(h.def.id, 'ins', { i: q[0], w: WHY[q[4]] }) + `<small>${q[1]}</small>`], true);   // everyone hears what was taken, friend or foe
+    else if (h.team === G.player.team) chat(h, [voice(h.def.id, 'ins', { i: q[0], w: WHY[q[4]] }) + `<small>${q[1]}</small>`], true);   // allies report what they took and why; the other side keeps it to itself
     return true;
   };
   G.chooseInsight = k => takeInsight(P(), k);
