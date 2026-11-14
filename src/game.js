@@ -4,7 +4,7 @@ import { clamp, dist, dist2, angLerp, lerp } from './util.js';
 import * as THREE from 'three';
 import { Graph, AStar, NavNode, NavEdge, Vector3 as YVec, Think, GoalEvaluator, MemorySystem } from 'yuka';
 import { createVfx } from './vfx.js';
-import { BARKS } from './barks.js';
+import { BARKS, VOICE, voice } from './barks.js';
 
 const isStruct = e => e.kind === 'tower' || e.kind === 'core';
 const HOT = [3.2, 1.3, 0.3], WHITE = [1.6, 1.6, 1.6], GOLD = [2.2, 1.6, 0.4], DUST = [0.24, 0.21, 0.17], FLAME = [1.0, 0.36, 0.07];
@@ -83,7 +83,15 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     ['peiji', 'wenren', ['别再走火。', '管好你的天刑台。'], ['闻人遥，随我回天刑台。', '拿得住我再说。']],
     ['shade', 'bloodlord', ['宗主，取谁的命？', '红衣，一个不留。'], ['宗主，这口血我不喝了。', '暗子也敢反？']],
   ];
-  function chat(h, text, force) { if (h.team !== G.player.team || h.isPlayer || G.over) return; if (Array.isArray(text)) text = text[Math.floor(Math.random() * text.length)]; if (!force && (G.t - (h.chatT || -9) < 6 || G.t - chatAt < 1.8)) return; h.chatT = chatAt = G.t; ui.chat(h, text); }
+  let jeerAt = -99;
+  function chat(h, text, force, vars) {                                // text: a literal, a list to pick from, or an event key spoken in the speaker's own manner
+    if (h.isPlayer || G.over) return; const foe = h.team !== G.player.team;
+    if (Array.isArray(text)) text = text[Math.floor(Math.random() * text.length)]; else if (VOICE.base[text]) text = voice(h.def.id, text, vars);
+    if (!text) return;
+    if (foe) { if (!force && (G.t - jeerAt < 22 || G.t - (h.chatT || -99) < 60 || Math.random() < 0.45)) return; jeerAt = G.t; }   // the other side: seldom, for company
+    else if (!force && (G.t - (h.chatT || -9) < 6 || G.t - chatAt < 1.8)) return; else chatAt = G.t;
+    h.chatT = G.t; ui.chat(h, text, foe);
+  }
   // a line of speech: only for those in view, never two at once from the same mouth, and not everyone talking over each other
   let sayAt = -9; const sayQ = [];
   function say(h, kind, chance = 1) {
@@ -170,10 +178,10 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   function eff(h, i) {
     const s = h.def.skills[i], R = rankOf(h, i), r = Math.max(1, h.ranks[i]), top = r === R.max ? RANK.top : 1;
     const e = { ...s, cd: s.cd * R.cd[r - 1], rank: r, slow: s.slow ? [s.slow[0], s.slow[1] * top] : s.slow, stun: s.stun ? s.stun * top : s.stun, dur: s.dur && s.kind !== 'zone' && s.kind !== 'heal' ? s.dur * top : s.dur };
-    for (const q of h.ins) if (q[0] === i) {                           // 感悟 taken on this move
-      for (const k in q[3] || {}) { if (k === 'dmg') e.dmgK = (e.dmgK || 1) * q[3][k]; else if (e[k] !== undefined) e[k] *= q[3][k]; }
-      for (const k in q[4] || {}) { if (k === 'slowT') { if (e.slow) e.slow = [e.slow[0], e.slow[1] + q[4][k]]; } else e[k] = (e[k] || 0) + q[4][k]; }
-      e.desc = `${s.desc}〔感悟 · ${q[1]}：${q[2]}〕`;
+    if (i === 3) for (const q of h.ins) {                              // 感悟 only ever reshape the 绝招
+      for (const k in q[2]) { if (k === 'dmg') e.dmgK = (e.dmgK || 1) * q[2][k]; else if (e[k] !== undefined) e[k] *= q[2][k]; }
+      for (const k in q[3]) { if (k === 'slowT') { if (e.slow) e.slow = [e.slow[0], e.slow[1] + q[3][k]]; } else if (k === 'slowP') { if (e.slow) e.slow = [Math.min(0.8, e.slow[0] + q[3][k]), e.slow[1]]; } else e[k] = (e[k] || 0) + q[3][k]; }
+      e.desc = (e.desc || s.desc) + `〔感悟 · ${q[0]}：${q[1]}〕`;
     }
     return e;
   }
@@ -306,7 +314,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     while (h.level < T.maxLevel && h.xp >= T.xpNeed(h.level)) {
       h.xp -= T.xpNeed(h.level); h.level++; if (h.ranks[0] + h.ranks[1] + h.ranks[2] + h.ranks[3] + h.sp < 12) h.sp++; recalc(h);
       if (h.level === 5 || h.level === 9) { tribulation(h); say(h, 'up'); }
-      { const t = INSIGHT_LVL.indexOf(h.level); if (t >= 0) { h.insPend.push(t); if (!h.isPlayer || G.autoPlay) takeInsight(h, Math.random() < 0.5 ? 0 : 1); } }
+      { const t = INSIGHT_LVL.indexOf(h.level); if (t >= 0) { h.insPend.push(t); if (!h.isPlayer || G.autoPlay) takeInsight(h, pickInsight(h)); } }
       if (h.alive && near(h)) { fx.ringWave(h.x, h.z, 7, GOLD, 0.6); fx.burst(h.x, 1.5, h.z, GOLD, { n: 18, speed: 3, up: 9, life: 0.8, size: 0.5, grav: 4 }); }
       if (h.isPlayer) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至小成', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 绝招可至大成', 'good'); }
     }
@@ -406,7 +414,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         const ours = src.team === G.player.team, cls = ours ? 'good' : 'bad', who = ours ? '我方' : '敌方';
         if (tgt.nk === 'guardian') {
           G.buffT[src.team] = 70; for (const h of G.heroes) if (h.team === src.team) giveGold(h, 90);
-          { const sp = G.heroes.find(h => h.team === src.team && h.alive && !h.isPlayer); if (sp) chat(sp, ['拿到了，趁现在推', '残魂到手，开打', '有加成了，一起上']); }
+          { const sp = G.heroes.find(h => h.team === src.team && h.alive && !h.isPlayer); if (sp) chat(sp, 'obj'); }
           ui.announce(`${who}镇压血海残魂 · 全队伤害提升`, cls); audio.play('horn'); fx.ringWave(tgt.x, tgt.z, 26, col, 0.9);
         } else if (tgt.nk === 'puppet' || tgt.nk === 'abyss') {       // 破阵 / 渊息: the side's next waves march much stronger
           const [k, secs] = T.surge[tgt.nk]; G.surgeT[src.team] = secs; G.surgeK[src.team] = k; for (const h of G.heroes) if (h.team === src.team) giveGold(h, tgt.stats.gold);
@@ -427,7 +435,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (k) {
         const fair = clamp(0.35 + 0.65 * tgt.level / k.level, 0.4, 1.4) * worth; // less for stomping a weaker hero, more for an upset or ending a streak
         k.streak = (k.streak || 0) + 1; k.fallen = 0;
-        chat(k, [`${tgt.name}倒了`, '拿下一个', '漂亮，继续压', `${tgt.name}没了，可以打`]); chat(tgt, ['我没了，别硬打', '大意了', '等我重聚', '他们人齐，先别上']);
+        chat(k, 'kill', false, { t: tgt.name }); chat(tgt, 'die');
         k.kills++; giveGold(k, T.killGold * fair + (G.firstBlood ? 0 : 100), tgt); addXp(k, (80 + 16 * tgt.level) * fair);
         k.multi = G.t - k.multiT < 10 ? k.multi + 1 : 1; k.multiT = G.t; k.bestMulti = Math.max(k.bestMulti || 0, k.multi); k.bestStreak = Math.max(k.bestStreak || 0, k.streak || 0); if (k.isPlayer && k.streak === 3) ui.toast('你连镇三人，对面盯上你了');
       }
@@ -457,7 +465,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         tgt.warn.visible = false; tgt.beam.visible = false;
       for (const h of G.heroes) if (h.team !== tgt.team) { giveGold(h, T.towerGold, h.isPlayer ? tgt : null); addXp(h, 90); }
         ui.announce(good ? '敌方灵塔已被摧毁' : '我方灵塔被摧毁', good ? 'good' : 'bad'); audio.play('horn');
-        { const sp = G.heroes.find(h => h.team === G.player.team && h.alive && !h.isPlayer); if (sp) chat(sp, good ? ['塔掉了，继续压', '好，再推一座', '塔没了，小心别冒进'] : ['塔丢了，稳一点', '守不住了，退到下一座', '别急，慢慢打回来']); }
+        { const sp = G.heroes.find(h => h.team === G.player.team && h.alive && !h.isPlayer); if (sp) chat(sp, good ? 'towerUp' : 'towerDown'); }
       } else { G.over = true; G.winner = 1 - tgt.team; G.overT = 0; fx.slowmo(2.2, 0.22); fx.shake(0.9); ui.buzz([60, 60, 200]); G.focus.tx = tgt.x; G.focus.tz = tgt.z; }
     }
   }
@@ -722,7 +730,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const wasBack = ai.state === 'retreat';
     if (ai.state === 'retreat') { if (hpF > 0.8) ai.state = 'lane'; } else if (hpF < (h.def.id === 'shade' || h.def.id === 'qingya' || h.def.id === 'wenren' ? 0.36 : 0.27) || (hpF < 0.45 && nEH > nAH + 1)) ai.state = 'retreat';
     const retreat = ai.state === 'retreat', outnum = nEH > nAH + 1, ownS = frontStruct(team, ai.lane);
-    if (retreat && !wasBack) chat(h, eh ? ['顶不住了，我先撤', '残了，撤一下', '先退，别跟'] : ['我回去歇口气', '回去养一下，马上来']); else if (outnum && eh && ehD < 12 && G.t - (G.helpAt || -99) > 25) { G.helpAt = G.t; chat(h, `${LANES[ai.lane].name || '这边'}对面人多，来个人`); }
+    if (retreat && !wasBack) chat(h, eh ? 'retreat' : 'rest'); else if (outnum && eh && ehD < 12 && G.t - (G.helpAt || -99) > 25) { G.helpAt = G.t; chat(h, `${LANES[ai.lane].name || '这边'}对面人多，来个人`); }
     // the last enemy hero we had eyes on: if they slip into the grass, the bolder bots go in after them
     if (eh) { const s0 = ai.seen; ai.seen = { u: eh, x: eh.x, z: eh.z, t: G.t, go: s0 && s0.u === eh && G.t - s0.t < 4 ? s0.go : Math.random() < ai.nose }; }
     const sn = ai.seen, hunt = !eh && !retreat && sn && sn.go && G.t - sn.t < 4 && sn.u.alive && sn.u.hid && hpF > 0.45 && (!danger(sn) || diveOK);
@@ -807,7 +815,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     //   巡山 goes for the soft and the wounded, and in a brawl waits for someone else to start it.
     const role = SEAT_FIT[h.def.id][0], thr = eh, thrD = ehD; let wait = false, kite = false;
     if (eh && !retreat) {
-      if (nEH > 1 || role === 4) { let ps = -1e9; for (const e of G.heroes) { if (!e.alive || e.team === team || e.hid) continue; const d = dist(h, e); if (d > 14.5) continue; const lost = 1 - e.hp / e.maxHp, sc = role === 4 ? (e.ranged ? 1.6 : 0) + lost * 3 - d * 0.08 : role === 1 || role === 2 ? lost * 1.6 - d * 0.22 : -d * 0.3, mark = e.isPlayer && (e.streak || 0) >= 3 ? 1.3 : 0; if (sc + mark > ps && mark && G.t - (G.focusAt || -99) > 25 && near(h)) { G.focusAt = G.t; fx.say(h.x, h.h + 1.6, h.z, `先杀${e.name}！`, false); } if (sc + mark > ps) { ps = sc + mark; eh = e; ehD = d; continue; } if (sc > ps) { ps = sc; eh = e; ehD = d; } } }
+      if (nEH > 1 || role === 4) { let ps = -1e9; for (const e of G.heroes) { if (!e.alive || e.team === team || e.hid) continue; const d = dist(h, e); if (d > 14.5) continue; const lost = 1 - e.hp / e.maxHp, sc = role === 4 ? (e.ranged ? 1.6 : 0) + lost * 3 - d * 0.08 : role === 1 || role === 2 ? lost * 1.6 - d * 0.22 : -d * 0.3, mark = e.isPlayer && (e.streak || 0) >= 3 ? 1.3 : 0; if (sc + mark > ps && mark && G.t - (G.focusAt || -99) > 28) { G.focusAt = G.t; const ln = voice(h.def.id, 'focus', { t: e.name }); if (near(h)) fx.say(h.x, h.h + 1.6, h.z, ln, false); chat(h, [ln], true); } if (sc + mark > ps) { ps = sc + mark; eh = e; ehD = d; continue; } if (sc > ps) { ps = sc; eh = e; ehD = d; } } }
       if (role === 4 && nAH >= 1 && nEH >= 2 && eh.hp / eh.maxHp > 0.6 && (ai.waitT || 0) < 2 && !G.heroes.some(o => o.alive && o.team === team && o !== h && dist(o, eh) < 9 && o.combatT < 2)) wait = true;   // ...but not for long
       if (h.ranged && role !== 0 && role !== 4 && !thr.ranged && thrD < 4.8 && hpF < 0.85 && h.windT < 0 && h.atkT > h.period * 0.3) kite = true;   // only from someone with a blade, and only once it has started to hurt
     }
@@ -1001,12 +1009,12 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const reach = type === 'retreat' ? 50 : 90;
     for (const h of G.heroes) if (h.team === me.team && !h.isPlayer && h.alive && dist2(h.x, h.z, x, z) < reach) h.ai.sig = { id, type, x, z, unit, until: G.t + (type === 'retreat' ? 7 : 12), said: false };
     { let best = null, bd = 1e9; for (const h of G.heroes) if (h.team === me.team && !h.isPlayer) { const d = dist2(h.x, h.z, x, z); if (d < bd) { bd = d; best = h; } }
-      if (best) chat(best, !best.alive ? ['我还没重聚，等我'] : bd > reach ? ['太远了，过不去', '我这边走不开'] : best.hp / best.maxHp < 0.4 && type !== 'retreat' ? ['残血，去不了', '我血不够，你们先'] : { gather: ['收到，这就来', '来了', '马上到'], attack: ['收到，打', '上', '跟你打'], retreat: ['撤', '好，退', '走走走'] }[type], true); }
+      if (best) chat(best, !best.alive ? 'deadAck' : bd > reach ? 'far' : best.hp / best.maxHp < 0.4 && type !== 'retreat' ? 'hurt' : { gather: 'ackGather', attack: 'ackAttack', retreat: 'ackRetreat' }[type], true); }
     return true;
   };
   G.ping = (x, z) => G.signal('gather', x, z);
   G.rally = false;
-  G.setRally = on => { G.rally = on === undefined ? !G.rally : !!on; if (G.rally && !P().alive) G.rally = false; ui.rally(G.rally); if (G.rally) { audio.play('horn'); const p = P(); fx.ringWave(p.x, p.z, 16, [1.9, 0.45, 0.25], 0.8); const one = L => L[Math.floor(Math.random() * L.length)]; fx.say(p.x, p.h + 1.6, p.z, one(['随我开团！', '都过来，跟我上！', '集合，开打！']), true); let k = 0; for (const a of G.heroes) if (a.alive && a.team === p.team && a !== p && k < 2) { chat(a, one(['来了！', '跟上，开打', '听你的', '这就到']), true); k++; } } return G.rally; };
+  G.setRally = on => { G.rally = on === undefined ? !G.rally : !!on; if (G.rally && !P().alive) G.rally = false; ui.rally(G.rally); if (G.rally) { audio.play('horn'); const p = P(); fx.ringWave(p.x, p.z, 16, [1.9, 0.45, 0.25], 0.8); const one = L => L[Math.floor(Math.random() * L.length)]; fx.say(p.x, p.h + 1.6, p.z, one(['随我开团！', '都过来，跟我上！', '集合，开打！']), true); let k = 0; for (const a of G.heroes) if (a.alive && a.team === p.team && a !== p && k < 2) { chat(a, 'rally', true); k++; } } return G.rally; };
   G.passive = () => { const h = P(), d = h.def.passive; return { stacks: d.pct ? Math.round((1 - h.hp / h.maxHp) * 60) : d.max ? h.pStack : 0, cd: d.cd ? Math.max(0, h.pCd) : 0 }; };
   G.pick = (x, z, slack = 1.3) => {
     let best = null, bd = 1e9;
@@ -1040,8 +1048,24 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.skill = i => eff(P(), i);
   G.skillDmg = (i, rank) => { const h = P(), keep = h.ranks[i]; h.ranks[i] = rank; const s = eff(h, i), v = s.b !== undefined ? skillDmg(h, s, i) : 0; h.ranks[i] = keep; return v; };
   // 感悟: what is waiting to be chosen, and choosing it
-  G.insight = () => { const h = P(), t = h.insPend[0]; return t === undefined ? null : { tier: t, opts: INSIGHT[h.def.id][t].map(q => ({ name: q[1], desc: q[2], skill: h.def.skills[q[0]] })) }; };
-  const takeInsight = (h, k) => { const t = h.insPend.shift(); if (t === undefined) return false; const q = INSIGHT[h.def.id][t][k ? 1 : 0]; h.ins.push(q); if (near(h)) { fx.pillar(h.x, h.z, 1.4, 12, h.fxCol, 0.6); fx.ringWave(h.x, h.z, 9, h.fxCol, 0.5); } if (h.isPlayer) { audio.play('star'); ui.announce(`感悟 · ${q[1]}`, 'good'); ui.buzz(40); } return true; };
+  G.insight = () => { const h = P(), t = h.insPend[0]; return t === undefined ? null : { tier: t, opts: INSIGHT[h.def.id][t].map(q => ({ name: q[0], desc: q[1], skill: h.def.skills[3] })) }; };
+  // which of two turnings suits the other side: wide when they bunch up in melee, longer holds against the nimble, harder hits into the
+  // thick-skinned, finishing power into the frail, reach against those who fight from range, a shorter 调息 when they can heal it back
+  const WHY = { area: '对面爱扎堆', cc: '对面腿脚快', fast: '不给他们躲的工夫', dmg: '对面皮厚', exec: '对面身板脆', cd: '这一仗要打久', range: '对面手长', dur: '把他们多困一会儿', sustain: '同门得多撑几口气', spread: '人多，得照应周全' };
+  const pickInsight = h => {
+    const t = h.insPend[0], opts = INSIGHT[h.def.id][t], E = G.heroes.filter(o => o.team !== h.team).map(o => o.def), n = E.length || 1;
+    const melee = E.filter(d => !d.ranged).length / n, tank = E.filter(d => d.hp >= 1100).length / n, frail = E.filter(d => d.hp < 900).length / n, heal = E.filter(d => SUPPORTS.includes(d.id)).length / n;
+    const nimble = E.filter(d => d.skills.some(s => s.kind === 'dash' || s.kind === 'blink' || s.kind === 'strike' || s.kind === 'backdash' || s.veil)).length / n;
+    const W = { area: 0.55 + melee * 0.9 + (n >= 5 ? 0.15 : 0), cc: 0.55 + nimble * 0.8, fast: 0.5 + nimble * 0.9, dmg: 0.6 + tank * 1.1, exec: 0.6 + frail * 1.0, cd: 0.85 + heal * 0.9, range: 0.5 + (1 - melee) * 0.8, dur: 0.55 + melee * 0.5 + tank * 0.4, sustain: 0.95, spread: 0.6 + (n >= 5 ? 0.5 : 0) };
+    const sc = opts.map(q => (W[q[4]] || 0.7) + Math.random() * 0.12); return sc[1] > sc[0] ? 1 : 0;
+  };
+  const takeInsight = (h, k) => {
+    const t = h.insPend.shift(); if (t === undefined) return false; const q = INSIGHT[h.def.id][t][k ? 1 : 0]; h.ins.push(q);
+    if (near(h)) { fx.pillar(h.x, h.z, 1.4, 12, h.fxCol, 0.6); fx.ringWave(h.x, h.z, 9, h.fxCol, 0.5); }
+    if (h.isPlayer) { audio.play('star'); ui.announce(`感悟 · ${q[0]}`, 'good'); ui.buzz(40); }
+    else chat(h, [voice(h.def.id, 'ins', { i: q[0], w: WHY[q[4]] }) + `<small>${q[1]}</small>`], true);   // everyone hears what was taken, friend or foe
+    return true;
+  };
   G.chooseInsight = k => takeInsight(P(), k);
 
   // ---------------- frame update ----------------
@@ -1059,7 +1083,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
           G.pairSaid = true; const by = id => G.heroes.filter(h => h.def.id === id); let done = false;
           for (const [a, b, same, opp] of PAIRS) { if (done) break; for (const A of by(a)) { if (done) break; for (const B of by(b)) { const L = A.team === B.team ? same : opp, pt = G.player.team; fx.say(A.x, A.h + 1.6, A.z, L[0], A.team === pt); fx.say(B.x, B.h + 1.6, B.z, L[1], B.team === pt); const line = (h, t) => { if (!h.isPlayer) ui.chat(h, t); }; if (A.team === pt || B.team === pt) { line(A, L[0]); line(B, L[1]); } done = true; break; } } }
         }
-        if (G.wave === 1) { const sp = G.heroes.filter(h => h.team === G.player.team && !h.isPlayer); if (sp[0]) chat(sp[0], ['稳着打，别送', '都精神点', '这把好好打'], true); if (sp[1]) chat(sp[1], sp[1].ai.jungler ? ['我去巡山，有事喊我'] : ['我这边没问题', '好', '走'], true); }
+        if (G.wave === 1) { const sp = G.heroes.filter(h => h.team === G.player.team && !h.isPlayer); if (sp[0]) chat(sp[0], 'start', true); if (sp[1]) chat(sp[1], sp[1].ai.jungler ? ['我去巡山，有事喊我'] : 'start', true); const foe = G.heroes.filter(h => h.team !== G.player.team); if (foe.length) chat(foe[Math.floor(Math.random() * foe.length)], 'eStart', true); }
         for (const team of [FROST, EMBER]) for (let lane = 0; lane < LANES.length; lane++) {
           const lost = !G.structs[1 - team].lanes[lane][1].alive; // the side that broke through gets a stronger wave down that lane
           const list = ['melee', 'melee', 'melee', 'ranged']; if (G.t > 300) list.push('ranged'); if (lost) list.unshift('melee');
