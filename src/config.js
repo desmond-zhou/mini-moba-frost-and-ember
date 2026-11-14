@@ -53,7 +53,8 @@ export const MODES = {
       { x: -4, z: 21, r: 3.6 }, { x: 4, z: -21, r: 3.6 }, { x: -22, z: 17, r: 3.6 }, { x: 22, z: -17, r: 3.6 },
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
-    tune: {}, heroTune: { healer: { hp: 1.06, ap: 1.1 } },
+    // 一路's own nudges, set after the bots started playing their roles (v1.2.0-alpha.3). Shared numbers stay as they are.
+    tune: {}, heroTune: { healer: { hp: 1.1, ap: 1.18 }, yanzhao: { hp: 1.06, ap: 1.1 }, wenren: { hp: 1.12, ad: 1.08 }, qingya: { hp: 1.06, ad: 1.04 }, shade: { hp: 1.05 }, keeper: { hp: 1.04 }, storm: { ap: 0.95 }, mage: { ap: 0.96 }, ranger: { ad: 0.96 } },
   },
   tri: {
     id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。野区有山脊相隔，河道有血海残魂与镇渊傀，十五分钟后渊主残念现世。',

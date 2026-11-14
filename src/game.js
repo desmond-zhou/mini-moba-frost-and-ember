@@ -772,6 +772,18 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (!sig.said) { sig.said = true; if (near(h)) { const say = { back: ['撤', '走'], gather: ['来了', '这就到'], attack: ['上', '随你'], no: ['过不去', '太险，去不得'] }[sigAct]; fx.say(h.x, h.h + 1.6, h.z, say[Math.floor(Math.random() * say.length)], team === G.player.team); } }
       if (sigAct !== 'no' && ai.state !== 'lane') ai.state = 'lane';
     }
+    // ---- the fight itself: who each seat goes for, and how it carries itself (both modes) ----
+    //   镇关 walks in first once the side is there.   中军 and 养剑 pick the most hurt one in reach, shoot, and step back from
+    //   whoever closes on them; they do not stand in front of their own front line.   护法 keeps to the one it guards.
+    //   巡山 goes for the soft and the wounded, and in a brawl waits for someone else to start it.
+    const role = SEAT_FIT[h.def.id][0], thr = eh, thrD = ehD; let wait = false, kite = false;
+    if (eh && !retreat) {
+      if (nEH > 1 || role === 4) { let ps = -1e9; for (const e of G.heroes) { if (!e.alive || e.team === team || e.hid) continue; const d = dist(h, e); if (d > 14.5) continue; const lost = 1 - e.hp / e.maxHp, sc = role === 4 ? (e.ranged ? 1.6 : 0) + lost * 3 - d * 0.08 : role === 1 || role === 2 ? lost * 1.6 - d * 0.22 : -d * 0.3; if (sc > ps) { ps = sc; eh = e; ehD = d; } } }
+      if (role === 4 && nAH >= 1 && nEH >= 2 && eh.hp / eh.maxHp > 0.6 && (ai.waitT || 0) < 2 && !G.heroes.some(o => o.alive && o.team === team && o !== h && dist(o, eh) < 9 && o.combatT < 2)) wait = true;   // ...but not for long
+      if (h.ranged && role !== 0 && role !== 4 && !thr.ranged && thrD < 4.8 && hpF < 0.85 && h.windT < 0 && h.atkT > h.period * 0.3) kite = true;   // only from someone with a blade, and only once it has started to hurt
+    }
+    ai.waitT = wait ? (ai.waitT || 0) + dtT : Math.max(0, (ai.waitT || 0) - dtT * 0.25);
+    // (一路 has only three a side: a 护法 that stands back and leaves the last hits is a body short, so there it fights with the rest)
     let dodged = false;
     for (const z of G.zones) if (z.team !== team && dist2(h.x, h.z, z.x, z.z) < z.r + 0.8 && Math.random() < (team === EMBER ? 0.75 / diff.react : 0.6)) {
       let ox = h.x - z.x, oz = h.z - z.z; const d = Math.hypot(ox, oz) || 1; if (d < 0.5) { const tn = L.tan(hs); ox = -dir * tn.x; oz = -dir * tn.z; }
@@ -786,6 +798,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         h.order = hide === h ? null : hide ? { type: 'move', x: hide.x, z: hide.z } : { type: 'move', x: f.x, z: f.z };
       }
       else if (sigAct === 'back') { const q = at(sOf(ownS) - dir * 2); h.order = dist(h, q) > 4 ? { type: 'move', x: q.x, z: q.z } : null; }
+      else if (kite) { const q = at(hs - dir * 3.5); h.order = { type: 'move', x: q.x, z: q.z }; }                                  // between shots, away from whoever is closing
+      else if (wait && !woods) { const dx = h.x - eh.x, dz = h.z - eh.z, d = Math.hypot(dx, dz) || 1; h.order = d < 9 ? { type: 'move', x: eh.x + dx / d * 10.5, z: eh.z + dz / d * 10.5 } : null; }   // hover at the edge until it starts
       else if (sigAct === 'gather' || sigAct === 'attack') {
         let tgt = sig.unit && valid(sig.unit) && canSee(h, sig.unit) ? sig.unit : null;                 // the thing that was pointed at
         if (tgt && tgt.kind === 'tower' && tgt === sigTw) tgt = null;                                  // ...but not a tower nobody is tanking
@@ -805,7 +819,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       else if (danger(h) && !diveOK) { const q = at(es - dir * (twR + 4)); h.order = { type: 'move', x: q.x, z: q.z }; }
       else {
         let tgt = null;
-        if (eh && (!danger(eh) || (diveOK && eh.hp / eh.maxHp < 0.5)) && (ehD < h.range + 4 || eh.hp / eh.maxHp < 0.45 || !em)) tgt = eh;
+        if (eh && (!danger(eh) || (diveOK && eh.hp / eh.maxHp < 0.5)) && (ehD < h.range + 4 || eh.hp / eh.maxHp < 0.45 || !em || (role === 0 && nAH >= 2 && ehD < 12 && hpF > 0.45))) tgt = eh;   // 镇关 goes in first when the side is with it
         else if (em && (!danger(em) || diveOK) && !(ai.escort && ai.escort.alive && dist(h, ai.escort) < 14 && em.hp < em.maxHp * 0.4)) tgt = em;   // a 护法 leaves the last hit to the one it is guarding
         else if (vulnerable(etw) && dTw < 17 && diveOK) tgt = etw;
         if (tgt) h.order = { type: 'attack', target: tgt };
@@ -813,6 +827,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
           const own = frontStruct(team, ai.lane);
           let gs = hasFront ? front - dir * (h.ranged ? 4.5 : 1.5) : sOf(own) + dir * 4;
           if (ai.escort && ai.escort.alive && ai.escort.ai.lane === ai.lane) gs = pj(ai.escort) + dir * (h.ranged ? -1.5 : 1.8);          // beside (or just ahead of) the carry
+          if (h.ranged && role !== 0 && nEH > 0) { let ts = null; for (const o of G.heroes) if (o.alive && o.team === team && o !== h && !o.ranged && o.ai.lane === ai.lane && dist(o, h) < 16) { const v = pj(o); ts = ts === null ? v : dir > 0 ? Math.max(ts, v) : Math.min(ts, v); } if (ts !== null) gs = dir > 0 ? Math.min(gs, ts - 2.5) : Math.max(gs, ts + 2.5); }   // behind the front line while they are about
           if (etw.kind === 'tower' && !diveOK) { const lim = es - dir * (twR + 3.5); gs = dir > 0 ? Math.min(gs, lim) : Math.max(gs, lim); }
           const q = at(gs); if (Math.abs(gs - hs) > 1.2 || (!L.func && dist(h, q) > 3)) h.order = { type: 'move', x: q.x, z: q.z }; else h.order = null;
         }
