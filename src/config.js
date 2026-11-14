@@ -54,7 +54,7 @@ export const MODES = {
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
     // 一路's own nudges, set after the bots started playing their roles (v1.2.0-alpha.3). Shared numbers stay as they are.
-    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.04, hp: 1.03 }, keeper: { ad: 1.03 }, peiji: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 1.04, hp: 1.04 }, shade: { ad: 1.08, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.08 }, ranger: { ad: 0.95, hp: 0.97 }, gunner: { ad: 0.93 }, mage: { ap: 0.92, hp: 0.96 }, cryo: { ap: 0.9, hp: 0.92 }, storm: { ap: 0.97, hp: 0.97 }, healer: { pow: 1.1, hp: 1.09 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
+    tune: { selfPullStun: 0.5, markHp: 0.03, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.04, hp: 1.03 }, keeper: { ad: 1.03 }, peiji: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 1.04, hp: 1.04 }, shade: { ad: 1.08, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.08 }, ranger: { ad: 0.95, hp: 0.97 }, gunner: { ad: 0.93 }, mage: { ap: 0.92, hp: 0.96 }, cryo: { ap: 0.9, hp: 0.92 }, storm: { ap: 0.97, hp: 0.97 }, healer: { pow: 1.1, hp: 1.09 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
   },
   tri: {
     id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, solid: true, blurb: '5v5 · 约 20 分钟',
@@ -81,7 +81,7 @@ export const MODES = {
     ridges: [[[-57, 24], [-57, 4]], [[-57, -12], [-57, -26]], [[-48, 34], [-38, 24]], [[-30, 16], [-18, 4]]],
     // 三路's own numbers. Everything not named here falls back to the shared table.
     tune: {
-      xpNeed: L => 200 + 57 * L, waveEvery: 28, coreHp: 6100, towerHp: 3550, lateAt: 840, lateK: 0.3, respawnK: 1.15, startGold: 300,
+      xpNeed: L => 200 + 57 * L, markHp: 0.05, waveEvery: 28, coreHp: 6100, towerHp: 3550, lateAt: 840, lateK: 0.3, respawnK: 1.15, startGold: 300,
       groupAt: 720,                                                    // from here on the bots gather to push a lane together, again and again
       // a full-time jungler lives off these, so each camp pays less and comes back slower than in 一路
       neutral: {

@@ -349,7 +349,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const big = e.kind === 'tower', o = big ? 0 : 0.9;
       const heat = big && t.kind === 'hero' ? t.heat || 0 : 0, tc = heat ? [col[0] * (1 - heat * 0.15) + 1.0 * heat * 0.25, col[1] * (1 - heat * 0.2) + 0.25 * heat * 0.2, col[2] * (1 - heat * 0.22) + 0.08 * heat * 0.2] : col;
       shoot(e, e.x + Math.cos(e.facing) * o, big ? e.view.muzzleY : e.h * 0.58, e.z + Math.sin(e.facing) * o, { homing: t, speed: big ? 26 : 34, dmg: dmg * (1 + T.heatStep * heat), basic: true, crit, tower: big, slow, boom, emp: fat > 1 && !boom, color: tc, size: big ? 0.55 + heat * 0.1 : hero ? (crit ? 0.42 : 0.34) * fat : 0.2, long: hero ? 2.4 : 1, bright: big ? 4 + heat * 0.6 : hero ? 3.6 + (fat - 1) * 2 : 2.4 });
-      if (big) audio.play('tower', e.x, e.z); else if (hero) audio.play(e.def.style === 'staff' ? 'cast' : e.def.style === 'gun' ? 'xbow' : e.def.id === 'ranger' ? 'sword' : e.def.id === 'archer' ? 'fire' : 'bow', e.x, e.z, e.def.id === 'ranger' ? 0.6 : 1);
+      if (big) audio.play('tower', e.x, e.z); else if (hero) audio.play('w_' + e.def.id, e.x, e.z, 1, e.def.style === 'staff' ? 'cast' : e.def.style === 'gun' ? 'xbow' : e.def.id === 'archer' ? 'fire' : 'bow');
     } else { damage(e, t, dmg, { basic: true, crit }); if (slow) applySlow(t, slow); }
     if (near(e)) V.basic(e, t, col, crit);
   }
@@ -384,6 +384,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (!h.alive || h.dash) { h.tribDue = true; h.tribBig = big; return; }
     h.tribDue = false; const K = big ? TRIB.big : TRIB.small;
     const q = { h, big, t: 0, live: false, n: 0, bolts: K.bolts, part: K.part, dur: TRIB.prep + K.bolts * TRIB.every + 0.4 }; G.tribs.push(q); h.tribQ = q;
+    audio.play('thunder', h.x, h.z, 0.35);   // far off: the sky is starting to turn
     if (h.isPlayer) ui.toast(`十息后落雷，${big ? '九' : '五'}道：趁现在找个地方站好`);
     else if (dist(h, G.player) < 30) ui.toast(`${h.name}要渡雷劫了，离远些`);
   }
@@ -403,7 +404,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         else { startBolts(q); q.next = TRIB.prep; }
       }
       while (q.live && q.n < q.bolts && q.t >= q.next) {              // a wave: one ring on each cultivator within a screen
-        const wave = new Set();
+        const wave = new Set(); wave.i = q.n; wave.of = q.bolts; wave.x = q.x; wave.z = q.z;
         for (const e of G.heroes) if (e.alive && dist2(e.x, e.z, q.x, q.z) < TRIB.reach) {
           const a = Math.random() * 6.283, d = e === h ? 0 : Math.random() * 1.2, bx = e.x + Math.cos(a) * d, bz = e.z + Math.sin(a) * d;
           G.bolts.push({ x: bx, z: bz, t: 0, dmg: q.dmg, wave }); if (near({ x: bx, z: bz })) V.tribWarn(bx, bz, TRIB.r, TRIB.warn);
@@ -416,6 +417,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     G.tribK = k;                                                       // how much of the sky and the camera it takes (main.js)
     for (let i = G.bolts.length - 1; i >= 0; i--) {
       const b = G.bolts[i]; if ((b.t += dt) < TRIB.warn) continue; G.bolts.splice(i, 1);
+      if (!b.wave.heard) { b.wave.heard = true; const k = (b.wave.i + 1) / b.wave.of; audio.play('thunder', b.wave.x, b.wave.z, 0.5 + 0.9 * k); if (b.wave.i === b.wave.of - 1) { audio.play('boom', b.wave.x, b.wave.z, 0.9); audio.play('kill', b.wave.x, b.wave.z, 0.7); } }   // one thunder a wave, each heavier; the last one breaks the sky
       for (const e of G.units) if (e.alive && !isStruct(e) && !b.wave.has(e) && dist2(e.x, e.z, b.x, b.z) <= TRIB.r + e.r) { b.wave.add(e); damage(null, e, b.dmg * (e.kind === 'hero' ? 1 : 0.6), { ability: true }); if (e.isPlayer) ui.buzz(50); }
       if (near(b)) V.tribBolt(b.x, b.z, TRIB.r);
     }
@@ -476,7 +478,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
           if (tgt.marks >= 3) {
             tgt.marks = 0; tgt.markCd = G.t + 3.8; applyStun(tgt, 0.5);          // and a while before the next mark will take
             if (near(tgt)) { fx.pillar(tgt.x, tgt.z, 1.1, 10, src.fxCol, 0.35); fx.ringWave(tgt.x, tgt.z, 7, src.fxCol, 0.4); audio.play('zap', tgt.x, tgt.z); }
-            damage(src, tgt, 30 + tgt.maxHp * (tgt.kind === 'hero' ? 0.045 : 0.12), { proc: true });
+            damage(src, tgt, 30 + tgt.maxHp * (tgt.kind === 'hero' ? T.markHp ?? 0.045 : 0.12), { proc: true });   // the burst's size is a per-mode number (tune.markHp)
           }
         }
       }
@@ -584,7 +586,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (p.homing) {
         const t = p.homing; if (!t.alive) { endProj(p, i, 3); continue; }
         const dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
-        if (d <= step + t.r * 0.6) { damage(p.src, t, p.dmg, { basic: p.basic, crit: p.crit }); if (p.slow) applySlow(t, p.slow); if (p.emp && near(t)) V.empowered(t, p.color); if (p.boom) { eachEnemy(p.team, t.x, t.z, 3.4, o => { if (o !== t) damage(p.src, o, p.dmg * 0.6, { ability: true }); }); if (near(t)) { fx.explosion(t.x, t.z, 0.75, FLAME); audio.play('boom', t.x, t.z); } } if (p.tower && t.kind === 'hero' && t.alive) { t.heat = Math.min(T.heatMax, (t.heat || 0) + 1); t.heatT = T.heatHold; if (t.isPlayer) fx.text(t.x, t.h + 1.4, t.z, '下一发塔伤 ×' + (1 + T.heatStep * t.heat).toFixed(1), 'hurt'); } if (near(t)) V.basicHit(t, p.dx || 0, p.dz || 0, p.color, p.src.kind === 'tower' ? 2 : p.src.kind === 'hero' ? 1 : 0, p.crit); endProj(p, i, 0); continue; }
+        if (d <= step + t.r * 0.6) { damage(p.src, t, p.dmg, { basic: p.basic, crit: p.crit }); if (p.slow) applySlow(t, p.slow); if (p.emp && near(t)) V.empowered(t, p.color); if (p.boom) { eachEnemy(p.team, t.x, t.z, 3.4, o => { if (o !== t) damage(p.src, o, p.dmg * 0.6, { ability: true }); }); if (near(t)) { fx.explosion(t.x, t.z, 0.75, FLAME); audio.play('boom', t.x, t.z); } } if (p.tower && t.kind === 'hero' && t.alive) { t.heat = Math.min(T.heatMax, (t.heat || 0) + 1); t.heatT = T.heatHold; if (t.isPlayer) fx.text(t.x, t.h + 1.4, t.z, '下一发塔伤 ×' + (1 + T.heatStep * t.heat).toFixed(1), 'hurt'); } if (near(t)) V.basicHit(t, p.dx || 0, p.dz || 0, p.color, p.src.kind === 'tower' ? 2 : p.src.kind === 'hero' ? 1 : 0, p.crit, p.src.kind === 'hero' ? p.src.def.id : null); endProj(p, i, 0); continue; }
         p.x += dx / d * step; p.z += dz / d * step; p.y += (t.h * 0.55 - p.y) * Math.min(1, step / d); p.dx = dx / d; p.dz = dz / d;
       } else {
         if (p.returning) { const c = p.src, qx = c.x - p.x, qz = c.z - p.z, qd = Math.hypot(qx, qz) || 1; if (qd < 1.5 || !c.alive) { endProj(p, i, 0); continue; } p.dx = qx / qd; p.dz = qz / qd; }   // on its way back to the hand
@@ -685,7 +687,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       case 'zone': addZone(h, tx, tz, s, dmg); break;
     }
     if (near(h) || near({ x: tx, z: tz })) V.cast(h, s, A);
-    if (i === 3) { say(h, 'ult', h.isPlayer ? 1 : 0.6); if (h.isPlayer) { ui.buzz(35); fx.hitStop(0.09); fx.zoomIn(1); fx.punch(0.3); ui.ultName(s.name, RANK.ult.name[s.rank - 1]); } }
+    if (i === 3) { audio.play('ult', h.x, h.z, h.isPlayer ? 1 : 0.75, 'boom'); say(h, 'ult', h.isPlayer ? 1 : 0.6); if (h.isPlayer) { ui.buzz(35); fx.hitStop(0.09); fx.zoomIn(1); fx.punch(0.3); ui.ultName(s.name, RANK.ult.name[s.rank - 1]); } }
     return true;
   }
   function updateDash(h, dt) {

@@ -8,7 +8,7 @@ import { createUI } from './ui.js';
 import { createInput } from './input.js';
 import { createGame } from './game.js';
 import { uTime } from './mat.js';
-import { LANES, MID, RIVER, biomeX, MODE, MODES, setMode } from './config.js';
+import { LANES, MID, RIVER, biomeX, MODE, MODES, setMode, POS, CAMPS, EMBER } from './config.js';
 
 const fatal = document.getElementById('fatal');
 addEventListener('error', e => { fatal.textContent = '出错了：' + (e.message || e.error); });
@@ -65,7 +65,9 @@ function boot() {
       const p = G.player; audio.intensity = p.alive && p.combatT < 4.5 && !G.over ? 1 : 0; audio.mood = (G.tribK || 0) > 0.2 ? 'trib' : G.structs.some(s => s.core.alive && s.core.hp < s.core.maxHp * 0.6) || G.t > 900 ? 'end' : 'calm'; hurt = Math.max(G.hurtFlash || 0, p.alive ? Math.max(0, 0.35 - p.hp / p.maxHp) * 1.6 : 0); if (!p.alive && !G.over) sat = 0.2;
       if (G.over && G.overT > 3 && state !== 'end') { state = 'end'; audio.play(G.winner === p.team ? 'level' : 'death'); ui.showEnd(toTitle); }
     }
-    audio.ambient(biomeX(focus.x, focus.z), focus.z, RIVER.signed(focus.x, focus.z), state === 'playing' && G.player.alive && G.player.hp / G.player.maxHp < 0.3, dt);
+    { const pl = (q, r) => Math.max(0, 1 - Math.hypot(focus.x - q.x, focus.z - q.z) / r), pit = CAMPS.find(c => c.kind === 'guardian');   // where the camera is: the blood array and the blood pit, the woods away from the lanes
+      const blood = Math.max(pl(POS.core(EMBER), 30), pit ? pl(pit, 16) : 0), lane = Math.min(...LANES.map(L => L.dist(focus.x, focus.z)));
+      audio.ambient(biomeX(focus.x, focus.z), focus.z, RIVER.signed(focus.x, focus.z), state === 'playing' && G.player.alive && G.player.hp / G.player.maxHp < 0.3, dt, { blood, forest: Math.max(0, Math.min(1, (lane - 7) / 10)) }); }
     fx.update(dt); W.update(focus); W.focusLight(focus.x, focus.z);
     const sx = (Math.random() - 0.5) * shake * 1.4, sy = (Math.random() - 0.5) * shake * 1.4;
     zoom *= 1 - 0.1 * Math.sin(Math.PI * fx.zoomK);                      // leaning in for an ultimate

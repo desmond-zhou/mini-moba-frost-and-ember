@@ -4,7 +4,7 @@
 // Effects: layered (body + air + a ring of inharmonic partials), placed around the listener with HRTF panning, duller and
 // wetter with distance, fed through early reflections and a long reverb, pitched a little differently every time, and
 // thinned out when many would sound at once. Abilities add a layer for their element. Ambience follows the camera.
-import { renderBank, renderMusic } from './sfx.js';
+import { renderBank, renderMusic, renderAmbience } from './sfx.js';
 export { renderBank };
 
 export function createAudio(lite) {
@@ -37,7 +37,7 @@ export function createAudio(lite) {
     sfx = ctx.createGain(); sfx.connect(master); out = sfx;
     A.setVolume(A.vol.music, A.vol.sfx);
     startAmbience(); startMusic();
-    renderMusic(ctx, (name, b) => { inst[name] = b; }).then(() => renderBank(ctx, (name, bufs) => { bank[name] = bufs; A.bankN = Object.keys(bank).length; }));   // the instruments first (small), then the effects   // the designed sounds replace the quick ones as they come in
+    renderMusic(ctx, (name, b) => { inst[name] = b; }).then(() => renderBank(ctx, (name, bufs) => { bank[name] = bufs; A.bankN = Object.keys(bank).length; })).then(() => renderAmbience(ctx, (name, b) => { beds[name] = bed(b); }));   // the instruments first (small), then the effects   // the designed sounds replace the quick ones as they come in
   };
   A.vol = { music: 1, sfx: 1 };
   A.setVolume = (music, fxv) => { A.vol.music = music; A.vol.sfx = fxv; if (!ctx) return; const t = ctx.currentTime; musicBus.gain.setTargetAtTime(0.5 * music, t, 0.05); sfx.gain.setTargetAtTime(fxv, t, 0.05); roomIn.gain.setTargetAtTime(fxv, t, 0.05); };
@@ -116,19 +116,20 @@ export function createAudio(lite) {
     click: () => tone('sine', 880, 1100, 0.05, 0.06),
   };
   // how often each may repeat, and which ones give way when the air is already full
-  const GAP = { hit: 0.11, thud: 0.07, smack: 0.06, slash: 0.06, heavy: 0.06, bow: 0.05, xbow: 0.05, cast: 0.05, boom: 0.09, ice: 0.12, fire: 0.12, thunder: 0.14, zap: 0.08, blood: 0.12, star: 0.1, sword: 0.1, heal: 0.15, earth: 0.1, wind: 0.15, kill: 0.2, tower: 0.08 };
+  const GAP = { ult: 0.3, hit: 0.11, thud: 0.07, smack: 0.06, slash: 0.06, heavy: 0.06, bow: 0.05, xbow: 0.05, cast: 0.05, boom: 0.09, ice: 0.12, fire: 0.12, thunder: 0.14, zap: 0.08, blood: 0.12, star: 0.1, sword: 0.1, heal: 0.15, earth: 0.1, wind: 0.15, kill: 0.2, tower: 0.08 };
   const SOFT = { hit: 1, thud: 1, tower: 1 }, WET = { boom: 0.3, thunder: 0.35, kill: 0.4, horn: 0.4, death: 0.4, earth: 0.25, ice: 0.25, star: 0.3, heal: 0.3, magic: 0.25, shield: 0.25, sword: 0.22, level: 0.3, ping: 0.35, arrive: 0.35, recall: 0.3, crit: 0.2 };
   const TRIM = { boom: 0.62, earth: 0.55, kill: 0.55, death: 0.62, blood: 0.7, arrive: 0.75, heart: 0.8, smack: 0.85, bow: 0.8, slash: 1.5, zap: 1.5, ice: 1.45, magic: 1.4, thunder: 1.35, sword: 1.3, star: 1.3, fire: 1.3, xbow: 1.3, crit: 1.25 };
-  const recent = [], bank = {}, inst = {};
+  const recent = [], bank = {}, inst = {}, lv = n => LEVEL[n] ?? (n[0] === 'w' && n[1] === '_' ? 0.42 : n[0] === 'h' && n[1] === '_' ? 0.5 : 0.35);
   // loudness of each designed sound (the bank is normalised); the quick fallback keeps its own TRIM
   const LEVEL = { hit: 0.2, smack: 0.48, thud: 0.38, crit: 0.55, slash: 0.3, heavy: 0.42, bow: 0.42, xbow: 0.36, cast: 0.26, arrow: 0.34, whoosh: 0.34, zap: 0.5, thunder: 0.6, ice: 0.42,
     fire: 0.38, blood: 0.4, star: 0.34, sword: 0.4, wind: 0.38, heal: 0.3, earth: 0.62, shout: 0.34, magic: 0.28, charge: 0.28, shield: 0.28, tower: 0.42, boom: 0.72, kill: 0.5, death: 0.5,
-    horn: 0.42, warn: 0.32, coin: 0.36, buy: 0.32, level: 0.38, ping: 0.38, recall: 0.28, arrive: 0.42, heart: 0.5, click: 0.18 };
+    horn: 0.42, warn: 0.32, ult: 0.75, coin: 0.36, buy: 0.32, level: 0.38, ping: 0.38, recall: 0.28, arrive: 0.42, heart: 0.5, click: 0.18 };
   // x, z = where it happens in the world. The listener stands at the camera's focus, facing up the screen: left and right
   // are true to the picture, things up-screen sound ahead and things down-screen behind (with headphones). Distance dulls
   // the sound and sends more of it to the room.
-  A.play = (name, x, z, gain = 1) => {
-    if (!ctx || A.muted || ctx.state !== 'running' || !S[name]) return;
+  A.play = (name, x, z, gain = 1, fb) => {                          // fb: what to play instead until a designed sound (w_/h_/ult) is ready
+    if (!ctx || A.muted || ctx.state !== 'running') return;
+    if (!bank[name] && !S[name]) { if (!fb || !S[fb]) return; name = fb; }
     let v = gain, dx = 0, dz = 0, far = 0;
     if (x !== undefined) { dx = x - A.listener.x; dz = z - A.listener.z; const d = Math.hypot(dx, dz); if (d > (SOFT[name] ? 30 : 58)) return; v *= 1 / (1 + (d / 17) * (d / 17)); far = Math.min(1, d / 42); }
     const now = ctx.currentTime; if (now - (last[name] || -1) < (GAP[name] || 0.04)) return;
@@ -147,7 +148,7 @@ export function createAudio(lite) {
       }
       out = lp; tune = 0.94 + Math.random() * 0.12;
       const bs = bank[name];
-      if (bs) { const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = bs[Math.floor(Math.random() * bs.length)]; src.playbackRate.value = tune; g.gain.value = v * (LEVEL[name] ?? 0.35); src.connect(g); g.connect(lp); src.start(); }
+      if (bs) { const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = bs[Math.floor(Math.random() * bs.length)]; src.playbackRate.value = tune; g.gain.value = v * lv(name); src.connect(g); g.connect(lp); src.start(); }
       else S[name](v * (TRIM[name] || 1));
     } catch (e) { A.lastErr = String(e); } finally { out = sfx; tune = 1; }
   };
@@ -169,7 +170,8 @@ export function createAudio(lite) {
   // ---------------- ambience ----------------
   // Three quiet beds that follow the camera: wind everywhere (keener over the snow), the river when it is near, a low
   // furnace rumble over the ash. A far bird now and then; your own heartbeat when you are close to falling.
-  let amb = null, ambT = 0, birdT = 6, heartT = 0;
+  let amb = null, ambT = 0, birdT = 6, heartT = 0; const beds = {};
+  const bed = b => { const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0; s.connect(g); g.connect(sfx); const sd = ctx.createGain(); sd.gain.value = 0.35; g.connect(sd); sd.connect(roomIn); s.start(0, Math.random() * 7); return { g }; };
   function startAmbience() {
     const loop = (type, f, q, pan) => {
       const s = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noiseBuf; s.loop = true; fl.type = type; fl.frequency.value = f; fl.Q.value = q; g.gain.value = 0;
@@ -180,7 +182,7 @@ export function createAudio(lite) {
     const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 0.09; lg.gain.value = 160; l.connect(lg); lg.connect(amb.wind.fl.frequency); lg.connect(amb.wind2.fl.frequency); l.start();   // gusts
     const l2 = ctx.createOscillator(), lg2 = ctx.createGain(); l2.frequency.value = 0.31; lg2.gain.value = 260; l2.connect(lg2); lg2.connect(amb.water.fl.frequency); l2.start();                            // the river never holds one note
   }
-  A.ambient = (x, z, riverDx, low, dt) => {
+  A.ambient = (x, z, riverDx, low, dt, place = {}) => {             // place: { blood, forest } in 0..1, from main.js
     if (!ctx || !amb || ctx.state !== 'running') return;
     ambT -= dt; birdT -= dt; heartT -= dt;
     if (low && heartT <= 0 && !A.muted) { heartT = 0.9; out = sfx; try { S.heart(); } catch { /* ignore */ } }
@@ -189,6 +191,12 @@ export function createAudio(lite) {
     amb.wind.g.gain.setTargetAtTime(0.02 + 0.016 * fr, t, 0.6); amb.wind2.g.gain.setTargetAtTime(0.004 + 0.02 * fr, t, 0.6);
     amb.water.g.gain.setTargetAtTime(0.034 * near * near, t, 0.4); if (amb.water.sp) amb.water.sp.pan.setTargetAtTime(clamp(riverDx / 10, -0.8, 0.8), t, 0.3);
     amb.ash.g.gain.setTargetAtTime(0.07 * em, t, 0.6);
+    if (beds.snow) {                                                   // the rendered beds take over from the plain noise ones
+      for (const k of ['wind', 'wind2', 'water', 'ash']) amb[k].g.gain.setTargetAtTime(k === 'wind' ? 0.01 : 0, t, 0.8);
+      const bl = place.blood || 0, fo = (place.forest || 0) * (1 - near) * (1 - bl);
+      const set = (k, v) => { if (beds[k]) beds[k].g.gain.setTargetAtTime(v, t, 0.7); };
+      set('snow', 0.05 * fr + 0.012); set('forest', 0.045 * fo); set('river', 0.075 * near * near); set('blood', 0.09 * bl); set('ash', 0.05 * em * (1 - bl));
+    }
     if (birdT <= 0 && !A.muted) {                                      // somewhere in the trees
       birdT = 7 + Math.random() * 11;
       if (fr < 0.6 && em < 0.6) { const f = 2100 + Math.random() * 900, px = A.listener.x + (Math.random() - 0.5) * 60, pz = A.listener.z - 10 - Math.random() * 25; A.play('bird', px, pz); A.birdF = f; }

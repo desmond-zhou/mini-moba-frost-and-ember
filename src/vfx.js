@@ -157,14 +157,14 @@ export function createVfx(fx, audio) {
 
   // ---- basic attacks ----
   // weight: 0 = minion, 1 = hero, 2 = tower. Sparks fly on along the direction of the blow.
-  V.basicHit = (t, dx, dz, c, weight, crit) => {
+  V.basicHit = (t, dx, dz, c, weight, crit, who) => {
     const y = t.h * 0.5, k = (weight === 0 ? 0.55 : 1) * (crit ? 1.7 : 1), hot = [2.6, 2.1, 1.4];
     for (let i = 0; i < Math.round(10 * k); i++) fx.spark(t.x, y + (R() - 0.5), t.z, dx * (8 + R() * 13) + (R() - 0.5) * 9, 1 + R() * 6, dz * (8 + R() * 13) + (R() - 0.5) * 9, i % 2 ? hot : m(c, 1.5), 0.26 * (crit ? 1.3 : 1), 0.34, 18, 1);
     fx.flare(t.x - dx * t.r * 0.6, y, t.z - dz * t.r * 0.6, crit ? [3, 2.6, 1.6] : [1.9, 1.7, 1.4], (weight === 0 ? 2.4 : 4.2) * (crit ? 1.7 : 1), 0.13);
     fx.decal({ mode: 1, x: t.x, z: t.z, size: (t.r * 2 + 2.6) * (crit ? 1.6 : 1), size0: t.r * 2, color: crit ? [2, 1.7, 0.9] : m(c, 0.8), dur: 0.22 });
     if (weight > 0) { fx.smoke(t.x, 0.5, t.z, dx * 2.5, 0.8, dz * 2.5, DUST, 1.4, 0.5, 0.24); fx.flash(t.x, 2, t.z, crit ? [1, 0.9, 0.6] : c, crit ? 220 : 100, 0.2); }
     if (crit) { fx.dome(t.x, t.z, 0.4, t.r + 1.8, [1.5, 1.3, 0.7], 0.24); chunks(t.x, t.z, 5, 7, 6, 0.24, Math.atan2(dz, dx), 1.4); audio.play('crit', t.x, t.z); }
-    audio.play(weight === 0 ? 'hit' : 'smack', t.x, t.z);
+    if (who) audio.play('h_' + who, t.x, t.z, 1, 'smack'); else audio.play(weight === 0 ? 'hit' : 'smack', t.x, t.z);
   };
   V.basic = (e, t, c, crit) => {
     if (e.ranged) { if (e.kind !== 'minion') fx.flare(e.x + Math.cos(e.facing) * 0.9, e.kind === 'tower' ? e.view.muzzleY : e.h * 0.58, e.z + Math.sin(e.facing) * 0.9, m(c, 1.6), e.kind === 'tower' ? 5 : crit ? 4.2 : 2.8, 0.14); return; }
@@ -172,9 +172,9 @@ export function createVfx(fx, audio) {
     if (hero) {
       const sz = (e.range + 2.2) * 2 * (crit ? 1.2 : 1), col = [1.2 + c[0] * 0.6, 1.1 + c[1] * 0.6, 1.0 + c[2] * 0.6];
       slash(e.x, e.z, e.facing, sz, 1.05, col, 1.9, 0.22); slash(e.x, e.z, e.facing, sz * 0.86, 0.85, m(c, 0.9), 1.3, 0.28);
-      audio.play(e.def.style === 'axe' || e.def.style === 'shield' ? 'heavy' : 'slash', e.x, e.z);
+      audio.play('w_' + e.def.id, e.x, e.z, 1, e.def.style === 'axe' || e.def.style === 'shield' ? 'heavy' : 'slash');
     }
-    V.basicHit(t, dx / d, dz / d, c, hero ? 1 : 0, crit);
+    V.basicHit(t, dx / d, dz / d, c, hero ? 1 : 0, crit, hero ? e.def.id : null);
   };
 
   // ---- projectiles ----
@@ -353,7 +353,7 @@ export function createVfx(fx, audio) {
   };
   // 雷劫: a ring closes on the spot a bolt has chosen, then the bolt
   V.tribWarn = (x, z, r, delay) => { fx.decal({ mode: 1, x, z, size: r * 2.1, size0: r * 6.5, color: [2.2, 1.9, 0.7], dur: delay }); fx.decal({ mode: 5, x, z, size: r * 2.1, color: [1.6, 1.3, 0.4], dur: delay, hold: 0.05, seed: R() }); };
-  V.tribBolt = (x, z, r) => { lightning(x, z, [1.7, 1.6, 1.0], 26); fx.ringWave(x, z, r * 3.2, [2.0, 1.8, 0.8], 0.4); chunks(x, z, 8, 6, 8, 0.28); fx.scorch(x, z, r * 1.7, 9); fx.shake(0.35); audio.play('thunder', x, z); };
+  V.tribBolt = (x, z, r) => { lightning(x, z, [1.7, 1.6, 1.0], 26); fx.ringWave(x, z, r * 3.2, [2.0, 1.8, 0.8], 0.4); chunks(x, z, 8, 6, 8, 0.28); fx.scorch(x, z, r * 1.7, 9); fx.shake(0.35); };   // the sound is played once a wave by game.js
   V.tribStart = (h) => { fx.pillar(h.x, h.z, 2.6, 24, [2.0, 1.8, 0.9], 1.4); fx.ringWave(h.x, h.z, 20, [2.0, 1.8, 0.9], 0.9); fx.dome(h.x, h.z, 1, 5, [1.6, 1.5, 0.8], 0.8); audio.play('charge', h.x, h.z); audio.play('thunder', h.x, h.z, 0.5); };
   V.turn = p => { fx.flare(p.x, p.y, p.z, m(p.color, 2), 4, 0.16); slash(p.x, p.z, R() * 6.283, 4, 1.6, m(p.color, 1.4), 1.6, 0.22); };
   V.status = (h, vis) => {

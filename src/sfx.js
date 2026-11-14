@@ -42,16 +42,16 @@ function kit(o, T0 = 0) {                                            // T0: wher
 // each entry: [seconds to render, design]. Designs randomise a little so the variations differ.
 const BANK = {
   // --- blows landing ---
-  hit: [0.18, K => { K.thump(0, R(110, 140), 0.07, 0.5, 2); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 1100, f1: 250, d: 0.06, v: 0.8 }); }],
-  smack: [0.4, K => { const g = K.grit(0.35); K.thump(0, R(85, 105), 0.2, 1, 3, 0.05, g); K.burst(0, { c: 'white', f0: R(2200, 2900), f1: 700, q: 0.9, a: 0.001, d: 0.05, v: 0.7 }); K.burst(0.004, { c: 'brown', ft: 'lowpass', f0: 900, f1: 140, d: 0.17, v: 0.9, dest: g }); }],
-  thud: [0.3, K => { K.thump(0, R(70, 85), 0.15, 0.9, 2.5); K.burst(0, { c: 'pink', ft: 'lowpass', f0: 1400, f1: 300, d: 0.08, v: 0.6 }); }],
+  hit: [0.18, K => { K.thump(0, R(110, 140), 0.06, 0.45, 0.8, 0.02); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 1100, f1: 250, d: 0.06, v: 0.8 }); K.burst(0, { c: 'white', f0: R(1200, 1800), q: 3, a: 0.001, d: 0.02, v: 0.25 }); }],
+  smack: [0.4, K => { const g = K.grit(0.35); K.thump(0, R(85, 105), 0.18, 1, 1.2, 0.03, g); K.burst(0, { c: 'white', f0: R(2200, 2900), f1: 700, q: 0.9, a: 0.001, d: 0.05, v: 0.7 }); K.burst(0.004, { c: 'brown', ft: 'lowpass', f0: 900, f1: 140, d: 0.17, v: 0.9, dest: g }); K.grains(0, 6, 0.03, 600, 1800, 2, 0.35, 'pink'); }],
+  thud: [0.3, K => { K.thump(0, R(70, 85), 0.14, 0.9, 1, 0.03); K.burst(0, { c: 'pink', ft: 'lowpass', f0: 1400, f1: 300, d: 0.08, v: 0.6 }); }],
   crit: [0.6, K => { const g = K.grit(0.45); K.thump(0, 62, 0.32, 1, 4, 0.06, g); K.burst(0, { c: 'white', f0: 3000, f1: 9000, q: 1.5, a: 0.001, d: 0.1, v: 0.6 }); K.burst(0.01, { c: 'brown', ft: 'lowpass', f0: 1200, f1: 120, d: 0.3, v: 1, dest: g }); K.burst(0.02, { c: 'white', f0: R(2600, 3200), q: 28, d: 0.35, v: 0.25 }); }],
   // --- swings and shots ---
   slash: [0.35, K => { K.burst(0, { c: 'pink', f0: R(450, 600), f1: R(4200, 5200), q: 1.3, a: 0.02, d: 0.16, v: 0.9 }); K.burst(0.05, { c: 'white', ft: 'highpass', f0: 6000, d: 0.05, v: 0.25 }); K.burst(0.03, { c: 'white', f0: R(2700, 3400), q: 26, d: 0.22, v: 0.22 }); }],
   heavy: [0.5, K => { K.burst(0, { c: 'brown', f0: 140, f1: 1300, q: 0.8, a: 0.05, d: 0.28, v: 1 }); K.thump(0.07, 68, 0.26, 0.8, 3); }],
   bow: [0.5, K => { K.pluck(0, R(95, 115), 0.9, 2600); K.burst(0.01, { c: 'pink', ft: 'highpass', f0: 2600, f1: 6000, a: 0.01, d: 0.14, v: 0.35 }); }],
   xbow: [0.4, K => { K.burst(0, { c: 'white', f0: 3600, f1: 1800, q: 2, a: 0.001, d: 0.025, v: 0.8 }); K.pluck(0.005, R(70, 82), 0.8, 1800); K.thump(0.005, 90, 0.1, 0.6, 2); K.burst(0.02, { c: 'pink', ft: 'highpass', f0: 3000, f1: 6500, d: 0.15, v: 0.25 }); }],
-  cast: [0.45, K => { const f = pick(PENTA.slice(4)); K.fm(0, f, 0.28, 0.35, 1.5, 2, 0.01); K.burst(0, { c: 'pink', f0: 1600, f1: 5200, q: 2, a: 0.03, d: 0.25, v: 0.35 }); }],
+  cast: [0.45, K => { K.burst(0, { c: 'white', f0: 2400, f1: 5600, q: 6, a: 0.02, d: 0.22, v: 0.5 }); K.burst(0, { c: 'pink', ft: 'lowpass', f0: 600, f1: 1500, a: 0.05, d: 0.18, v: 0.45 }); K.grains(0.02, 8, 0.15, 3000, 8000, 12, 0.22); }],
   arrow: [0.3, K => { K.burst(0, { c: 'pink', ft: 'highpass', f0: R(2300, 2800), f1: R(5200, 6000), a: 0.01, d: 0.16, v: 0.8 }); }],
   whoosh: [0.55, K => { K.burst(0, { c: 'pink', f0: 280, f1: 2300, q: 0.8, a: 0.08, d: 0.3, v: 1 }); K.burst(0.15, { c: 'pink', f0: 900, f1: 300, q: 1, d: 0.22, v: 0.4 }); }],
   // --- the elements ---
@@ -65,15 +65,15 @@ const BANK = {
   wind: [0.9, K => { K.burst(0, { c: 'pink', f0: 400, f1: 1800, q: 0.6, a: 0.12, d: 0.55, v: 1, sw: 0.4 }); K.burst(0.12, { c: 'white', ft: 'highpass', f0: 3000, f1: 5200, a: 0.1, d: 0.35, v: 0.25 }); }],
   heal: [1.3, K => { [0, 0.07, 0.14, 0.21].forEach((dt, i) => K.voice(dt, 'triangle', PENTA[5 + i], PENTA[5 + i], 0.7, 0.28, 0.03)); K.burst(0.05, { c: 'pink', f0: 3000, f1: 6000, q: 3, a: 0.1, d: 0.8, v: 0.18 }); }],
   earth: [1.0, K => { const g = K.grit(0.5); K.thump(0, 52, 0.6, 1, 4, 0.08, g); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 320, f1: 55, a: 0.005, d: 0.6, v: 1, dest: g }); K.grains(0.06, 24, 0.5, 600, 2200, 2, 0.4, 'pink'); }],
-  shout: [0.7, K => { const f1 = new Tone.Filter({ type: 'bandpass', frequency: 700, Q: 4 }), f2 = new Tone.Filter({ type: 'bandpass', frequency: 1150, Q: 5 }), o = K.tone(4000); f1.connect(o); f2.connect(o); K.voice(0, 'sawtooth', 190, 125, 0.45, 0.9, 0.03, f1); K.voice(0, 'sawtooth', 190, 125, 0.45, 0.6, 0.03, f2); K.thump(0, 85, 0.3, 0.5, 1.5); }],
-  magic: [0.8, K => { K.fm(0, 520, 0.35, 0.35, 2, 4, 0.02); K.fm(0.04, 780, 0.4, 0.2, 1.5, 2, 0.02); K.burst(0.02, { c: 'pink', f0: 2500, f1: 7000, q: 3, a: 0.05, d: 0.5, v: 0.25 }); }],
-  charge: [0.9, K => { K.voice(0, 'sine', 140, 720, 0.6, 0.45, 0.05); K.burst(0, { c: 'pink', f0: 400, f1: 2600, q: 2, a: 0.3, d: 0.4, v: 0.5, sw: 0.7, lfo: 11 }); }],
-  shield: [0.8, K => { K.fm(0, 330, 0.45, 0.4, 1.5, 1.5, 0.02); K.fm(0.03, 495, 0.5, 0.25, 1.5, 1.2, 0.02); K.burst(0.02, { c: 'white', f0: 2600, q: 18, a: 0.02, d: 0.55, v: 0.18 }); }],
+  shout: [0.7, K => { const f1 = new Tone.Filter({ type: 'bandpass', frequency: 620, Q: 4 }), f2 = new Tone.Filter({ type: 'bandpass', frequency: 1050, Q: 5 }), o = K.tone(3200); f1.connect(o); f2.connect(o); K.voice(0, 'sawtooth', 150, 132, 0.4, 0.8, 0.04, f1); K.voice(0, 'sawtooth', 150, 132, 0.4, 0.5, 0.04, f2); K.burst(0, { c: 'pink', f0: 900, q: 2, a: 0.03, d: 0.35, v: 0.4 }); K.thump(0, 85, 0.25, 0.4, 0.6); }],
+  magic: [0.8, K => { K.burst(0, { c: 'pink', f0: 800, f1: 3200, q: 3, a: 0.05, d: 0.35, v: 0.8 }); K.burst(0.03, { c: 'white', f0: 4800, q: 10, a: 0.04, d: 0.3, v: 0.25 }); K.grains(0.05, 14, 0.4, 2500, 8000, 14, 0.2); K.fm(0.02, 220, 0.5, 0.12, 1.41, 0.8, 0.05); }],
+  charge: [0.9, K => { K.burst(0, { c: 'pink', f0: 300, f1: 2800, q: 2, a: 0.45, d: 0.15, v: 0.7, sw: 0.6 }); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 200, f1: 600, a: 0.4, d: 0.2, v: 0.6, sw: 0.6 }); K.grains(0.15, 16, 0.45, 1500, 6000, 6, 0.25); }],
+  shield: [0.8, K => { K.burst(0, { c: 'pink', ft: 'lowpass', f0: 900, a: 0.05, d: 0.25, v: 0.6 }); K.burst(0.02, { c: 'white', f0: 2200, q: 22, a: 0.02, d: 0.5, v: 0.35 }); K.burst(0.03, { c: 'white', f0: 3300, q: 22, a: 0.02, d: 0.4, v: 0.2 }); K.thump(0, 140, 0.12, 0.35, 0.5, 0.02); }],
   // --- the battlefield ---
   tower: [0.6, K => { const g = K.grit(0.3); K.thump(0, 90, 0.25, 0.9, 3, 0.05, g); K.burst(0, { c: 'white', f0: 1800, f1: 500, q: 1, a: 0.001, d: 0.08, v: 0.6 }); K.burst(0.01, { c: 'brown', ft: 'lowpass', f0: 1000, f1: 160, d: 0.3, v: 0.7, dest: g }); }],
   boom: [1.6, K => { const g = K.grit(0.6); K.thump(0, 46, 1.0, 1, 5, 0.12, g); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 1400, f1: 45, a: 0.002, d: 1.3, v: 1, dest: g }); K.burst(0, { c: 'white', f0: 2400, f1: 600, a: 0.001, d: 0.12, v: 0.6 }); K.grains(0.1, 30, 1.0, 900, 3500, 2, 0.3, 'pink'); }],
   kill: [2.6, K => { K.thump(0, 58, 1.0, 1, 2, 0.08); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 500, f1: 80, d: 0.6, v: 0.7 }); K.fm(0.01, 98, 2.4, 0.3, 1.4, 2.2, 0.005); }],   // a temple drum with a low bell behind it
-  death: [1.8, K => { K.voice(0, 'triangle', 220, 55, 1.2, 0.4, 0.02); K.thump(0, 55, 1.0, 0.8, 1.5); K.fm(0.05, 147, 1.6, 0.18, 1.4, 1.5); }],
+  death: [1.8, K => { K.burst(0, { c: 'brown', ft: 'lowpass', f0: 400, f1: 80, d: 1.0, v: 0.8 }); K.thump(0, 50, 0.8, 0.9, 0.8, 0.05); K.fm(0.02, 98, 1.6, 0.25, 1.4, 1.5); }],
   horn: [2.6, K => { const o = K.tone(1800); const s = new Tone.FMSynth({ harmonicity: 1, modulationIndex: 2.5, oscillator: { type: 'sawtooth' }, envelope: { attack: 0.18, decay: 0.6, sustain: 0.6, release: 0.9 }, volume: -6 }).connect(o); s.triggerAttackRelease(147, 1.1, K.T0); const s2 = new Tone.FMSynth({ harmonicity: 1, modulationIndex: 2, envelope: { attack: 0.2, decay: 0.5, sustain: 0.5, release: 0.9 }, volume: -10 }).connect(o); s2.triggerAttackRelease(220, 1.0, K.T0 + 0.05); K.fm(0.05, 294, 2.2, 0.15, 1.4, 1.6); }],
   warn: [0.45, K => { K.thump(0, 720, 0.07, 0.8, 0.5, 0.01); K.thump(0.17, 720, 0.07, 0.8, 0.5, 0.01); }],   // two knocks on a wooden block
   // --- yours ---
@@ -81,21 +81,63 @@ const BANK = {
   buy: [0.6, K => { K.pluck(0, 392, 0.7, 5000); K.pluck(0.07, 587, 0.6, 5000); K.fm(0.07, 1175, 0.4, 0.15, 2, 1); }],
   level: [1.1, K => { [587, 698, 880, 1175].forEach((f, i) => { K.pluck(i * 0.08, f, 0.7, 6000); K.fm(i * 0.08, f * 2, 0.5, 0.08, 2, 1); }); }],
   ping: [0.7, K => { K.thump(0, 560, 0.12, 0.9, 0.6, 0.01); K.thump(0.14, 750, 0.12, 0.8, 0.6, 0.01); K.fm(0.14, 1500, 0.4, 0.1, 2, 1); }],   // 木鱼, then a small chime
-  recall: [1.8, K => { K.voice(0, 'sine', 220, 880, 1.4, 0.35, 0.3); K.burst(0, { c: 'pink', f0: 800, f1: 3600, q: 2, a: 0.4, d: 1.1, v: 0.35, sw: 1.3 }); K.fm(0.5, 880, 1.2, 0.12, 1.5, 1); }],
+  recall: [1.8, K => { K.burst(0, { c: 'pink', f0: 600, f1: 3000, q: 3, a: 0.6, d: 0.9, v: 0.6, sw: 1.3 }); K.grains(0.2, 20, 1.2, 2000, 7000, 14, 0.18); K.fm(0.6, 440, 1.1, 0.12, 1.5, 0.8, 0.2); }],
   arrive: [1.4, K => { K.burst(0, { c: 'pink', f0: 2600, f1: 300, q: 0.7, a: 0.01, d: 0.5, v: 0.9 }); K.thump(0.04, 60, 0.45, 0.9, 3); K.fm(0.06, 660, 1.1, 0.15, 1.5, 1.5); }],
   heart: [0.6, K => { K.thump(0, 62, 0.16, 1, 1.5); K.thump(0.24, 56, 0.17, 0.7, 1.5); }],
   click: [0.12, K => { K.thump(0, 1100, 0.03, 0.6, 0.3, 0.005); }],
 };
+// ---- each cultivator's own weapon: w_<id> as it swings or leaves the hand, h_<id> as it lands ----
+const swish = (K, t, f0, f1, q, d, v, c = 'pink') => K.burst(t, { c, f0, f1, q, a: Math.min(0.03, d * 0.2), d, v });
+Object.assign(BANK, {
+  w_warden: [0.4, K => { swish(K, 0, 160, 900, 0.7, 0.26, 1, 'brown'); K.burst(0.02, { c: 'pink', ft: 'lowpass', f0: 500, a: 0.06, d: 0.2, v: 0.4 }); }],
+  h_warden: [0.35, K => { const g = K.grit(0.4); K.thump(0, 70, 0.14, 0.9, 1, 0.02, g); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 1200, f1: 200, d: 0.12, v: 0.8, dest: g }); K.grains(0, 10, 0.04, 400, 1500, 2, 0.5, 'pink'); K.burst(0, { c: 'white', f0: 900, q: 4, a: 0.001, d: 0.05, v: 0.4 }); }],
+  w_keeper: [0.3, K => { swish(K, 0, 250, 1200, 0.8, 0.18, 0.9); K.burst(0.02, { c: 'white', f0: 600, q: 8, d: 0.08, v: 0.2 }); }],
+  h_keeper: [0.4, K => { K.thump(0, 60, 0.18, 1, 1.2, 0.03); K.burst(0, { c: 'white', f0: 420, q: 9, a: 0.001, d: 0.12, v: 0.5 }); K.burst(0, { c: 'white', f0: 1100, q: 12, a: 0.001, d: 0.06, v: 0.25 }); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 900, f1: 150, d: 0.15, v: 0.7 }); }],
+  w_peiji: [0.25, K => { swish(K, 0, 700, 2600, 1.5, 0.14, 0.8); }],
+  h_peiji: [0.25, K => { K.burst(0, { c: 'white', f0: 1700, q: 6, a: 0.001, d: 0.03, v: 1 }); K.burst(0, { c: 'white', f0: 900, q: 5, a: 0.001, d: 0.06, v: 0.5 }); K.thump(0, 140, 0.06, 0.5, 0.5, 0.01); }],
+  w_bloodlord: [0.3, K => { swish(K, 0, 1500, 4500, 1, 0.12, 0.8, 'white'); K.grains(0.01, 4, 0.06, 2000, 5000, 4, 0.3); }],
+  h_bloodlord: [0.35, K => { K.burst(0, { c: 'brown', ft: 'lowpass', f0: 900, f1: 200, q: 3, d: 0.18, v: 0.9 }); K.burst(0.01, { c: 'pink', f0: 1400, f1: 500, q: 5, d: 0.12, v: 0.5 }); K.thump(0, 90, 0.1, 0.5, 0.8, 0.02); }],
+  w_berserker: [0.4, K => { swish(K, 0, 140, 1100, 0.8, 0.24, 1, 'brown'); }],
+  h_berserker: [0.35, K => { const g = K.grit(0.45); K.thump(0, 75, 0.15, 0.9, 1, 0.02, g); K.burst(0, { c: 'white', f0: 2400, f1: 900, q: 1.2, a: 0.001, d: 0.05, v: 0.7 }); K.grains(0, 8, 0.04, 500, 1800, 2, 0.45, 'pink'); }],
+  w_qingya: [0.3, K => { swish(K, 0, 800, 5200, 1.4, 0.14, 0.9); K.burst(0.03, { c: 'white', f0: 3600, q: 30, d: 0.15, v: 0.15 }); }],
+  h_qingya: [0.25, K => { K.burst(0, { c: 'white', ft: 'highpass', f0: 3500, a: 0.001, d: 0.04, v: 0.7 }); K.burst(0, { c: 'pink', f0: 1800, f1: 700, q: 1, d: 0.06, v: 0.6 }); K.thump(0, 110, 0.07, 0.5, 0.6, 0.01); }],
+  w_shade: [0.25, K => { swish(K, 0, 1500, 5500, 1.6, 0.07, 0.7); swish(K, 0.06, 1700, 6000, 1.6, 0.07, 0.6); }],
+  h_shade: [0.2, K => { K.burst(0, { c: 'white', f0: 3000, q: 2, a: 0.001, d: 0.025, v: 0.8 }); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 700, d: 0.06, v: 0.6 }); }],
+  w_wenren: [0.25, K => { K.burst(0, { c: 'white', f0: 2500, f1: 6000, q: 1, a: 0.002, d: 0.06, v: 0.8 }); swish(K, 0.02, 900, 3000, 1.2, 0.1, 0.6); }],
+  h_wenren: [0.3, K => { K.thump(0, 95, 0.09, 0.7, 0.8, 0.02); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 800, q: 3, d: 0.1, v: 0.8 }); K.burst(0, { c: 'white', f0: 2600, q: 2, a: 0.001, d: 0.02, v: 0.6 }); }],
+  w_archer: [0.35, K => { K.burst(0, { c: 'pink', f0: 400, f1: 1600, q: 0.8, a: 0.01, d: 0.18, v: 0.9, lfo: 22, depth: 0.4 }); K.grains(0.02, 8, 0.15, 2500, 6000, 3, 0.25); }],
+  h_archer: [0.4, K => { K.burst(0, { c: 'brown', ft: 'lowpass', f0: 1400, f1: 250, d: 0.2, v: 0.8 }); K.grains(0, 12, 0.2, 2500, 7000, 3, 0.3); K.thump(0, 80, 0.12, 0.5, 0.6, 0.02); }],
+  w_linshuang: [0.5, K => { K.pluck(0, 70, 0.9, 1200); K.burst(0, { c: 'white', f0: 1200, q: 3, a: 0.001, d: 0.02, v: 0.5 }); K.burst(0.02, { c: 'pink', ft: 'highpass', f0: 2000, f1: 5000, a: 0.01, d: 0.12, v: 0.3 }); }],
+  h_linshuang: [0.3, K => { K.thump(0, 120, 0.08, 0.7, 0.5, 0.01); K.burst(0, { c: 'white', f0: 2200, q: 3, a: 0.001, d: 0.03, v: 0.6 }); K.grains(0, 6, 0.05, 3000, 7000, 18, 0.4); }],
+  w_ranger: [0.3, K => { swish(K, 0, 1200, 6500, 1.2, 0.16, 0.9); K.burst(0.02, { c: 'white', f0: 4200, q: 25, d: 0.18, v: 0.15 }); }],
+  h_ranger: [0.2, K => { K.burst(0, { c: 'white', ft: 'highpass', f0: 4000, a: 0.001, d: 0.035, v: 0.7 }); K.burst(0, { c: 'pink', f0: 2200, f1: 900, q: 1.2, d: 0.05, v: 0.5 }); }],
+  w_gunner: [0.35, K => { K.burst(0, { c: 'white', f0: 3800, q: 3, a: 0.001, d: 0.015, v: 0.8 }); K.pluck(0.005, 60, 0.8, 900); K.thump(0.005, 85, 0.06, 0.5, 0.4, 0.01); K.burst(0.02, { c: 'pink', ft: 'highpass', f0: 3000, f1: 6000, d: 0.12, v: 0.25 }); }],
+  h_gunner: [0.3, K => { K.thump(0, 110, 0.08, 0.7, 0.5, 0.01); K.burst(0, { c: 'white', f0: 1800, q: 2, a: 0.001, d: 0.03, v: 0.6 }); K.burst(0.005, { c: 'brown', ft: 'lowpass', f0: 1000, d: 0.1, v: 0.6 }); }],
+  w_mage: [0.35, K => { K.burst(0, { c: 'white', f0: 5200, f1: 2600, q: 8, a: 0.01, d: 0.2, v: 0.5 }); K.fm(0, pick(PENTA.slice(3, 7)), 0.25, 0.15, 1.5, 0.8, 0.01); K.burst(0, { c: 'pink', ft: 'highpass', f0: 2000, d: 0.15, v: 0.25 }); }],
+  h_mage: [0.3, K => { K.burst(0, { c: 'pink', f0: 3000, f1: 800, q: 2, d: 0.12, v: 0.7 }); K.grains(0, 10, 0.08, 4000, 9000, 15, 0.3); }],
+  w_cryo: [0.3, K => { K.burst(0, { c: 'white', ft: 'highpass', f0: 5000, f1: 2500, a: 0.005, d: 0.15, v: 0.6 }); K.grains(0, 10, 0.15, 3000, 7000, 25, 0.35); }],
+  h_cryo: [0.3, K => { K.burst(0, { c: 'white', ft: 'highpass', f0: 6000, a: 0.001, d: 0.04, v: 0.7 }); K.grains(0, 18, 0.08, 2500, 7000, 22, 0.7); K.thump(0, 140, 0.05, 0.3, 0.4, 0.01); }],
+  w_storm: [0.3, K => { K.burst(0, { c: 'white', ft: 'highpass', f0: 4000, a: 0.001, d: 0.02, v: 1 }); K.grains(0, 14, 0.12, 2000, 8000, 3, 0.4); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 300, d: 0.15, v: 0.4, lfo: 30 }); }],
+  h_storm: [0.3, K => { K.burst(0, { c: 'white', f0: 3000, q: 1, a: 0.001, d: 0.03, v: 0.8 }); K.grains(0, 10, 0.1, 2000, 8000, 3, 0.4); K.thump(0, 90, 0.06, 0.4, 0.5, 0.01); }],
+  w_healer: [0.25, K => { K.burst(0, { c: 'pink', f0: 1800, f1: 3500, q: 2, a: 0.005, d: 0.08, v: 0.6 }); K.grains(0, 6, 0.06, 3000, 6000, 3, 0.2); }],
+  h_healer: [0.2, K => { K.thump(0, 160, 0.05, 0.5, 0.5, 0.01); K.burst(0, { c: 'pink', f0: 1200, q: 2, d: 0.05, v: 0.5 }); }],
+  w_yanzhao: [0.35, K => { K.burst(0, { c: 'brown', f0: 300, f1: 900, q: 0.8, a: 0.04, d: 0.2, v: 0.9 }); K.burst(0, { c: 'pink', ft: 'lowpass', f0: 1200, a: 0.03, d: 0.15, v: 0.4 }); }],
+  h_yanzhao: [0.2, K => { K.burst(0, { c: 'brown', ft: 'lowpass', f0: 600, d: 0.08, v: 0.8 }); K.thump(0, 120, 0.05, 0.4, 0.4, 0.01); }],
+  w_yuanshan: [0.3, K => { K.burst(0, { c: 'white', f0: 5200, q: 20, a: 0.002, d: 0.12, v: 0.3 }); K.burst(0.02, { c: 'white', f0: 7400, q: 25, d: 0.08, v: 0.2 }); K.burst(0, { c: 'pink', ft: 'highpass', f0: 2500, d: 0.1, v: 0.35 }); }],
+  h_yuanshan: [0.25, K => { K.thump(0, 150, 0.04, 0.5, 0.3, 0.01); K.burst(0, { c: 'white', f0: 3800, q: 14, a: 0.001, d: 0.07, v: 0.4 }); K.burst(0, { c: 'pink', f0: 1500, q: 2, d: 0.04, v: 0.35 }); }],
+  // an ultimate: a short draw of breath, then the weight of it, and a low bell behind
+  ult: [2.0, K => { const g = K.grit(0.35); K.burst(0, { c: 'pink', f0: 200, f1: 3000, q: 1, a: 0.12, d: 0.05, v: 0.7, sw: 0.15 }); K.thump(0.12, 50, 0.8, 1, 1, 0.05, g); K.burst(0.12, { c: 'brown', ft: 'lowpass', f0: 1500, f1: 60, a: 0.002, d: 0.9, v: 1, dest: g }); K.burst(0.12, { c: 'white', f0: 2600, f1: 900, a: 0.001, d: 0.08, v: 0.6 }); K.fm(0.13, 110, 1.6, 0.2, 1.4, 1.5); }],
+});
 export const names = Object.keys(BANK);
 
 // render the whole bank, `n` variations each, handing each sound over as soon as it is ready. All variations of one sound share a
 // single offline render (laid end to end with a gap) — far cheaper than one render each. The sounds heard most come first.
 const FIRST = ['hit', 'smack', 'thud', 'slash', 'bow', 'xbow', 'cast', 'arrow', 'sword', 'whoosh', 'tower', 'crit', 'heavy'];
-export async function renderBank(ctx, onSound, n = 3) {
+export async function renderBank(ctx, onSound, n0 = 3) {
   try { Tone.setContext(ctx); } catch { /* Tone keeps its own context; the offline renders do not need it */ }
-  const sr = ctx.sampleRate, order = [...FIRST, ...names.filter(k => !FIRST.includes(k))];
+  const sr = ctx.sampleRate, W = names.filter(k => /^[wh]_/.test(k)), order = [...FIRST, ...W, ...names.filter(k => !FIRST.includes(k) && !W.includes(k))];
   for (const name of order) {
-    const [dur, design] = BANK[name], slot = dur + 0.15, out = [];
+    const [dur, design] = BANK[name], slot = dur + 0.15, out = [], n = /^[wh]_/.test(name) ? 2 : n0;
     try {
       const tb = await Tone.Offline(() => { const o = new Tone.Gain(1).toDestination(); for (let i = 0; i < n; i++) design(kit(o, i * slot)); }, slot * n, 1, sr);
       const all = tb.getChannelData(0), len = Math.floor(dur * sr), fade = Math.floor(sr * 0.02);
@@ -148,6 +190,35 @@ export async function renderMusic(ctx, onSound) {
       for (let k = 0; k < src.length; k++) d[k] = src[k] / pk * 0.95 * (k > src.length - fade ? (src.length - k) / fade : 1);
       onSound(name, b);
     } catch (e) { renderMusic.err = (renderMusic.err || '') + name + ': ' + String(e).slice(0, 120) + '\n'; }
+    await new Promise(r => setTimeout(r, 0));
+  }
+}
+
+// ---------------- places ----------------
+// Looping beds for where the camera is: snow wind, forest leaves, the river, the blood pool, the ember wastes. Each is rendered a
+// second longer than its loop and the overhang is cross-faded into the start, so the loop has no seam.
+const AMB = {
+  snow: K => { const bp = new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 3 }); bp.connect(K.o); const n = new Tone.Noise('pink').connect(bp).start(0); new Tone.LFO(0.13, 320, 980).connect(bp.frequency).start(0);
+    const wh = new Tone.Filter({ type: 'bandpass', frequency: 1450, Q: 14 }), wg = new Tone.Gain(0.2); n.connect(wh); wh.chain(wg, K.o); new Tone.LFO(0.21, 0, 0.45).connect(wg.gain).start(0);
+    for (let t = 0.5; t < 8; t += R(0.6, 1.8)) K.grains(t, 3, 0.05, 4500, 8000, 25, 0.08); },
+  forest: K => { const hp = new Tone.Filter({ type: 'highpass', frequency: 1600 }), g = new Tone.Gain(0.5); hp.chain(g, K.o); new Tone.Noise('pink').connect(hp).start(0); new Tone.LFO(0.27, 0.15, 0.6).connect(g.gain).start(0);
+    for (let t = 0.2; t < 8; t += R(0.25, 0.9)) K.grains(t, 2, 0.04, 1500, 4000, 4, 0.12, 'pink'); },
+  river: K => { const bp = new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.7 }), g = new Tone.Gain(0.5); bp.chain(g, K.o); new Tone.Noise('brown').connect(bp).start(0); new Tone.LFO(0.4, 650, 1300).connect(bp.frequency).start(0);
+    for (let t = 0; t < 8; t += R(0.03, 0.12)) K.burst(t, { c: 'white', f0: R(300, 1300), q: 14, a: 0.003, d: R(0.03, 0.08), v: R(0.08, 0.2) }); },
+  blood: K => { const s = new Tone.FMSynth({ harmonicity: 0.5, modulationIndex: 1.5, envelope: { attack: 1, decay: 0.1, sustain: 1, release: 1 }, volume: -16 }).connect(K.tone(300)); s.triggerAttack(41, 0);
+    for (let t = 0; t < 8; t += R(0.15, 0.6)) K.burst(t, { c: 'brown', f0: R(70, 260), q: 10, a: 0.01, d: R(0.12, 0.3), v: R(0.25, 0.6) });
+    K.burst(0, { c: 'brown', ft: 'lowpass', f0: 140, a: 0.5, d: 8.5, v: 0.25, sw: 8.5 }); },
+  ash: K => { K.burst(0, { c: 'brown', ft: 'lowpass', f0: 160, a: 0.5, d: 8.5, v: 0.6, sw: 8.5, lfo: 0.3, depth: 0.4 }); for (let t = 0; t < 8; t += R(0.05, 0.3)) K.grains(t, 1, 0.01, 2000, 6500, 3, R(0.05, 0.18)); },
+};
+export async function renderAmbience(ctx, onBed, loop = 8) {
+  const sr = ctx.sampleRate, xf = Math.floor(sr * 1), L = Math.floor(sr * loop);
+  for (const [name, design] of Object.entries(AMB)) {
+    try {
+      const tb = await Tone.Offline(() => { const o = new Tone.Gain(1).toDestination(); const K = kit(o); K.o = o; design(K); }, loop + 1.05, 1, sr);
+      const a = tb.getChannelData(0), b = ctx.createBuffer(1, L, sr), d = b.getChannelData(0); let pk = 0;
+      for (let i = 0; i < L; i++) { const w = i < xf ? i / xf : 1; d[i] = a[i] * w + (i < xf ? (a[L + i] || 0) * (1 - w) : 0); pk = Math.max(pk, Math.abs(d[i])); }
+      if (pk > 1e-5) { for (let i = 0; i < L; i++) d[i] *= 0.9 / pk; onBed(name, b); }
+    } catch (e) { renderAmbience.err = (renderAmbience.err || '') + name + ': ' + String(e).slice(0, 120) + '\n'; }
     await new Promise(r => setTimeout(r, 0));
   }
 }
