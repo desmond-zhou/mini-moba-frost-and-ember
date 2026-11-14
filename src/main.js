@@ -51,13 +51,14 @@ function boot() {
     const paused = state === 'playing' && ui.menuOpen; if (paused) dt = 0;            // the menu stops the world; the picture and the music carry on
     time += dt; uTime.value = time;
     audio.intensity = 0;
-    let hurt = 0, sat = 1.06, shake = fx.shakeAmt, zoom = input.zoom * (cam.aspect < 1.25 ? Math.min(1.55, 1.18 / Math.sqrt(cam.aspect)) : 1);
+    let dusk = 0, hurt = 0, sat = 1.06, shake = fx.shakeAmt, zoom = input.zoom * (cam.aspect < 1.25 ? Math.min(1.55, 1.18 / Math.sqrt(cam.aspect)) : 1);
     if (state === 'title') {
       const L = LANES[MID], q = L.at((L.s0 + L.s1) / 2 + Math.sin(time * 0.045) * (L.s1 - L.s0) * 0.405, 0); focus.x = q.x; focus.z = q.z; zoom = 0.82;
     } else {
       if (!paused) { G.update(dt, time); input.update(); ui.update(dt); }
       if (intro > 0) { intro -= raw / 1000; const q = Math.max(0, intro / INTRO); zoom *= 1 + 0.75 * q * q; }
-      if (G.over) zoom *= 1 - 0.2 * Math.min(1, G.overT / 1.6);          // closing in on the 阵眼 as it breaks
+      if (G.over) zoom *= 1 - 0.2 * Math.min(1, G.overT / 1.6);
+      dusk = G.tribK || 0; zoom *= 1 + 0.16 * dusk; sat -= 0.3 * dusk;      // 雷劫 nearby: the camera draws back and the light goes          // closing in on the 阵眼 as it breaks
       const k = 1 - Math.exp(-dt * (G.over ? 2 : intro > 0 ? 1.6 : 9));
       focus.x += ((G.focus.tx ?? focus.x) - focus.x) * k; focus.z += ((G.focus.tz ?? focus.z) - focus.z) * k;
       G.focus.x = focus.x; G.focus.z = focus.z; audio.listener.x = focus.x; audio.listener.z = focus.z;
@@ -70,7 +71,7 @@ function boot() {
     zoom *= 1 - 0.1 * Math.sin(Math.PI * fx.zoomK);                      // leaning in for an ultimate
     cam.position.set(focus.x + sx, 38 * zoom + sy, focus.z + 25 * zoom + 1.5);
     cam.lookAt(focus.x + sx, 0, focus.z - 1.5);
-    const g = R.grade; g.uPunch.value = fx.punchAmt; g.uHurt.value += (hurt - g.uHurt.value) * Math.min(1, dt * 10); g.uSat.value += (sat - g.uSat.value) * Math.min(1, dt * 4);
+    const g = R.grade; g.uPunch.value = fx.punchAmt; g.uHurt.value += (hurt - g.uHurt.value) * Math.min(1, dt * 10); g.uSat.value += (sat - g.uSat.value) * Math.min(1, dt * 4); g.uDusk.value += (dusk - g.uDusk.value) * Math.min(1, dt * 3);
     R.render(time);
     if (state !== 'title') R.adapt(raw);
     if (++frames === 2) document.getElementById('boot').classList.add('done');

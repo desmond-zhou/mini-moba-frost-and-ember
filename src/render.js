@@ -72,10 +72,10 @@ const VolShader = {
 };
 
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, tDepth: { value: null }, uTime: { value: 0 }, uHurt: { value: 0 }, uSat: { value: 1.0 }, uFade: { value: 0 }, uPunch: { value: 0 }, uInk: { value: 0.6 }, uLine: { value: 0 }, uPx: { value: new THREE.Vector2(0.001, 0.001) } },
+  uniforms: { tDiffuse: { value: null }, tDepth: { value: null }, uTime: { value: 0 }, uHurt: { value: 0 }, uSat: { value: 1.0 }, uDusk: { value: 0 }, uFade: { value: 0 }, uPunch: { value: 0 }, uInk: { value: 0.6 }, uLine: { value: 0 }, uPx: { value: new THREE.Vector2(0.001, 0.001) } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse, tDepth; uniform float uTime, uHurt, uSat, uFade, uPunch, uInk, uLine; uniform vec2 uPx; varying vec2 vUv;
+    uniform sampler2D tDiffuse, tDepth; uniform float uTime, uHurt, uSat, uDusk, uFade, uPunch, uInk, uLine; uniform vec2 uPx; varying vec2 vUv;
     float lin(vec2 uv){ float d = texture2D(tDepth, uv).x; return 400.0 / (400.0 - d * 399.0); }   // view depth for near 1, far 400
     float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(12.9898, 78.233))) * 43758.5453), b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453), c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453), d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }
     vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0); }
@@ -87,6 +87,7 @@ const GradeShader = {
       col *= 1.45 * (1.0 + uPunch * 0.55);
       float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
       col = mix(vec3(l), col, uSat);
+      col *= mix(vec3(1.0), vec3(0.42, 0.46, 0.62), uDusk);              // 雷劫: the sky closes over
       col = aces(col);
       // split tone: cold shadows, warm highlights
       float ll = dot(col, vec3(0.2126, 0.7152, 0.0722));

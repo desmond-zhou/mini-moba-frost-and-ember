@@ -351,6 +351,10 @@ export function createVfx(fx, audio) {
     else { embers(x, z, [2.2, 0.7, 0.15], 34, 1.6); for (let k = 0; k < 7; k++) fx.fire(x + (R() - 0.5) * 1.6, 0.5 + R() * 2, z + (R() - 0.5) * 1.6, (R() - 0.5) * 2, 2 + R() * 2, (R() - 0.5) * 2, FLAME, 1.6, 0.5 + R() * 0.3); cloud(x, 0.6, z, [0.05, 0.03, 0.03], 10, 1.2, 2.6, 1.4, 0.55); fx.ringWave(x, z, 9, [1.8, 0.5, 0.15], 0.5); }
     fx.pillar(x, z, 0.9, 16, frost ? [0.6, 1, 1.8] : [1.9, 0.5, 0.2], 0.7);
   };
+  // 雷劫: a ring closes on the spot a bolt has chosen, then the bolt
+  V.tribWarn = (x, z, r, delay) => { fx.decal({ mode: 1, x, z, size: r * 2.1, size0: r * 6.5, color: [2.2, 1.9, 0.7], dur: delay }); fx.decal({ mode: 5, x, z, size: r * 2.1, color: [1.6, 1.3, 0.4], dur: delay, hold: 0.05, seed: R() }); };
+  V.tribBolt = (x, z, r) => { lightning(x, z, [1.7, 1.6, 1.0], 26); fx.ringWave(x, z, r * 3.2, [2.0, 1.8, 0.8], 0.4); chunks(x, z, 8, 6, 8, 0.28); fx.scorch(x, z, r * 1.7, 9); fx.shake(0.35); audio.play('thunder', x, z); };
+  V.tribStart = (h) => { fx.pillar(h.x, h.z, 2.6, 24, [2.0, 1.8, 0.9], 1.4); fx.ringWave(h.x, h.z, 20, [2.0, 1.8, 0.9], 0.9); fx.dome(h.x, h.z, 1, 5, [1.6, 1.5, 0.8], 0.8); audio.play('charge', h.x, h.z); audio.play('thunder', h.x, h.z, 0.5); };
   V.turn = p => { fx.flare(p.x, p.y, p.z, m(p.color, 2), 4, 0.16); slash(p.x, p.z, R() * 6.283, 4, 1.6, m(p.color, 1.4), 1.6, 0.22); };
   V.status = (h, vis) => {
     if (vis && h.alive && h.vulnOn) { h.fxV = (h.fxV || 0) + 1; if (h.fxV % 5 === 0) { fx.spark(h.x + (R() - 0.5) * 0.8, h.h + 2.2, h.z, 0, -5, 0, [2.6, 0.25, 0.2], 0.34, 0.3, 0, 0, 0.09); fx.flare(h.x, h.h + 1.5, h.z, [2.4, 0.2, 0.18], 1.5, 0.12); } }   // 易伤: a red mark bleeding down over the head

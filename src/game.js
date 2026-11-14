@@ -323,13 +323,36 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   }
   // 雷劫. Breaking through to 金丹 or 元婴 roots you for a breath inside a ward while the sky gathers, then lightning falls
   // around you: enemies caught in it are hurt and held. Everyone can see it coming.
+  // 雷劫: ten breaths under a closed sky. The one crossing is held for five and given 罡气; nine bolts come down about a second apart,
+  // each on someone nearby — friend, foe or the one crossing — with a closing ring to say where. They hurt, none of them a great deal.
+  const TRIB = { dur: 10, bolts: 9, hold: 5, every: 1.0, first: 0.9, warn: 0.9, r: 2.8, reach: 11 };
   function tribulation(h) {
     if (!h.alive || h.dash) { h.tribDue = true; return; }
-    h.tribDue = false; const r = 6.5, c = [1.5, 1.4, 0.8];
-    stopRecall(h); applyStun(h, 0.75); h.shield = Math.max(h.shield, h.maxHp * 0.25); h.shieldT = 3;
-    V.telegraph(h.x, h.z, r, 0.75, 0.05, h.team === G.player.team, false);
-    G.zones.push({ src: h, team: h.team, x: h.x, z: h.z, r, t: 0, delay: 0.75, dur: 0, tick: 0, next: 0.75, s: { radius: r, stun: 0.7 }, dmg: 80 + 24 * h.level, sid: 'trib', heal: false, col: c });
-    if (near(h)) { fx.pillar(h.x, h.z, 2.4, 18, GOLD, 1.0); fx.ringWave(h.x, h.z, 14, GOLD, 0.7); audio.play('charge', h.x, h.z); }
+    h.tribDue = false; stopRecall(h); h.stunT = Math.max(h.stunT, TRIB.hold); h.windT = -1; h.order = null;
+    const sh = h.maxHp * 0.5; h.shield = Math.max(h.shield, sh); h.shieldT = TRIB.dur + 1;
+    G.tribs.push({ h, x: h.x, z: h.z, t: 0, n: 0, next: TRIB.first, dmg: sh / TRIB.bolts });   // all nine together come to exactly the 罡气: crossing alone cannot kill you
+    if (near(h)) V.tribStart(h);
+    if (!h.isPlayer && dist(h, G.player) < 30) ui.toast(`${h.name}在渡雷劫，离远些`);
+  }
+  function updateTribs(dt) {
+    let k = 0;
+    for (let i = G.tribs.length - 1; i >= 0; i--) {
+      const q = G.tribs[i]; q.t += dt;
+      while (q.n < TRIB.bolts && q.t >= q.next) {
+        const near9 = G.heroes.filter(e => e.alive && dist2(e.x, e.z, q.x, q.z) < TRIB.reach), pool = near9.includes(q.h) ? [...near9, q.h] : near9, who = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;   // the one crossing counts twice: the sky is looking at them
+        const a = Math.random() * 6.283, d = who ? Math.random() * 1.4 : 2 + Math.random() * 5, bx = (who ? who.x : q.x) + Math.cos(a) * d, bz = (who ? who.z : q.z) + Math.sin(a) * d;
+        G.bolts.push({ x: bx, z: bz, t: 0, dmg: q.dmg }); if (near({ x: bx, z: bz })) V.tribWarn(bx, bz, TRIB.r, TRIB.warn);
+        q.n++; q.next += TRIB.every;
+      }
+      if (q.t >= TRIB.dur) { G.tribs.splice(i, 1); continue; }
+      const d = dist2(q.x, q.z, G.focus.x ?? q.x, G.focus.z ?? q.z); if (d < 34) k = Math.max(k, Math.min(1, q.t / 0.7, (TRIB.dur - q.t) / 1.5) * (d < 22 ? 1 : (34 - d) / 12));
+    }
+    G.tribK = k;                                                       // how much of the sky and the camera it takes (main.js)
+    for (let i = G.bolts.length - 1; i >= 0; i--) {
+      const b = G.bolts[i]; if ((b.t += dt) < TRIB.warn) continue; G.bolts.splice(i, 1);
+      for (const e of G.units) if (e.alive && !isStruct(e) && dist2(e.x, e.z, b.x, b.z) <= TRIB.r + e.r) { damage(null, e, b.dmg * (e.kind === 'hero' ? 1 : 0.6), { ability: true }); if (e.isPlayer) ui.buzz(50); }
+      if (near(b)) V.tribBolt(b.x, b.z, TRIB.r);
+    }
   }
   function shareXp(team, src, xp) {
     const hs = G.heroes.filter(h => h.team === team && h.alive && dist(h, src) < 19);
@@ -824,7 +847,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     ai.waitT = wait ? (ai.waitT || 0) + dtT : Math.max(0, (ai.waitT || 0) - dtT * 0.25);
     // (一路 has only three a side: a 护法 that stands back and leaves the last hits is a body short, so there it fights with the rest)
     let dodged = false;
-    for (const z of G.zones) if (z.team !== team && dist2(h.x, h.z, z.x, z.z) < z.r + 0.8 && Math.random() < (team === EMBER ? 0.75 / diff.react : 0.6)) {
+    for (const b of G.bolts) if (dist2(h.x, h.z, b.x, b.z) < TRIB.r + 1 && Math.random() < 0.7) { let ox = h.x - b.x, oz = h.z - b.z; const d = Math.hypot(ox, oz) || 1; if (d < 0.4) { ox = 1; oz = 0; } h.order = { type: 'move', x: b.x + ox / d * (TRIB.r + 2.6), z: b.z + oz / d * (TRIB.r + 2.6) }; dodged = true; break; }   // step out of a closing ring
+    if (!dodged) for (const z of G.zones) if (z.team !== team && dist2(h.x, h.z, z.x, z.z) < z.r + 0.8 && Math.random() < (team === EMBER ? 0.75 / diff.react : 0.6)) {
       let ox = h.x - z.x, oz = h.z - z.z; const d = Math.hypot(ox, oz) || 1; if (d < 0.5) { const tn = L.tan(hs); ox = -dir * tn.x; oz = -dir * tn.z; }
       h.order = { type: 'move', x: z.x + ox / d * (z.r + 2.5), z: z.z + oz / d * (z.r + 2.5) }; dodged = true; break;
     }
@@ -997,7 +1021,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.recall = () => { const h = P(); if (MODE.noRecall) { ui.toast('一路不能归宗：万宝阁只在出山前和陨落时开'); return false; } if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在山门内，万宝阁开着'); return ok; };
   G.pings = []; G.recalls = 0; G.gCall = [0, 0]; G.botStat = { ambush: 0, hunt: 0, hide: 0, shop: 0, jungle: 0, guardian: 0, gank: 0, group: 0 };
   G.plan = [0, 1].map(() => ({ mode: 'rest', lane: 0, until: 0, next: 0 }));
-  G.surgeT = [0, 0]; G.surgeK = [1, 1];                              // 破阵 / 渊息: this side's disciples march stronger
+  G.tribs = []; G.bolts = []; G.tribK = 0; G.surgeT = [0, 0]; G.surgeK = [1, 1];                              // 破阵 / 渊息: this side's disciples march stronger
   let pingAt = -9;
   // Signals: 集合 (come here), 进攻 (take this), 撤退 (fall back). A mark on the ground and the map, a sound, and every allied
   // bot in earshot weighs it (see botThink). unit = what was pointed at, for 进攻.
@@ -1156,7 +1180,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
           a.x -= dx * k * wa / sum * 2; a.z -= dz * k * wa / sum * 2; b.x += dx * k * wb / sum * 2; b.z += dz * k * wb / sum * 2;
         }
       }
-      updateProj(dt); updateZones(dt);
+      updateProj(dt); updateZones(dt); updateTribs(dt);
       const inv = 1 / Math.max(dt, 1e-3);
       for (const e of G.units) { e.vx = (e.x - e.px) * inv; e.vz = (e.z - e.pz) * inv; }
       if (G.hurtFlash > 0) G.hurtFlash = Math.max(0, G.hurtFlash - dt * 1.6);
