@@ -3,6 +3,7 @@
 // into a believable surface with tri-planar procedural detail: mottling, scratches, weave, masonry joints, wood grain, cracks,
 // moss / snow / soot on upward faces, grime near the ground, micro bump. Colours above 1.0 are emissive. No texture files.
 import * as THREE from 'three';
+import { biomeGLSL, MODE } from './config.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { makeNoiseData } from './util.js';
 
@@ -22,7 +23,7 @@ export const COMMON_GLSL = `
     return normalize(abs(det) * sn - sign(det) * (dH.x * r1 + dH.y * r2));
   }`;
 
-const DETAIL = `
+const detailGLSL = () => `
   {
     vec3 tw = pow(abs(normalize(vON)), vec3(4.0)); tw /= (tw.x + tw.y + tw.z);
     vec4 nM = texture2D(tNoise, vOP.yz * 0.31) * tw.x + texture2D(tNoise, vOP.xz * 0.31) * tw.y + texture2D(tNoise, vOP.xy * 0.31) * tw.z;
@@ -59,7 +60,7 @@ const DETAIL = `
     if (uWorld > 0.5 && vMat > 3.5 && emk <= 0.0) {                                                           // weathering of things that stand in the world
       vec3 wn = inverseTransformDirection(normalize(vNormal), viewMatrix);
       float up = smoothstep(0.25, 0.7, wn.y + (nF.g - 0.5) * 0.5);
-      float bx = vWP.x + (nM.r - 0.5) * 16.0, fr = 1.0 - smoothstep(-52.0, -16.0, bx), em = smoothstep(16.0, 52.0, bx);
+      float bx = ${biomeGLSL('vWP')} + (nM.r - 0.5) * 16.0, fr = 1.0 - smoothstep(-52.0, -16.0, bx), em = smoothstep(16.0, 52.0, bx);
       vec3 cover = mix(vec3(0.06, 0.1, 0.03), vec3(0.42, 0.48, 0.56), fr); cover = mix(cover, vec3(0.05, 0.042, 0.038), em);
       float amt = up * mix(smoothstep(0.3, 0.55, nM.g), 1.0, fr * 0.85);
       a = mix(a, cover * (0.7 + 0.6 * nF.g), amt * 0.88); r = mix(r, mix(1.0, 0.5, fr), amt); b = mix(b, nF.g * 0.6, amt);
@@ -98,7 +99,7 @@ export function vcMat(o = {}) {
       .replace('#include <color_fragment>', `#include <color_fragment>
         float emk = max(0.0, max(vColor.r, max(vColor.g, vColor.b)) - 1.0);
         diffuseColor.rgb = min(diffuseColor.rgb, vec3(1.0));`)
-      .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n' + (plain ? '' : DETAIL))
+      .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n' + (plain ? '' : detailGLSL()))
       .replace('#include <normal_fragment_maps>', plain ? '' : 'normal = bumpNormal(-vViewPosition, normal, vec2(dFdx(vcBump), dFdy(vcBump)) * 0.05);')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         totalEmissiveRadiance += vColor.rgb * emk * 1.5;`)
@@ -109,7 +110,7 @@ export function vcMat(o = {}) {
         outgoingLight = min(outgoingLight, vec3(12.0));
         #include <opaque_fragment>`);
   };
-  m.customProgramCacheKey = () => 'vc' + wind + (plain ? 'p' : 'd') + (cape ? 'c' + cape.top + '_' + cape.len : '');
+  m.customProgramCacheKey = () => 'vc' + MODE.id + wind + (plain ? 'p' : 'd') + (cape ? 'c' + cape.top + '_' + cape.len : '');
   return m;
 }
 

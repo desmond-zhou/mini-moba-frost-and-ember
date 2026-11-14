@@ -8,9 +8,8 @@ import { createUI } from './ui.js';
 import { createInput } from './input.js';
 import { createGame } from './game.js';
 import { uTime } from './mat.js';
-import { laneZ, riverX, MODE, MODES, setMode } from './config.js';
+import { LANES, MID, RIVER, biomeX, MODE, MODES, setMode } from './config.js';
 
-const MAP_HX = () => MODE.map.hx;
 const fatal = document.getElementById('fatal');
 addEventListener('error', e => { fatal.textContent = '出错了：' + (e.message || e.error); });
 
@@ -52,7 +51,7 @@ function boot() {
     audio.intensity = 0;
     let hurt = 0, sat = 1.06, shake = fx.shakeAmt, zoom = input.zoom * (cam.aspect < 1.25 ? Math.min(1.55, 1.18 / Math.sqrt(cam.aspect)) : 1);
     if (state === 'title') {
-      const fxp = Math.sin(time * 0.045) * (MAP_HX() - 28); focus.x = fxp; focus.z = laneZ(fxp); zoom = 0.82;
+      const L = LANES[MID], q = L.at((L.s0 + L.s1) / 2 + Math.sin(time * 0.045) * (L.s1 - L.s0) * 0.405, 0); focus.x = q.x; focus.z = q.z; zoom = 0.82;
     } else {
       if (!paused) { G.update(dt, time); input.update(); ui.update(dt); }
       const k = 1 - Math.exp(-dt * (G.over ? 2 : 9));
@@ -61,7 +60,7 @@ function boot() {
       const p = G.player; audio.intensity = p.alive && p.combatT < 4.5 && !G.over ? 1 : 0; hurt = Math.max(G.hurtFlash || 0, p.alive ? Math.max(0, 0.35 - p.hp / p.maxHp) * 1.6 : 0); if (!p.alive && !G.over) sat = 0.2;
       if (G.over && G.overT > 3 && state !== 'end') { state = 'end'; audio.play(G.winner === p.team ? 'level' : 'death'); ui.showEnd(toTitle); }
     }
-    audio.ambient(focus.x, focus.z, riverX(focus.z) - focus.x, state === 'playing' && G.player.alive && G.player.hp / G.player.maxHp < 0.3, dt);
+    audio.ambient(biomeX(focus.x, focus.z), focus.z, RIVER.signed(focus.x, focus.z), state === 'playing' && G.player.alive && G.player.hp / G.player.maxHp < 0.3, dt);
     fx.update(dt); W.update(focus); W.focusLight(focus.x, focus.z);
     const sx = (Math.random() - 0.5) * shake * 1.4, sy = (Math.random() - 0.5) * shake * 1.4;
     zoom *= 1 - 0.1 * Math.sin(Math.PI * fx.zoomK);                      // leaning in for an ultimate

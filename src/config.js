@@ -6,20 +6,43 @@ export const sideSign = team => (team === FROST ? -1 : 1);
 // Two modes share every mechanic (abilities, passives, items, realms, brush, recall). What differs is the ground they are
 // fought on and a handful of numbers, and each mode keeps its own: 一路's are frozen, 三路's are tuned on their own.
 //
-// The bases always sit at the left and right ends. A lane is a curve z = f(x) between them, so "forward" is always along x.
-// 三路 is a spindle: three lanes that part in the middle of the map and close again at each base, with the river running
-// down through all of them. (It is the usual three-lane map, just not turned 45 degrees.)
+// A lane is a path from the frost core to the ember core, measured by s along it; frost marches toward larger s. Everything
+// that moves along a lane (disciples, bots, tower placement) works in s and asks the lane for a point: at(s, sideways).
+//   一路: the old curve z = f(x). s is simply x, sideways is simply z — the numbers come out exactly as they always did.
+//   三路: the 王者 layout. Bases in opposite corners, the middle lane on the diagonal, the side lanes hugging the edges and
+//         turning at the far corners, the river on the other diagonal, four quarters of jungle between.
 // ---------------------------------------------------------------------------------------------------------------------
-const sine = (amp, k) => ({ type: 'sine', amp, k, f: x => amp * Math.sin(x * k), slope: () => 0 });
-const arc = (z0, k, q) => ({ type: 'arc', z0, k, q, f: x => z0 * Math.pow(Math.max(Math.cos(x * k), 1e-4), q), slope: x => { const c = Math.max(Math.cos(x * k), 1e-4); return -z0 * q * Math.pow(c, q - 1) * Math.sin(x * k) * k; } });
-const mirror = list => list.flatMap(b => (b.x === 0 && b.z === 0 ? [b] : [b, { ...b, x: -b.x, z: -b.z }]));   // the map is point-symmetric
+const funcLane = (name, f, half, towers) => ({
+  name, func: true, f, s0: -half, s1: half, towers,
+  at: (s, o = 0) => ({ x: s, z: f(s) + o }), proj: x => x, dist: (x, z) => Math.abs(z - f(x)), tan: () => ({ x: 1, z: 0 }),
+  towerS: (team, tier) => sideSign(team) * towers[tier - 1], towerOff: team => (team === FROST ? 3.4 : -3.4),
+});
+// corner-cutting keeps the ends and rounds every turn
+const chaikin = (pts, n) => { for (let k = 0; k < n; k++) { const out = [pts[0]]; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25], [a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]); } out.push(pts[pts.length - 1]); pts = out; } return pts; };
+function polyline(ctrl, smooth = 2) {
+  const P = chaikin(ctrl, smooth), cum = [0]; for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+  const len = cum[cum.length - 1], n = P.length - 1;
+  const seg = s => { s = Math.max(0, Math.min(len, s)); let i = 0; while (i < n - 1 && cum[i + 1] < s) i++; return i; };
+  const tan = s => { const i = seg(s), d = cum[i + 1] - cum[i] || 1; return { x: (P[i + 1][0] - P[i][0]) / d, z: (P[i + 1][1] - P[i][1]) / d }; };
+  const at = (s, o = 0) => { const i = seg(s), d = cum[i + 1] - cum[i] || 1, k = (s - cum[i]) / d, tx = (P[i + 1][0] - P[i][0]) / d, tz = (P[i + 1][1] - P[i][1]) / d; return { x: P[i][0] + (P[i + 1][0] - P[i][0]) * k - tz * o, z: P[i][1] + (P[i + 1][1] - P[i][1]) * k + tx * o }; };
+  // nearest point on the path: [distance, s, signed sideways offset]
+  const near = (x, z) => { let bd = 1e9, bs = 0, bo = 0; for (let i = 0; i < n; i++) { const ax = P[i][0], az = P[i][1], dx = P[i + 1][0] - ax, dz = P[i + 1][1] - az, L2 = dx * dx + dz * dz || 1, k = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2)), qx = x - ax - dx * k, qz = z - az - dz * k, d = Math.hypot(qx, qz); if (d < bd) { bd = d; bs = cum[i] + Math.sqrt(L2) * k; bo = (dx * qz - dz * qx) / Math.sqrt(L2); } } return [bd, bs, bo]; };
+  return { P, len, at, tan, near };
+}
+const pathLane = (name, ctrl, towers) => { const p = polyline(ctrl); return {
+  name, path: p, s0: 0, s1: p.len, towers, at: p.at, tan: p.tan, proj: (x, z) => p.near(x, z)[1], dist: (x, z) => p.near(x, z)[0],
+  towerS: (team, tier) => p.len / 2 + sideSign(team) * towers[tier - 1], towerOff: team => (team === FROST ? 3.4 : -3.4),
+}; };
+const mirror = list => list.flatMap(b => (b.x === 0 && b.z === 0 ? [b] : [b, { ...b, x: -b.x, z: -b.z }]));   // the maps are point-symmetric
 
+const sineZ = x => 10 * Math.sin(x * Math.PI / 80), sineRiver = z => 6 * Math.sin(z * Math.PI * 1.5 / 48);
 export const MODES = {
   single: {
     id: 'single', name: '一路 · 速战', team: 3, blurb: '一条路，3 对 3，十五分钟上下。',
-    map: { hx: 80, hz: 48, core: 64, fountain: 75, biome: 1 },
-    lanes: [{ name: '', ...sine(10, Math.PI / 80), outer: 24, inner: 46 }], mid: 0,
-    river: { amp: 6, k: Math.PI * 1.5 / 48 },
+    map: { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126] },
+    core: t => ({ x: sideSign(t) * 64, z: sineZ(sideSign(t) * 64) }), fountain: t => ({ x: sideSign(t) * 75, z: sineZ(sideSign(t) * 75) }),
+    lanes: () => [{ ...funcLane('', sineZ, 64, [24, 46]), glsl: '10.0 * sin(p.x * 0.0392699)' }], mid: 0,
+    river: () => ({ func: true, glsl: '6.0 * sin(p.y * 0.0981748)', f: sineRiver, dist: (x, z) => Math.abs(x - sineRiver(z)), signed: (x, z) => sineRiver(z) - x, at: (t, o) => { const z = (t * 2 - 1) * 48; return { x: sineRiver(z) + o, z }; } }),
     camps: [
       { x: -30, z: 25, r: 7, kind: 'golem', n: 2 }, { x: 30, z: -25, r: 7, kind: 'golem', n: 2 },
       { x: -15, z: -28, r: 7, kind: 'golem', n: 2 }, { x: 15, z: 28, r: 7, kind: 'golem', n: 2 },
@@ -33,22 +56,24 @@ export const MODES = {
     tune: {},
   },
   tri: {
-    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '上中下三路，5 对 5，有战争迷雾，二十分钟上下。开发中：电脑还只会各守一路。',
-    map: { hx: 104, hz: 58, core: 86, fountain: 98, biome: 1.3 },
-    lanes: [
-      { name: '上路', ...arc(-38, Math.PI / 192, 0.6), outer: 34, inner: 56, high: 72 },
-      { name: '中路', ...sine(4, Math.PI / 104), outer: 26, inner: 50, high: 70 },
-      { name: '下路', ...arc(38, Math.PI / 192, 0.6), outer: 34, inner: 56, high: 72 },
+    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。开发中：电脑还只会各守一路。',
+    // frost holds the lower-left corner, ember the upper-right (the camera looks north, so -z is up the screen)
+    map: { hx: 80, hz: 80, ax: Math.SQRT1_2, az: -Math.SQRT1_2, biome: 1.24, mini: [168, 168] },
+    core: t => ({ x: sideSign(t) * 56, z: -sideSign(t) * 56 }), fountain: t => ({ x: sideSign(t) * 68, z: -sideSign(t) * 68 }),
+    lanes: () => [
+      pathLane('上路', [[-56, 56], [-65, 34], [-67, -46], [-46, -67], [34, -65], [56, -56]], [40, 72, 100]),
+      pathLane('中路', [[-56, 56], [-30, 27], [-3, 2], [3, -2], [30, -27], [56, -56]], [26, 46, 63]),
+      pathLane('下路', [[-56, 56], [-34, 65], [46, 67], [67, 46], [65, -34], [56, -56]], [40, 72, 100]),
     ], mid: 1,
-    river: { amp: 6, k: Math.PI * 1.5 / 58 },
+    river: () => { const p = polyline([[-74, -74], [-52, -56], [-36, -30], [-12, -14], [0, 0], [12, 14], [36, 30], [52, 56], [74, 74]]); return { path: p, dist: (x, z) => p.near(x, z)[0], signed: (x, z) => -p.near(x, z)[2], at: (t, o) => p.at(t * p.len, o) }; },
     camps: [
-      ...mirror([{ x: -44, z: -15, r: 6.5, kind: 'golem', n: 2 }, { x: -20, z: -19, r: 6.5, kind: 'golem', n: 2 }, { x: -44, z: 15, r: 6.5, kind: 'golem', n: 2 }, { x: -20, z: 19, r: 6.5, kind: 'golem', n: 2 }]),
-      { x: 2.5, z: -19, r: 8, kind: 'guardian', n: 1 }, { x: -2.5, z: 19, r: 8, kind: 'guardian', n: 1 },
+      ...mirror([{ x: -44, z: 8, r: 6.5, kind: 'golem', n: 2 }, { x: -40, z: -22, r: 6.5, kind: 'golem', n: 2 }, { x: -8, z: 44, r: 6.5, kind: 'golem', n: 2 }, { x: 22, z: 40, r: 6.5, kind: 'golem', n: 2 }]),
+      { x: -26, z: -24, r: 8, kind: 'guardian', n: 1 }, { x: 26, z: 24, r: 8, kind: 'guardian', n: 1 },
     ],
     brush: mirror([
-      { x: -12, z: -28.5, r: 3.4 }, { x: -12, z: 28.5, r: 3.4 }, { x: -14, z: 9.5, r: 3.4 }, { x: -14, z: -9.5, r: 3.2 },
-      { x: -31, z: -22, r: 3.4 }, { x: -31, z: 22, r: 3.4 }, { x: -9, z: -47, r: 3.4 }, { x: -9, z: 47, r: 3.4 },
-      { x: -56, z: -9, r: 3.2 }, { x: -56, z: 9, r: 3.2 },
+      { x: -14, z: -1, r: 3.3 }, { x: -1, z: 14, r: 3.3 }, { x: -54, z: -34, r: 3.4 }, { x: -34, z: -54, r: 3.4 },
+      { x: -33, z: 12, r: 3.3 }, { x: -8, z: 34, r: 3.3 }, { x: -51, z: -3, r: 3.3 }, { x: 3, z: 53, r: 3.3 },
+      { x: -47, z: -31, r: 3.3 }, { x: -22, z: -8, r: 3.2 },
     ]),
     // 三路's own numbers. Everything not named here falls back to the shared table.
     tune: { waveEvery: 28, coreHp: 5200, lateAt: 720, lateK: 0.3, respawnK: 1.15, startGold: 300 },
@@ -56,21 +81,16 @@ export const MODES = {
 };
 
 export let MODE = MODES.single;
-export const MAP = { hx: 80, hz: 48, core: 64, fountain: 75, biome: 1 };
-export const LANES = [], CAMPS = [], BRUSH = [], TOWERS = [], RIVER = { amp: 6, k: 1 };
-export let MID = 0;
-export const laneZ = (x, lane = MID) => LANES[lane].f(x);
-// distance from a point to a lane's centre line, and which lane is nearest (the side lanes are steep near the bases, so the
-// plain difference in z is corrected by the slope)
-export const laneDist = (x, z, lane) => { const L = LANES[lane]; if (L.type === 'arc' && Math.abs(x) > MAP.core + 1) return 1e9; const s = L.slope(x); return Math.abs(z - L.f(x)) / Math.sqrt(1 + s * s); };   // the side lanes end at the bases
-export const nearestLane = (x, z) => { let best = 0, bd = 1e9; for (let i = 0; i < LANES.length; i++) { const d = laneDist(x, z, i); if (d < bd) { bd = d; best = i; } } return best; };
-export const riverX = z => RIVER.amp * Math.sin(z * RIVER.k);
-
-export const POS = {
-  core: t => ({ x: sideSign(t) * MAP.core, z: laneZ(sideSign(t) * MAP.core) }),
-  fountain: t => ({ x: sideSign(t) * MAP.fountain, z: laneZ(sideSign(t) * MAP.fountain) }),
-  tower: (t, tier, lane = MID) => { const L = LANES[lane], x = sideSign(t) * (tier === 1 ? L.outer : tier === 2 ? L.inner : L.high); return { x, z: L.f(x) + (t === FROST ? 3.4 : -3.4) }; },
-};
+export const MAP = { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126] };
+export const LANES = [], CAMPS = [], BRUSH = [], TOWERS = [];
+export let MID = 0, RIVER = null;
+export const laneZ = (x, lane = MID) => LANES[lane].f(x);            // 一路 only
+// where a point sits between the two bases: negative toward frost, positive toward ember
+export const sideOf = (x, z) => x * MAP.ax + z * MAP.az;
+export const biomeX = (x, z) => (x * MAP.ax + z * MAP.az) / MAP.biome;
+export const biomeGLSL = (v, zc = 'z') => (MAP.az === 0 && MAP.biome === 1 ? `${v}.x` : `((${v}.x * ${MAP.ax.toFixed(6)} + ${v}.${zc} * ${MAP.az.toFixed(6)}) / ${MAP.biome.toFixed(6)})`);
+export const nearestLane = (x, z) => { let best = 0, bd = 1e9; for (let i = 0; i < LANES.length; i++) { const d = LANES[i].dist(x, z); if (d < bd) { bd = d; best = i; } } return best; };
+export const POS = { core: t => MODE.core(t), fountain: t => MODE.fountain(t) };
 export const brushAt = (x, z, pad = 0) => { for (let i = 0; i < BRUSH.length; i++) { const b = BRUSH[i], dx = x - b.x, dz = z - b.z, r = b.r + pad; if (dx * dx + dz * dz < r * r) return i; } return -1; };
 
 export const TEAM_NAME = ['霜', '烬'];
@@ -296,11 +316,11 @@ export const T = { ...T_BASE };
 // module that imported them keeps working with the new ground under it. The world has to be rebuilt afterwards.
 export function setMode(id) {
   const m = MODES[id] || MODES.single; MODE = m; MID = m.mid;
-  Object.assign(MAP, m.map); Object.assign(RIVER, m.river);
-  LANES.length = 0; LANES.push(...m.lanes); CAMPS.length = 0; CAMPS.push(...m.camps); BRUSH.length = 0; BRUSH.push(...m.brush);
+  Object.assign(MAP, m.map); RIVER = m.river();
+  LANES.length = 0; LANES.push(...m.lanes()); CAMPS.length = 0; CAMPS.push(...m.camps); BRUSH.length = 0; BRUSH.push(...m.brush);
   for (const k of Object.keys(T)) delete T[k]; Object.assign(T, T_BASE, m.tune);
   TOWERS.length = 0;
-  for (const team of [FROST, EMBER]) m.lanes.forEach((L, lane) => { for (const tier of L.high ? [1, 2, 3] : [1, 2]) TOWERS.push({ team, lane, tier, ...POS.tower(team, tier, lane) }); });
+  for (const team of [FROST, EMBER]) LANES.forEach((L, lane) => L.towers.forEach((_, i) => { const s = L.towerS(team, i + 1); TOWERS.push({ team, lane, tier: i + 1, s, ...L.at(s, L.towerOff(team)) }); }));
   return m;
 }
 setMode('single');

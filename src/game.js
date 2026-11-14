@@ -1,5 +1,5 @@
 // game.js — rules of the match: units, combat, abilities, minion waves, towers, jungle camps, economy, bot AI.
-import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, laneZ, POS, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
+import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, POS, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
 import { clamp, dist, dist2, angLerp, lerp } from './util.js';
 import * as THREE from 'three';
 import { createVfx } from './vfx.js';
@@ -49,10 +49,12 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     h.sayT = sayAt = G.t; fx.say(h.x, h.h + 1.6, h.z, set[Math.floor(Math.random() * set.length)], h.team === G.player.team);
   }
   // ---------------- units ----------------
+  const faceOf = team => (team === EMBER ? Math.PI : 0) + Math.atan2(MAP.az, MAP.ax);      // looking at the other base
+  const spawnAt = (team, k) => { const f = POS.fountain(team), a = team === FROST ? 2 : -2; return { x: f.x + MAP.ax * a - MAP.az * k, z: f.z + MAP.az * a + MAP.ax * k }; };
   function unit(kind, team, x, z, s) {
     const e = {
       id: ++uid, kind, team, x, z, y: 0, px: x, pz: z, vx: 0, vz: 0, r: s.r, h: s.h, hp: s.hp, maxHp: s.hp, alive: true, ad: s.ad || 0, ap: 0, range: s.range || 0, period: s.period || 1, wind: s.wind || 0.3, ms: s.ms || 0, ranged: !!s.ranged,
-      facing: team === EMBER ? Math.PI : 0, target: null, atkT: 0, windT: -1, slowT: 0, slowPct: 0, stunT: 0, shield: 0, shieldT: 0, hasteT: 0, hasteMs: 0, hasteAs: 0, moving: false, curSpeed: 0, flash: 0, tauntT: 0, taunter: null, knock: null, hitK: 0, hitX: 0, hitZ: 0, barShown: 1, barLag: 1, lagT: 0, healT: 0, cutK: 0, animAtk: 0, animCast: 0, combatT: 9, brush: -1, hid: false, revealT: 0, view: null, think: Math.random() * 0.3, goneT: 0,
+      facing: faceOf(team), target: null, atkT: 0, windT: -1, slowT: 0, slowPct: 0, stunT: 0, shield: 0, shieldT: 0, hasteT: 0, hasteMs: 0, hasteAs: 0, moving: false, curSpeed: 0, flash: 0, tauntT: 0, taunter: null, knock: null, hitK: 0, hitX: 0, hitZ: 0, barShown: 1, barLag: 1, lagT: 0, healT: 0, cutK: 0, animAtk: 0, animCast: 0, combatT: 9, brush: -1, hid: false, revealT: 0, view: null, think: Math.random() * 0.3, goneT: 0,
     };
     G.units.push(e); return e;
   }
@@ -70,7 +72,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   for (const team of [FROST, EMBER]) {
     const mk = td => {
       const tier = td.tier, tw = unit('tower', team, td.x, td.z, { r: 2.5, h: 12.3, hp: T.towerHp * (tier === 3 ? 1.3 : tier === 2 ? 1.15 : 1), ad: T.towerAd, range: T.towerRange, period: T.towerPeriod, ranged: true });
-      tw.tier = tier; tw.lane = td.lane; tw.ramp = 0; tw.view = M.tower(team, td.x, td.z); tw.warn = fx.decalMesh(3, T.towerRange * 2 / 0.88, [1.6, 0.2, 0.1], 0.9); tw.warn.position.set(td.x, 0.09, td.z); tw.warn.visible = false; M.root.add(tw.warn); tw.beam = fx.beamMesh(); M.root.add(tw.beam);
+      tw.tier = tier; tw.lane = td.lane; tw.s = td.s; tw.ramp = 0; tw.view = M.tower(team, td.x, td.z); tw.warn = fx.decalMesh(3, T.towerRange * 2 / 0.88, [1.6, 0.2, 0.1], 0.9); tw.warn.position.set(td.x, 0.09, td.z); tw.warn.visible = false; M.root.add(tw.warn); tw.beam = fx.beamMesh(); M.root.add(tw.beam);
       tw.name = LANES[td.lane].name + ['外', '内', '高地'][tier - 1] + '塔'; return tw;
     };
     const c = POS.core(team), core = unit('core', team, c.x, c.z, { r: 5.4, h: 12.5, hp: T.coreHp }); core.view = M.core(team, c.x, c.z); core.name = '阵眼';
@@ -127,8 +129,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   }
   const N = MODE.team, slotZ = slot => (slot - (N - 1) / 2) * 2.8;
   function makeHero(defId, team, isPlayer, slot, lane = 0, laneOff = slotZ(slot)) {
-    const d = HEROES[defId], f = POS.fountain(team);
-    const h = unit('hero', team, f.x - (team === FROST ? -2 : 2), f.z + slotZ(slot), { r: 0.95 + (d.size - 1.3) * 0.38, h: d.size * 3.55 + 0.35 + (d.tall || 0), hp: d.hp, ad: d.ad, range: d.range, period: d.period, wind: d.wind, ms: d.ms, ranged: d.ranged });
+    const d = HEROES[defId], sp = spawnAt(team, slotZ(slot));
+    const h = unit('hero', team, sp.x, sp.z, { r: 0.95 + (d.size - 1.3) * 0.38, h: d.size * 3.55 + 0.35 + (d.tall || 0), hp: d.hp, ad: d.ad, range: d.range, period: d.period, wind: d.wind, ms: d.ms, ranged: d.ranged });
     Object.assign(h, { def: d, name: d.name, isPlayer, level: 1, xp: 0, gold: T.startGold, mana: d.mana, maxMana: d.mana, items: [], ranks: [0, 0, 0, 0], sp: 1, cds: [0, 0, 0, 0], kills: 0, deaths: 0, assists: 0, respawnT: 0, order: null, dash: null, dmgLog: new Map(), ls: 0, cdr: 0, multi: 0, multiT: -99, pStack: 0, pT: 0, pCd: 0, pTgt: null, atHome: true, dealt: 0, earned: T.startGold, recallT: 0, recallFx: null, slot, ai: { state: 'lane', lane, castLock: 1.5 + Math.random() * 2, laneOff, ambushAt: 28 + Math.random() * 30, jungleAt: 45 + Math.random() * 30, shopAt: 0, sly: team === FROST || Math.random() < (diff.react > 1.5 ? 0.4 : 1), nose: team === FROST ? 0.7 : diff.react > 1.5 ? 0.35 : diff.react > 1 ? 0.7 : 1 } });
     const tg = TEAM_COL[team].glow, mix = [tg[0] * 0.38 + d.tint[0] * 0.62, tg[1] * 0.38 + d.tint[1] * 0.62, tg[2] * 0.38 + d.tint[2] * 0.62], mx = Math.max(mix[0], mix[1], mix[2]);
     h.fxCol = [mix[0] / mx, mix[1] / mx, mix[2] / mx]; h.lsBuff = 0;
@@ -524,12 +526,12 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (h.recallT > 0) return;
     const f = POS.fountain(h.team); h.recallT = 0; G.recalls++; if (h.recallFx) { fx.release(h.recallFx); h.recallFx = null; }
     if (shown) { fx.pillar(h.x, h.z, 1.8, 13, c, 0.5); fx.ringWave(h.x, h.z, 9, c, 0.5); }
-    h.x = f.x - (h.team === FROST ? -2 : 2); h.z = f.z + slotZ(h.slot); h.order = null; h.target = null; h.facing = h.team === EMBER ? Math.PI : 0; h.ai.state = 'lane'; h.atHome = true;
+    { const sp = spawnAt(h.team, slotZ(h.slot)); h.x = sp.x; h.z = sp.z; } h.order = null; h.target = null; h.facing = faceOf(h.team); h.ai.state = 'lane'; h.atHome = true;
     if (near(h) || h.isPlayer) { fx.pillar(h.x, h.z, 1.8, 13, c, 0.5); fx.ringWave(h.x, h.z, 9, c, 0.6); }
     if (h.isPlayer) audio.play('arrive'); else audio.play('arrive', h.x, h.z, 0.6);
   }
   function respawn(h) {
-    const f = POS.fountain(h.team); h.x = f.x - (h.team === FROST ? -2 : 2); h.z = f.z + slotZ(h.slot); h.alive = true; h.atHome = true; h.hp = h.maxHp; h.mana = h.maxMana; h.barShown = h.barLag = 1; h.order = null; h.facing = h.team === EMBER ? Math.PI : 0; h.ai.state = 'lane';
+    const sp = spawnAt(h.team, slotZ(h.slot)); h.x = sp.x; h.z = sp.z; h.alive = true; h.atHome = true; h.hp = h.maxHp; h.mana = h.maxMana; h.barShown = h.barLag = 1; h.order = null; h.facing = faceOf(h.team); h.ai.state = 'lane';
     fx.ringWave(h.x, h.z, 9, TEAM_COL[h.team].glow, 0.7); for (let k = 0; k < 30; k++) fx.spark(h.x + (Math.random() - 0.5) * 1.5, Math.random() * 2, h.z + (Math.random() - 0.5) * 1.5, 0, 6 + Math.random() * 10, 0, TEAM_COL[h.team].glow, 0.7, 0.9);
     if (h.isPlayer) { audio.play('level'); G.focus.x = h.x; G.focus.z = h.z; }
   }
@@ -588,13 +590,14 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (h.sp > 0) for (const i of [3, ...[0, 1, 2].filter(k => h.ranks[k] === 0), 0, 2, 1]) if (learn(h, i)) break;   // the ultimate first, then one rank in everything, then depth
     if (h.gold >= 300) botShop(h);
     let eh = null, ehD = 1e9, em = null, emD = 1e9, nEH = 0, nAH = 0, nEM = 0, front = dir > 0 ? -1e9 : 1e9, hasFront = false;
-    const etw = frontStruct(1 - team, ai.lane), twR = etw.kind === 'tower' ? etw.range : 6, lz = x => laneZ(x, ai.lane);
+    const etw = frontStruct(1 - team, ai.lane), twR = etw.kind === 'tower' ? etw.range : 6, L = LANES[ai.lane];
+    const sOf = st => (st.kind === 'core' ? (st.team === FROST ? L.s0 : L.s1) : st.s), pj = q => (L.func ? q.x : L.proj(q.x, q.z)), at = s => L.at(s, ai.laneOff), hs = pj(h), es = sOf(etw);
     let alliesAtTw = 0;
     for (const u of G.units) {
       if (!u.alive || u === h) continue; const d = dist(h, u);
       if (u.team === team) {
         if (u.kind === 'hero' && d < 14) nAH++;
-        if (u.kind === 'minion' && u.lane === ai.lane) { hasFront = true; front = dir > 0 ? Math.max(front, u.x) : Math.min(front, u.x); if (dist(u, etw) < twR + 1) alliesAtTw++; }
+        if (u.kind === 'minion' && u.lane === ai.lane) { const us = L.func ? u.x : u.s; hasFront = true; front = dir > 0 ? Math.max(front, us) : Math.min(front, us); if (dist(u, etw) < twR + 1) alliesAtTw++; }
       } else if (u.hid) continue;
       else if (u.kind === 'hero') { if (d < 16) nEH++; if (d < ehD) { ehD = d; eh = u; } }
       else if (u.kind === 'minion') { if (d < 12) nEM++; if (d < emD) { emD = d; em = u; } }
@@ -612,16 +615,16 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     // now and then, lie in wait in the grass beside the lane
     if (ai.state === 'lane' && G.t > ai.ambushAt) {
       ai.ambushAt = G.t + 22 + Math.random() * 26;
-      if (ai.sly && hpF > 0.6 && !eh && hasFront) { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b); if (d < bd && dir * (b.x - front) < 5 && !danger(b)) { bd = d; best = b; } } if (best) { G.botStat.ambush++; ai.state = 'ambush'; ai.amb = best; ai.ambUntil = G.t + 8 + Math.random() * 6; } }
+      if (ai.sly && hpF > 0.6 && !eh && hasFront) { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } if (best) { G.botStat.ambush++; ai.state = 'ambush'; ai.amb = best; ai.ambS = pj(best); ai.ambUntil = G.t + 8 + Math.random() * 6; } }
     }
-    if (ai.state === 'ambush' && (G.t > ai.ambUntil || hpF < 0.5 || (eh && ehD < h.range + 5) || (h.combatT < 0.4 && !h.hid) || !hasFront || Math.abs(front - ai.amb.x) > 18)) ai.state = 'lane';   // time is up, or the prey has come
+    if (ai.state === 'ambush' && (G.t > ai.ambUntil || hpF < 0.5 || (eh && ehD < h.range + 5) || (h.combatT < 0.4 && !h.hid) || !hasFront || Math.abs(front - ai.ambS) > 18)) ai.state = 'lane';   // time is up, or the prey has come
     const ambush = ai.state === 'ambush';
     // the woods: when the lane is quiet and holding, one of the side slips off to clear a camp on its own half
-    const campUp = c => c.units.some(u => u.alive), holding = hasFront && dir * (front - ownS.x) > 8;
+    const campUp = c => c.units.some(u => u.alive), holding = hasFront && dir * (front - sOf(ownS)) > 8;
     if (ai.state === 'lane' && G.t > ai.jungleAt) {
       ai.jungleAt = G.t + 25 + Math.random() * 25;
       if (hpF > 0.7 && !eh && h.level >= 2 && h.def.id !== 'healer' && holding && !G.heroes.some(o => o !== h && o.team === team && o.alive && o.ai.state === 'jungle')) {
-        let best = null, bd = 48; for (const c of G.camps) { if (c.c.kind === 'guardian' || dir * c.c.x > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } }
+        let best = null, bd = 48; for (const c of G.camps) { if (c.c.kind === 'guardian' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } }
         if (best) { ai.state = 'jungle'; ai.camp = best; ai.jungleUntil = G.t + 28; G.botStat.jungle++; }
       }
     }
@@ -639,22 +642,22 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const woods = ai.state === 'jungle' || ai.state === 'guardian';
     let dodged = false;
     for (const z of G.zones) if (z.team !== team && dist2(h.x, h.z, z.x, z.z) < z.r + 0.8 && Math.random() < (team === EMBER ? 0.75 / diff.react : 0.6)) {
-      let ox = h.x - z.x, oz = h.z - z.z; const d = Math.hypot(ox, oz) || 1; if (d < 0.5) { ox = -dir; oz = 0; }
+      let ox = h.x - z.x, oz = h.z - z.z; const d = Math.hypot(ox, oz) || 1; if (d < 0.5) { const tn = L.tan(hs); ox = -dir * tn.x; oz = -dir * tn.z; }
       h.order = { type: 'move', x: z.x + ox / d * (z.r + 2.5), z: z.z + oz / d * (z.r + 2.5) }; dodged = true; break;
     }
     if (!dodged) {
       if (retreat) {   // run for home — or, with someone on your heels, duck into grass they are not closer to, and leave from there
         if ((!eh || (h.hid && ehD > 5)) && h.combatT > 2.5 && dist(h, f) > 42 && startRecall(h)) return;
         let hide = null;
-        if (eh && ehD < 13 && ai.sly) { if (h.hid) hide = h; else { let bd = 9; for (const b of BRUSH) { const d = dist(h, b); if (d < bd && dist(eh, b) > d + 2 && dir * (b.x - h.x) < 3) { bd = d; hide = b; } } } }
+        if (eh && ehD < 13 && ai.sly) { if (h.hid) hide = h; else { let bd = 9; for (const b of BRUSH) { const d = dist(h, b); if (d < bd && dist(eh, b) > d + 2 && dir * (pj(b) - hs) < 3) { bd = d; hide = b; } } } }
         if (hide && hide !== h && !ai.hiding) G.botStat.hide++; ai.hiding = !!hide;
         h.order = hide === h ? null : hide ? { type: 'move', x: hide.x, z: hide.z } : { type: 'move', x: f.x, z: f.z };
       }
-      else if (outnum && eh && ehD < 12 && dist(h, ownS) > 8 && !(eh.hp / eh.maxHp < 0.25 && ehD < h.range + 2)) { const bx = ownS.x + dir * 3; h.order = { type: 'move', x: bx, z: lz(bx) + ai.laneOff }; }
+      else if (outnum && eh && ehD < 12 && dist(h, ownS) > 8 && !(eh.hp / eh.maxHp < 0.25 && ehD < h.range + 2)) { const q = at(sOf(ownS) + dir * 3); h.order = { type: 'move', x: q.x, z: q.z }; }
       else if (woods && !eh) { let t = null, bd = 1e9; for (const u of ai.camp.units) if (u.alive) { const d = dist(h, u); if (d < bd) { bd = d; t = u; } } if (t) { h.order = { type: 'attack', target: t }; em = t; emD = bd; nEM = 3; } }
       else if (hunt) { if (!sn.counted) { sn.counted = true; G.botStat.hunt++; } const b = brushAt(sn.x, sn.z, 3.5), gx = b >= 0 ? BRUSH[b].x : sn.x, gz = b >= 0 ? BRUSH[b].z : sn.z; h.order = { type: 'move', x: gx, z: gz }; }
       else if (ambush) { h.order = dist(h, ai.amb) > 1.3 ? { type: 'move', x: ai.amb.x, z: ai.amb.z } : null; }
-      else if (danger(h) && !diveOK) { const bx = etw.x - dir * (twR + 4); h.order = { type: 'move', x: bx, z: lz(bx) + ai.laneOff }; }
+      else if (danger(h) && !diveOK) { const q = at(es - dir * (twR + 4)); h.order = { type: 'move', x: q.x, z: q.z }; }
       else {
         let tgt = null;
         if (eh && (!danger(eh) || (diveOK && eh.hp / eh.maxHp < 0.5)) && (ehD < h.range + 4 || eh.hp / eh.maxHp < 0.45 || !em)) tgt = eh;
@@ -664,9 +667,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         else if (ai.ping && G.t < ai.ping.until && (!danger(ai.ping) || diveOK)) { if (dist2(h.x, h.z, ai.ping.x, ai.ping.z) > 3.5) h.order = { type: 'move', x: ai.ping.x, z: ai.ping.z + ai.laneOff * 0.6 }; else h.order = null; }
         else {
           const own = frontStruct(team, ai.lane);
-          let gx = hasFront ? front - dir * (h.ranged ? 4.5 : 1.5) : own.x + dir * 4;
-          if (etw.kind === 'tower' && !diveOK) { const lim = etw.x - dir * (twR + 3.5); gx = dir > 0 ? Math.min(gx, lim) : Math.max(gx, lim); }
-          if (Math.abs(gx - h.x) > 1.2 || Math.abs(lz(gx) + ai.laneOff - h.z) > 2.5) h.order = { type: 'move', x: gx, z: lz(gx) + ai.laneOff }; else h.order = null;
+          let gs = hasFront ? front - dir * (h.ranged ? 4.5 : 1.5) : sOf(own) + dir * 4;
+          if (etw.kind === 'tower' && !diveOK) { const lim = es - dir * (twR + 3.5); gs = dir > 0 ? Math.min(gs, lim) : Math.max(gs, lim); }
+          const q = at(gs); if (Math.abs(gs - hs) > 1.2 || (!L.func && dist(h, q) > 3)) h.order = { type: 'move', x: q.x, z: q.z }; else h.order = null;
         }
       }
     }
@@ -700,10 +703,11 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // ---------------- minions, neutrals, towers ----------------
   function spawnMinion(team, type, off, lane = 0) {
     const s = T.minion[type], c = POS.core(team), dir = team === FROST ? 1 : -1, grow = 1 + 0.1 * (G.t / 60) + Math.max(0, G.t - T.lateAt) / 60 * T.lateK; // waves hit much harder after 6 minutes so matches always end
-    const sx = c.x + dir * (LANES.length > 1 ? 10 : 7), m = unit('minion', team, sx, (LANES.length > 1 ? laneZ(sx, lane) : c.z) + off, { ...s, hp: s.hp * grow, ad: s.ad * grow });
-    m.stats = s; m.off = off; m.type = type; m.lane = lane; m.view = M.minion(type, team);
+    const L = LANES[lane], sp = L.func ? { x: c.x + dir * 7, z: c.z + off } : L.at((team === FROST ? L.s0 : L.s1) + dir * 10, off), m = unit('minion', team, sp.x, sp.z, { ...s, hp: s.hp * grow, ad: s.ad * grow });
+    m.stats = s; m.off = off; m.type = type; m.lane = lane; m.s = L.proj(m.x, m.z); m.facing = faceOf(team); m.view = M.minion(type, team);
   }
   function updateMinion(m, dt) {
+    m.s = LANES[m.lane].proj(m.x, m.z);                                // how far along its lane
     m.moving = false; if (m.stunT > 0) return;
     m.think -= dt;
     if (m.think <= 0) {
@@ -714,7 +718,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     }
     if (m.tauntT > 0 && m.taunter) m.target = m.taunter;
     if (valid(m.target)) { if (!tryAttack(m, dt)) moveToward(m, m.target.x, m.target.z, dt); }
-    else { const dir = m.team === FROST ? 1 : -1, nx = m.x + dir * 3, core = G.structs[1 - m.team].core; if (Math.abs(core.x - m.x) < 8) moveToward(m, core.x, core.z, dt); else moveToward(m, nx, laneZ(nx, m.lane) + m.off, dt); }
+    else { const dir = m.team === FROST ? 1 : -1, L = LANES[m.lane], core = G.structs[1 - m.team].core; if (Math.abs((dir > 0 ? L.s1 : L.s0) - m.s) < 8) moveToward(m, core.x, core.z, dt); else { const q = L.at(m.s + dir * 3, m.off); moveToward(m, q.x, q.z, dt); } }
     tickAttack(m, dt);
   }
   function spawnCamp(camp) {

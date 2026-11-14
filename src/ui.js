@@ -1,5 +1,5 @@
 // ui.js — DOM HUD: title / hero select, score, hero console, shop, minimap, kill feed, end screen.
-import { HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, TIER_NAME, RANK, REALM, realmOf, T, MAP, MODE, MODES, LANES, laneZ, riverX, CAMPS, BRUSH, FROST, EMBER, NEUTRAL, TEAM_COL } from './config.js';
+import { HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, TIER_NAME, RANK, REALM, realmOf, T, MAP, MODE, MODES, LANES, RIVER, CAMPS, BRUSH, FROST, EMBER, NEUTRAL, TEAM_COL } from './config.js';
 import { skillIcon, itemIcon } from './icons.js';
 import { portrait } from './portraits.js';
 
@@ -48,6 +48,8 @@ export function createUI(isTouch, audio) {
   let skillEls = [], shopTiles = [], roster = [], scoreRows = [], scoreHead = [], lastItems = '', miniBg = null, miniT = 0, G = null, tipT = 0;
   ui.bind = (game, actions) => {
     G = game; const p = G.player, d = p.def; cache.clear(); lastItems = ''; miniBg = null;
+    el.mini.classList.toggle('sq', MAP.mini[0] === MAP.mini[1]); el.mini.width = MAP.mini[0] * 2; el.mini.height = MAP.mini[1] * 2;
+    requestAnimationFrame(() => el.hud.style.setProperty('--mh', Math.round(el.mini.getBoundingClientRect().height) + 'px'));   // things stacked under the minimap follow its height
     for (const [pe, t] of [[el.pipF, FROST], [el.pipE, EMBER]]) { pe.innerHTML = '<i></i>'.repeat(G.structs[t].list.length + 1); pe.classList.toggle('many', G.structs[t].list.length > 3); }
     el.pName.textContent = ''; el.portrait.style.backgroundImage = `url(${faceOf(p)})`;
     el.skills.innerHTML = d.skills.map((s, i) => `<div class="sk" data-i="${i}"><button type="button" class="up" hidden aria-label="提升">＋</button><button type="button" class="skill${i === 3 ? ' ult' : ''}" data-i="${i}" style="background-image:url(${icon(d, s)})"><span class="key">${s.key}</span><span class="nm">${s.name}</span><span class="cost">${s.mana}</span><span class="pips">${'<i></i>'.repeat(3)}</span><i class="cd"></i><b class="cdn"></b></button></div>`).join('');
@@ -117,9 +119,9 @@ export function createUI(isTouch, audio) {
     const X = x => (x + MAP.hx) * kx, Z = z => (z + MAP.hz) * kz;
     if (!miniBg) {
       miniBg = document.createElement('canvas'); miniBg.width = w; miniBg.height = h; const b = miniBg.getContext('2d');
-      const gr = b.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#1a2c44'); gr.addColorStop(0.5, '#12241a'); gr.addColorStop(1, '#3a1c12'); b.fillStyle = gr; b.fillRect(0, 0, w, h);
-      b.lineCap = 'round'; b.strokeStyle = '#1d5b68'; b.lineWidth = 9 * kx; b.beginPath(); for (let z = -MAP.hz; z <= MAP.hz; z += 2) b.lineTo(X(riverX(z)), Z(z)); b.stroke();
-      b.strokeStyle = '#5a5648'; b.lineWidth = (LANES.length > 1 ? 7 : 10) * kx; for (let i = 0; i < LANES.length; i++) { b.beginPath(); for (let x = -MAP.fountain; x <= MAP.fountain; x += 2) b.lineTo(X(x), Z(laneZ(x, i))); b.stroke(); }
+      const gr = MAP.az ? b.createLinearGradient(0, h, w, 0) : b.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#1a2c44'); gr.addColorStop(0.5, '#12241a'); gr.addColorStop(1, '#3a1c12'); b.fillStyle = gr; b.fillRect(0, 0, w, h);
+      b.lineCap = b.lineJoin = 'round'; b.strokeStyle = '#1d5b68'; b.lineWidth = 9 * kx; b.beginPath(); for (let t = 0; t <= 1.0001; t += 1 / 48) { const q = RIVER.at(Math.min(1, t), 0); b.lineTo(X(q.x), Z(q.z)); } b.stroke();
+      b.strokeStyle = '#5a5648'; b.lineWidth = (LANES.length > 1 ? 7 : 10) * kx; for (const L of LANES) { b.beginPath(); for (let k = 0; k <= 80; k++) { const q = L.at(L.s0 + (L.s1 - L.s0) * k / 80, 0); b.lineTo(X(q.x), Z(q.z)); } b.stroke(); }
       b.fillStyle = 'rgba(96,150,70,.5)'; for (const br of BRUSH) { b.beginPath(); b.arc(X(br.x), Z(br.z), br.r * kx, 0, 6.3); b.fill(); }
       b.fillStyle = 'rgba(255,214,110,.5)'; for (const cp of CAMPS) { b.beginPath(); b.arc(X(cp.x), Z(cp.z), cp.kind === 'guardian' ? 7 : 4.5, 0, 6.3); b.fill(); }
     }
