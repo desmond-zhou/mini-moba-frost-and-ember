@@ -123,7 +123,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     for (const it of h.items) { hp += it.hp || 0; ad += it.ad || 0; ap += it.ap || 0; ms += it.ms || 0; ls += it.ls || 0; cdr += it.cdr || 0; mana += it.mana || 0; as += it.as || 0; crit += it.crit || 0; sv += it.sv || 0; dr += it.dr || 0; regen += it.regen || 0; if (it.slowHit) slowHit = it.slowHit; }
     if (d.id === 'qingya') ls += 0.12;                                 // 独行
     if (hp > h.maxHp) h.hp += hp - h.maxHp; if (mana > h.maxMana) h.mana += mana - h.maxMana;
-    h.maxHp = hp; h.ad = ad; h.ap = ap; h.ms = ms; h.ls = ls; h.cdr = Math.min(cdr, 0.4); h.maxMana = mana; h.itemAs = as; h.critB = crit; h.sv = sv; h.dr = Math.min(dr, 0.3); h.regenB = regen; h.slowHit = slowHit;
+    h.maxHp = hp; h.ad = ad; h.ap = ap; h.ms = ms; h.ls = ls; h.cdr = Math.min(cdr, 0.4); h.maxMana = mana; h.itemAs = as; h.critB = crit; h.sv = sv; h.dr = Math.min(dr, 0.3); h.regenB = regen; h.slowHit = slowHit; h.pow = tn.pow || 1;   // pow: this mode's multiplier on what the cultivator's moves put out
   }
   // ---- items: what a purchase would cost given what is already in the bag, and making it ----
   function planBuy(id, pool) { const it = ITEMS[id]; let cost = it.cost; if (it.parts) for (const pid of it.parts) { const k = pool.indexOf(pid); if (k >= 0) pool.splice(k, 1); else cost += planBuy(pid, pool); } return cost; }
@@ -509,7 +509,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   }
 
   // ---------------- abilities ----------------
-  const skillDmg = (h, s, i) => (s.b + s.l * (h.level - 1) * 0.5) * rankOf(h, i).dmg[Math.max(1, h.ranks[i]) - 1] + (s.ad || 0) * h.ad + (s.ap || 0) * h.ap;
+  const skillDmg = (h, s, i) => ((s.b + s.l * (h.level - 1) * 0.5) * rankOf(h, i).dmg[Math.max(1, h.ranks[i]) - 1] + (s.ad || 0) * h.ad + (s.ap || 0) * h.ap) * (h.pow || 1);
   const canCast = (h, i) => { const s = h.def.skills[i]; return h.alive && !h.dash && h.stunT <= 0 && h.cds[i] <= 0 && h.mana >= s.mana && h.ranks[i] > 0 && !(h.tauntT > 0) && !G.over; };
   function cast(h, i, ax, az) {
     if (!canCast(h, i)) return false;
@@ -693,7 +693,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const wasBack = ai.state === 'retreat';
     if (ai.state === 'retreat') { if (hpF > 0.8) ai.state = 'lane'; } else if (hpF < (h.def.id === 'shade' || h.def.id === 'qingya' || h.def.id === 'wenren' ? 0.36 : 0.27) || (hpF < 0.45 && nEH > nAH + 1)) ai.state = 'retreat';
     const retreat = ai.state === 'retreat', outnum = nEH > nAH + 1, ownS = frontStruct(team, ai.lane);
-    if (retreat && !wasBack) chat(h, eh ? '顶不住了，我先撤' : '我回去歇口气'); else if (outnum && eh && ehD < 12 && LANES.length > 1) chat(h, `${LANES[ai.lane].name}对面人多，来个人`);
+    if (retreat && !wasBack) chat(h, eh ? '顶不住了，我先撤' : '我回去歇口气'); else if (outnum && eh && ehD < 12) chat(h, `${LANES[ai.lane].name || '这边'}对面人多，来个人`);
     // the last enemy hero we had eyes on: if they slip into the grass, the bolder bots go in after them
     if (eh) { const s0 = ai.seen; ai.seen = { u: eh, x: eh.x, z: eh.z, t: G.t, go: s0 && s0.u === eh && G.t - s0.t < 4 ? s0.go : Math.random() < ai.nose }; }
     const sn = ai.seen, hunt = !eh && !retreat && sn && sn.go && G.t - sn.t < 4 && sn.u.alive && sn.u.hid && hpF > 0.45 && (!danger(sn) || diveOK);
@@ -868,8 +868,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const tp = G.plan[team]; if (G.t < tp.next) return; tp.next = G.t + 1; const en = 1 - team;
     for (const r of G.mem[team].records) {                               // someone we were watching has not been seen for a while: say so, once
       const e = r.entity; if (!e.alive || r.visible || r.called || G.t - r.timeLastSensed < 9 || G.t - r.timeLastSensed > 20) continue; r.called = true;
-      const ln = nearestLane(r.lastSensedPosition.x, r.lastSensedPosition.z), sp = G.heroes.find(h => h.team === team && h.alive && !h.isPlayer && h.ai.lane === ln); if (sp) chat(sp, `${LANES[ln].name}的${e.name}不见了，小心`);
+      const ln = nearestLane(r.lastSensedPosition.x, r.lastSensedPosition.z), sp = G.heroes.find(h => h.team === team && h.alive && !h.isPlayer && h.ai.lane === ln); if (sp) chat(sp, LANES[ln].name ? `${LANES[ln].name}的${e.name}不见了，小心` : `${e.name}不见了，小心草丛`);
     }
+    if (LANES.length < 2) return;                                      // one lane: nothing to plan
     let siege = -1; for (let ln = 0; ln < LANES.length; ln++) { const tw = frontStruct(team, ln); if (tw.kind === 'tower' && tw.tier === 1) continue; let c = 0; for (const e of G.heroes) if (e.team === en && e.alive && !e.hid && dist(e, tw) < 24) c++; if (c >= 3) siege = ln; }
     if (siege >= 0) { if (tp.mode !== 'group' || tp.lane !== siege) { const sp = G.heroes.find(h => h.team === team && h.alive && !h.isPlayer); if (sp) chat(sp, `${LANES[siege].name}被压了，回防！`, true); } tp.mode = 'group'; tp.lane = siege; tp.until = Math.max(tp.until, G.t + 10); return; }
     if (tp.mode === 'group') { if (G.t > tp.until) { tp.mode = 'rest'; tp.until = G.t + clamp(34 - (G.t - T.groupAt) / 25, 10, 34); } return; }
@@ -1022,7 +1023,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       for (let i = G.spawnQ.length - 1; i >= 0; i--) if (G.spawnQ[i].t <= G.t) { const q = G.spawnQ[i]; G.spawnQ.splice(i, 1); spawnMinion(q.team, q.type, q.off, q.lane); }
       for (const c of G.camps) if (c.respawnT > 0) { c.respawnT -= dt; if (c.respawnT <= 0) spawnCamp(c); }
       if (G.rally && !G.player.alive) G.setRally(false);               // the order falls with the one who gave it
-      if (LANES.length > 1) { teamThink(FROST); teamThink(EMBER); }
+      teamThink(FROST); teamThink(EMBER);
       if (T.bossAt && !G.bossUp && G.t >= T.bossAt) {                  // 渊主残念 rises in the upper pit, whatever was there
         G.bossUp = true; const camp = G.camps.find(c => c.c.kind === 'guardian');
         if (camp) { for (const u of camp.units) if (u.alive) { u.alive = false; u.hp = 0; u.goneT = 0; } camp.respawnT = 0; spawnCamp(camp); ui.announce('渊主残念现世', ''); audio.play('horn'); G.pings.push({ x: camp.c.x, z: camp.c.z, t: G.t, type: 'attack' }); fx.pillar(camp.c.x, camp.c.z, 3, 26, [1.6, 0.1, 0.2], 1.6); }
@@ -1044,7 +1045,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         e.hid = !(sight && bush);
       }
       if (FOG && (fogT -= dt) <= 0) { fogT = 0.12; paintFog(); }
-      if (LANES.length > 1) for (const e of G.heroes) { if (!e.alive) continue; const m = G.mem[1 - e.team]; if (!e.hid) { if (!m.hasRecord(e)) m.createRecord(e); const r = m.getRecord(e); r.timeLastSensed = G.t; r.lastSensedPosition.set(e.x, 0, e.z); r.visible = true; r.called = false; } else if (m.hasRecord(e)) m.getRecord(e).visible = false; }
+      for (const e of G.heroes) { if (!e.alive) continue; const m = G.mem[1 - e.team]; if (!e.hid) { if (!m.hasRecord(e)) m.createRecord(e); const r = m.getRecord(e); r.timeLastSensed = G.t; r.lastSensedPosition.set(e.x, 0, e.z); r.visible = true; r.called = false; } else if (m.hasRecord(e)) m.getRecord(e).visible = false; }
       while (G.pings.length && G.t - G.pings[0].t > 4) G.pings.shift();
       while (sayQ.length && sayQ[0].at <= G.t) { const q = sayQ.shift(); if (q.h.alive) say(q.h, 'kill', q.chance); }
       for (const e of G.units) {

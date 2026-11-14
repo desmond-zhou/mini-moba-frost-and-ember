@@ -491,12 +491,12 @@ export function createWorld(R) {
       const ring = (o, R, other, Ro) => { const n = Math.round(6.2832 * R / 2.75); for (let i = 0; i < n; i++) { const a = i / n * 6.2832, x = o.x + Math.cos(a) * R, z = o.z + Math.sin(a) * R;
         if (Math.hypot(x - other.x, z - other.z) < Ro - 0.3 || Math.abs(x) > MAP.hx + 6 || Math.abs(z) > MAP.hz + 6) continue;       // inside the other circle, or off the map
         let open = false; for (const L of LANES) if (L.dist(x, z) < 8.6) open = true; if (open) continue;                        // the lanes come through here
-        walls[team].push({ x, z, s: 1, ry: -a + Math.PI / 2, c: tint }); if (RIDGES.length) W.walls.push({ x, z, r: 1.45 }); } };
+        walls[team].push({ x, z, s: 1, ry: -a + Math.PI / 2, c: tint }); if (MODE.solid) W.walls.push({ x, z, r: 1.45 }); } };
       ring(c, Rc, f, Rf); ring(f, Rf, c, Rc);
       for (const L of LANES) {                                           // the gate stands where the lane crosses the edge of the precinct
         const from = team === FROST ? L.s0 : L.s1, dir = team === FROST ? 1 : -1; let s = from, q = L.at(s, 0);
         for (let k = 0; k < 400 && Math.min(Math.hypot(q.x - c.x, q.z - c.z), Math.hypot(q.x - f.x, q.z - f.z) + MAP.baseF) < MAP.base + 0.9; k++) { s += dir * 0.25; q = L.at(s, 0); }
-        const t = L.tan(s); gates[team].push({ x: q.x, z: q.z, s: 1, ry: Math.atan2(-t.x, -t.z), c: tint }); if (RIDGES.length) for (const sd of [-7.4, 7.4]) W.walls.push({ x: q.x - t.z * sd, z: q.z + t.x * sd, r: 0.95 });
+        const t = L.tan(s); gates[team].push({ x: q.x, z: q.z, s: 1, ry: Math.atan2(-t.x, -t.z), c: tint }); if (MODE.solid) for (const sd of [-7.4, 7.4]) W.walls.push({ x: q.x - t.z * sd, z: q.z + t.x * sd, r: 0.95 });
       }
     }
     // 血魂宗's fence is a row of tusks leaning outward from a black sill; its gates are two obsidian spires hung with chains,

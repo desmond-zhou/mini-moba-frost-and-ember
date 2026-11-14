@@ -38,7 +38,7 @@ const mirror = list => list.flatMap(b => (b.x === 0 && b.z === 0 ? [b] : [b, { .
 const sineZ = x => 10 * Math.sin(x * Math.PI / 80), sineRiver = z => 6 * Math.sin(z * Math.PI * 1.5 / 48);
 export const MODES = {
   single: {
-    id: 'single', name: '一路 · 速战', team: 3, blurb: '一条路，3 对 3，十五分钟上下。',
+    id: 'single', name: '一路 · 速战', team: 3, blurb: '一条路，3 对 3，十五分钟上下。河道上下各有一个目标，十一分钟后渊主残念现世。',
     map: { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126], base: 15, baseF: 4 },
     core: t => ({ x: sideSign(t) * 64, z: sineZ(sideSign(t) * 64) }), fountain: t => ({ x: sideSign(t) * 75, z: sineZ(sideSign(t) * 75) }),
     lanes: () => [{ ...funcLane('', sineZ, 64, [24, 46]), glsl: '10.0 * sin(p.x * 0.0392699)' }], mid: 0,
@@ -46,7 +46,7 @@ export const MODES = {
     camps: [
       { x: -30, z: 25, r: 7, kind: 'golem', n: 2 }, { x: 30, z: -25, r: 7, kind: 'golem', n: 2 },
       { x: -15, z: -28, r: 7, kind: 'golem', n: 2 }, { x: 15, z: 28, r: 7, kind: 'golem', n: 2 },
-      { x: -1.5, z: 36, r: 9, kind: 'guardian', n: 1 },
+      { x: -1.5, z: 36, r: 9, kind: 'guardian', n: 1 }, { x: 1.5, z: -36, r: 9, kind: 'puppet', n: 1 },   // upper river: 镇渊傀; lower: 血海残魂, later 渊主残念
     ],
     brush: [
       { x: -15, z: -15.4, r: 3.6 }, { x: 15, z: 15.4, r: 3.6 }, { x: -13, z: 4.6, r: 3.4 }, { x: 13, z: -4.6, r: 3.4 },
@@ -54,10 +54,10 @@ export const MODES = {
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
     // 一路's own nudges, set after the bots started playing their roles (v1.2.0-alpha.3). Shared numbers stay as they are.
-    tune: {}, heroTune: { healer: { hp: 1.1, ap: 1.18 }, yanzhao: { hp: 1.06, ap: 1.1 }, wenren: { hp: 1.12, ad: 1.08 }, qingya: { hp: 1.06, ad: 1.04 }, shade: { hp: 1.05 }, keeper: { hp: 1.04 }, storm: { ap: 0.95 }, mage: { ap: 0.96 }, ranger: { ad: 0.96 } },
+    tune: { bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, heroTune: { warden: { ad: 1.02 }, keeper: { ad: 0.97, hp: 1.03 }, peiji: { ad: 0.97 }, bloodlord: { ad: 0.97, hp: 0.98 }, berserker: { ad: 1.04, hp: 1.02 }, qingya: { ad: 1.04, hp: 1.06 }, shade: { ad: 1.04, hp: 1.08 }, wenren: { ad: 1.13, hp: 1.12 }, ranger: { ad: 0.92, hp: 0.97 }, gunner: { ad: 0.93, hp: 0.96 }, mage: { ap: 0.95, hp: 0.98 }, cryo: { ap: 0.92, hp: 0.96 }, storm: { hp: 1.02 }, healer: { pow: 1.08, hp: 1.12 }, yanzhao: { ap: 1.08, hp: 1.05 }, yuanshan: { ap: 0.97, hp: 0.98 } },
   },
   tri: {
-    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。野区有山脊相隔，河道有血海残魂与镇渊傀，十五分钟后渊主残念现世。',
+    id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, solid: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。野区有山脊相隔，河道有血海残魂与镇渊傀，十五分钟后渊主残念现世。',
     // frost holds the lower-left corner, ember the upper-right (the camera looks north, so -z is up the screen)
     map: { hx: 80, hz: 80, ax: Math.SQRT1_2, az: -Math.SQRT1_2, biome: 1.24, mini: [168, 168], base: 25, baseF: 13 },   // base: radius of each sect's precinct
     core: t => ({ x: sideSign(t) * 56, z: -sideSign(t) * 56 }), fountain: t => ({ x: sideSign(t) * 68, z: -sideSign(t) * 68 }),
@@ -93,7 +93,7 @@ export const MODES = {
       bossAt: 900,                                                     // 渊主残念 takes over the upper pit from here on
       surge: { puppet: [1.4, 55], abyss: [2.0, 90] },                 // how much stronger the side's disciples get, and for how long
     },
-    heroTune: { keeper: { hp: 1.06 }, storm: { hp: 1.04, ap: 1.06 }, mage: { ap: 1.05 }, yuanshan: { ap: 1.05 } },   // multipliers on base stats, this mode only
+    heroTune: { warden: { ad: 0.95 }, keeper: { hp: 1.06 }, peiji: { ad: 1.02 }, bloodlord: { ad: 0.95 }, berserker: { ad: 1.02 }, qingya: { ad: 0.98 }, wenren: { ad: 1.05, hp: 1.04 }, linshuang: { ad: 1.02 }, mage: { ap: 1.03 }, cryo: { ap: 0.98 }, storm: { ap: 1.08, hp: 1.06 }, healer: { pow: 1.06, hp: 1.05 }, yuanshan: { ap: 1.05 } },   // multipliers on base stats, this mode only
   },
 };
 
@@ -424,6 +424,8 @@ const T_BASE = {
   neutral: {
     golem: { hp: 520, ad: 26, range: 2.2, period: 1.2, wind: 0.35, ms: 6, r: 1.3, h: 3.4, gold: 48, xp: 70, respawn: 50 },
     guardian: { hp: 2600, ad: 70, range: 3.4, period: 1.4, wind: 0.45, ms: 5.5, r: 2.5, h: 6.6, gold: 90, xp: 220, respawn: 100 },
+    puppet: { hp: 2100, ad: 58, range: 3.2, period: 1.3, wind: 0.42, ms: 5.5, r: 2.3, h: 6.0, gold: 80, xp: 190, respawn: 100 },
+    abyss: { hp: 5200, ad: 105, range: 4.2, period: 1.3, wind: 0.45, ms: 5.5, r: 3.3, h: 8.6, gold: 150, xp: 380, respawn: 150 },
   },
   killGold: 220, assistGold: 90, towerGold: 160, passiveGold: 2.2, startGold: 300,
   respawn: L => 6 + 2.0 * L,
