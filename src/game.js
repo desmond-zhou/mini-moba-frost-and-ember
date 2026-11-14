@@ -81,7 +81,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     ['ranger', 'qingya', ['师父，听雪我练熟了。', '出剑，别回头。'], ['师父，请赐教。', '让为师看看你的听雪。']],
     ['warden', 'qingya', ['……师父。', '不语，守好关。'], ['……', '还是不肯开口？出尺吧。']],
     ['peiji', 'wenren', ['别再走火。', '管好你的天刑台。'], ['闻人遥，随我回天刑台。', '拿得住我再说。']],
-    ['shade', 'bloodlord', ['宗主，取谁的命？', '红衣，一个不留。'], ['宗主，这口血我不喝了。', '暗子也敢反？']],
+    ['shade', 'bloodlord', ['宗主，取谁的命？', '红衣，一个不留。'], ['宗主，血魂宗的路我不走了。', '暗子也敢反？']],
   ];
   let jeerAt = -99; const FOE_SAYS = { kill: 'eKill', die: 'eDie', ahead: 'eAhead', behind: 'eBehind', eStart: 'eStart', focus: 'focus' };
   function chat(h, text, force, vars) {                                // text: a literal, a list to pick from, or an event key spoken in the speaker's own manner
@@ -402,7 +402,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     tgt.alive = false; tgt.hp = 0; tgt.target = null; tgt.windT = -1; tgt.dash = null; tgt.y = 0; tgt.moving = false; tgt.goneT = 0;
     const col = TEAM_COL[tgt.team].glow, killer = src && src.kind === 'hero' ? src : null;
     if (tgt.recallT > 0) stopRecall(tgt, true);
-    if (!isStruct(tgt)) for (const b of G.heroes) if (b.alive && b.def.id === 'bloodlord' && b.team !== tgt.team && dist(b, tgt) < 11) {   // 血食
+    if (!isStruct(tgt)) for (const b of G.heroes) if (b.alive && b.def.id === 'bloodlord' && b.team !== tgt.team && dist(b, tgt) < 11) {   // 血炼
       heal(b, b.maxHp * (tgt.kind === 'hero' ? 0.14 : 0.035)); if (near(b)) fx.line(tgt.x, 1.4, tgt.z, b.x, 1.8, b.z, [1.6, 0.1, 0.12], 8, 0.4, 0.3);
     }
     if (tgt.kind === 'minion' || tgt.kind === 'neutral') {
