@@ -325,14 +325,26 @@ export function createWorld(R) {
 
   // ---- scatter helpers ----
   const dummy = new THREE.Object3D(), color = new THREE.Color();
+  // Scatter is instanced, and split into square patches of ground so that whatever is off screen (and outside the sun's
+  // shadow box) is culled whole instead of being pushed through the vertex shader every frame. With over a million
+  // triangles of grass, reeds and leaves on the map, this is most of what the camera does not have to draw.
+  const PATCH = 34;
   function instanced(geo, mat, items, cast = true, noAO = false) {
-    const im = new THREE.InstancedMesh(geo, mat, items.length);
-    items.forEach((it, i) => {
-      dummy.position.set(it.x, it.y || 0, it.z); dummy.rotation.set(it.rx || 0, it.ry || 0, it.rz || 0); dummy.scale.set(it.sx ?? it.s, it.sy ?? it.s, it.sz ?? it.s); dummy.updateMatrix();
-      im.setMatrixAt(i, dummy.matrix); color.setRGB(it.c[0], it.c[1], it.c[2]); im.setColorAt(i, color);
-    });
-    im.castShadow = cast; im.receiveShadow = true; im.frustumCulled = false; im.userData.noAO = noAO;
-    add(im); return im;
+    const buckets = new Map();
+    if (items.length < 160) buckets.set(0, items);
+    else for (const it of items) { const k = Math.floor(it.x / PATCH) * 1000 + Math.floor(it.z / PATCH); let bk = buckets.get(k); if (!bk) buckets.set(k, bk = []); bk.push(it); }
+    let last = null;
+    for (const list of buckets.values()) {
+      const im = new THREE.InstancedMesh(geo, mat, list.length);
+      list.forEach((it, i) => {
+        dummy.position.set(it.x, it.y || 0, it.z); dummy.rotation.set(it.rx || 0, it.ry || 0, it.rz || 0); dummy.scale.set(it.sx ?? it.s, it.sy ?? it.s, it.sz ?? it.s); dummy.updateMatrix();
+        im.setMatrixAt(i, dummy.matrix); color.setRGB(it.c[0], it.c[1], it.c[2]); im.setColorAt(i, color);
+      });
+      im.castShadow = cast; im.receiveShadow = true; im.userData.noAO = noAO;
+      im.computeBoundingSphere(); im.boundingSphere.radius += 2.5; im.frustumCulled = true;     // room for the wind
+      add(im); last = im;
+    }
+    return last;
   }
   const structs = [];
   for (const t of [FROST, EMBER]) structs.push({ ...POS.core(t), r: 11 }, { ...POS.fountain(t), r: 9 });
