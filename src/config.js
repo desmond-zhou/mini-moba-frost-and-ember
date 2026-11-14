@@ -54,7 +54,7 @@ export const MODES = {
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
     // 一路's own nudges, set after the bots started playing their roles (v1.2.0-alpha.3). Shared numbers stay as they are.
-    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.02 }, bloodlord: { ad: 1.04, hp: 1.05 }, shade: { ad: 1.07, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.07 }, mage: { ap: 0.93, hp: 0.98 }, cryo: { ap: 0.9, hp: 0.95 }, healer: { pow: 1.1, hp: 1.08 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 }, storm: { ap: 0.93, hp: 0.97 }, gunner: { ad: 0.93 }, linshuang: { ad: 0.98 }, peiji: { ad: 1.05, hp: 1.04 }, ranger: { ad: 0.95, hp: 0.97 } },
+    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.02, hp: 1.02 }, keeper: { ad: 1.03 }, peiji: { ad: 1.05, hp: 1.04 }, bloodlord: { ad: 1.04, hp: 1.05 }, shade: { ad: 1.07, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.07 }, linshuang: { ad: 0.98 }, ranger: { ad: 0.95, hp: 0.97 }, gunner: { ad: 0.93 }, mage: { ap: 0.92, hp: 0.96 }, cryo: { ap: 0.9, hp: 0.92 }, storm: { ap: 0.92, hp: 0.95 }, healer: { pow: 1.13, hp: 1.1 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
   },
   tri: {
     id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, solid: true, blurb: '5v5 · 约 20 分钟',
@@ -93,7 +93,7 @@ export const MODES = {
       bossAt: 960,                                                     // 渊主残念 takes over the upper pit from here on
       surge: { puppet: [1.4, 55], abyss: [2.0, 90] },                 // how much stronger the side's disciples get, and for how long
     },
-    heroTune: { keeper: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 0.96, hp: 0.97 }, linshuang: { ad: 1.01 }, mage: { ap: 1.01 }, cryo: { ap: 0.96 }, healer: { pow: 1.08, hp: 1.05 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 }, storm: { ap: 1.01, hp: 1.03 }, qingya: { ad: 0.97 }, warden: { ad: 0.94 }, ranger: { ad: 1.03 } },   // multipliers on base stats, this mode only
+    heroTune: { warden: { ad: 0.94 }, keeper: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 0.96, hp: 0.97 }, qingya: { ad: 0.97 }, ranger: { ad: 1.03 }, gunner: { ad: 0.97 }, cryo: { ap: 0.96 }, storm: { hp: 1.03 }, healer: { pow: 1.08, hp: 1.05 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 } },   // multipliers on base stats, this mode only
   },
 };
 
@@ -198,7 +198,7 @@ export const HEROES = {
   healer: {
     id: 'healer', size: 1.16, tall: 0.35, tint: [0.75, 1.0, 0.3], style: 'staff', name: '孙伯', short: '孙', title: '藏经阁扫地人', role: '丹修 · 辅助', blurb: '在藏经阁扫了三十年地、装了三十年糊涂的老人。经阁里的书他都翻过，只是从来不说。腰间一只旧葫芦，倒出来的丹药总比看上去装得下的多。年轻人往前冲的时候，他就在后面慢慢跟着，谁也没落下过。有他在，同门总能多撑一口气。',
     hp: 910, hpG: 98, mana: 440, manaG: 36, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 9, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.2,
-    build: ['mingpan', 'xingluo', 'zhaohun'],
+    build: ['xingluo', 'mingpan', 'zhaohun'],
     passive: { name: '药香', icon: 'i_gourd', desc: '身边的同门（含自己）每秒多回复 1% 气血。' },
     skills: [
       S('Q', 'mend', '回元丹', 'heal', { range: 11, radius: 4.8, cd: 6.2, mana: 50, b: 132, l: 22, ap: 0.9 }, '弹出一枚回元丹化开，治疗目标区域内的所有同门修士。'),
@@ -234,7 +234,7 @@ export const HEROES = {
   gunner: {
     id: 'gunner', size: 1.33, tint: [1.0, 0.72, 0.2], style: 'gun', name: '吴镇岳', short: '岳', title: '天元宗峰主', role: '符修 · 远程', blurb: '天元宗峰主，一架破魂弩配一腰雷火符。同辈里他修为不算最高，脾气是最大的，嫌御剑太慢，嫌讲理更慢。他的道理都写在符上，一张讲不通就再来一叠。他扎稳了马步，就不打算再挪地方。面前那一片，也就没有活路了。',
     hp: 810, hpG: 90, mana: 310, manaG: 24, ad: 61, adG: 4.3, ap: 0, apG: 0, ms: 6.5, range: 9.4, period: 1.04, wind: 0.22, ranged: true, r: 0.95, h: 5.0,
-    build: ['tingxue', 'dunying', 'heichi'],
+    build: ['kunlong', 'tingxue', 'dunying'],
     passive: { name: '连珠', icon: 'shell', max: 4, desc: '每第四次普攻换上雷火符：伤害 +25%，并炸伤目标周围的敌人。' },
     skills: [
       S('Q', 'shell', '雷火符', 'zone', { range: 13, radius: 3.6, delay: 0.55, cd: 5, mana: 35, b: 75, l: 16, ad: 0.8 }, '朝目标位置甩出一张雷火符，落地爆炸。'),
@@ -246,7 +246,7 @@ export const HEROES = {
   storm: {
     id: 'storm', size: 1.3, tall: 0.4, tint: [0.95, 0.9, 0.35], style: 'staff', name: '沈渊', short: '渊', title: '天刑台执法副使', role: '雷修 · 远程', blurb: '天刑台执法副使，掌印引雷。他办案不问缘由，只问有没有印。印落在谁身上，雷就认得谁。一道是警告，两道是判词。第三道落下，就不必再动了。',
     hp: 830, hpG: 92, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7.5, ms: 6.5, range: 9, period: 1.0, wind: 0.2, ranged: true, r: 0.95, h: 5.3,
-    build: ['mingpan', 'zhaohun', 'xingluo'],
+    build: ['xingluo', 'mingpan', 'zhaohun'],
     passive: { name: '雷印', icon: 'bolt2', desc: '招式命中会在敌人身上留一道雷印，叠满三道即引爆：按最大气血造成伤害并定身 0.5 秒，之后 3.2 秒内不再留印。' },
     skills: [
       S('Q', 'bolt', '刑雷', 'zone', { range: 14, radius: 3, delay: 0.45, cd: 4.0, mana: 35, b: 86, l: 18, ap: 0.68 }, '短暂延迟后在目标位置劈下一道闪电。'),
@@ -258,7 +258,7 @@ export const HEROES = {
   keeper: {
     id: 'keeper', size: 1.5, tint: [0.4, 0.6, 1.0], style: 'shield', name: '周远川', short: '川', title: '天衍城守门人', role: '盾修 · 近战', blurb: '在雪原守了五十年的门，门后是天衍城。五十年里换过三任城主，没换过守门人。他不记得自己拦下过多少人，只记得没有一个是从他身上跨过去的。盾举起来的时候，风雪都要绕道。他一声喝，千军万马也只能先过他这一关。',
     hp: 1260, hpG: 134, mana: 280, manaG: 22, ad: 56, adG: 3.4, ap: 0, apG: 0, ms: 6.6, range: 2.9, period: 1.05, wind: 0.28, ranged: false, r: 1.1, h: 5.3,
-    build: ['heichi', 'xingluo', 'kunlong'],
+    build: ['kunlong', 'heichi', 'xingluo'],
     passive: { name: '守门', icon: 'ward', cd: 45, desc: '气血低于 40% 时自动撑起相当于 16% 最大气血的罡气，持续 4 秒。每 45 秒一次。' },
     skills: [
       S('Q', 'gate', '闭门', 'cone', { range: 6, angle: 95, cd: 8, mana: 35, b: 55, l: 12, ad: 0.6, stun: 0.9, vfx: 'gate' }, '门盾向前猛撞，伤害并定身扇形范围内的敌人。'),
@@ -270,7 +270,7 @@ export const HEROES = {
   bloodlord: {
     id: 'bloodlord', size: 1.46, tint: [1.0, 0.1, 0.12], style: 'dual', name: '血屠子', short: '屠', title: '血魂宗主', role: '血修 · 近战', blurb: '血魂宗宗主，走血道的魔修。别人修灵气，他炼精血：自己的，更多是别人的。他不急，也不躲，站在哪里，脚下就漫开一片血海。血锁缠上谁，他人就到了谁面前。伤口在他身上留不住，流出去的血总会从别人身上炼回来。',
     hp: 1290, hpG: 136, mana: 300, manaG: 24, ad: 66, adG: 4.1, ap: 0, apG: 0, ms: 6.7, range: 3.0, period: 1.0, wind: 0.24, ranged: false, r: 1.1, h: 5.3,
-    build: ['heichi', 'dunying', 'xingluo'],
+    build: ['tingxue', 'heichi', 'dunying'],
     passive: { name: '血炼', icon: 'bloodsea', desc: '附近有敌方弟子或邪祟死去时回复 3.5% 气血，死的是修士则回复 14%。' },
     skills: [
       S('Q', 'bloodclaw', '血爪', 'cone', { range: 6.2, angle: 80, cd: 5.5, mana: 30, b: 68, l: 14, ad: 0.75, drain: 0.55, vfx: 'bloodclaw' }, '血爪撕开前方扇形，并把造成伤害的一部分吸为自身气血。'),
@@ -296,7 +296,7 @@ export const HEROES = {
   yanzhao: {
     id: 'yanzhao', size: 1.2, tint: [0.72, 0.8, 1.0], style: 'staff', name: '言照雪', short: '雪', title: '蔽目之体', role: '幕修 · 辅助', blurb: '天生蔽目之体，眼上常年覆着一条银纱。她看不见的东西很多，能替人遮住的东西更多。站在她身边的人，伤总是比预想的轻一些。她手里那盏灯从来不亮，因为用不着。幕落下来的时候，同门的伤轻了，人也不见了。',
     hp: 930, hpG: 100, mana: 430, manaG: 35, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 8.8, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.1,
-    build: ['xingluo', 'mingpan', 'lianxing'],
+    build: ['mingpan', 'xingluo', 'lianxing'],
     passive: { name: '蔽目之体', icon: 'smoke', desc: '身边的同门（含自己）受到修士的伤害 -8%。' },
     skills: [
       S('Q', 'veilbolt', '蔽目', 'proj', { range: 15, speed: 26, width: 0.95, cd: 7.5, mana: 45, b: 72, l: 16, ap: 0.6, stun: 0.95, vfx: 'vine', icon: 'vine' }, '放出一缕蔽目之力，命中的第一个敌人眼前一黑，被定在原地。'),
@@ -308,7 +308,7 @@ export const HEROES = {
   yuanshan: {
     id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '陆玄机', short: '玄', title: '天衍上卷持有者', role: '卜修 · 辅助', blurb: '青云宗前太上长老，守着天衍诀的上卷过了一辈子。三十年前他在乱石林被人围杀，石室的门从里面合上，再没有开过。他早就算到了那一天，也算到了后来会有人推开那扇门。几枚卦钱在他指间转了一辈子，边都磨圆了。卦钱落地，吉凶已定——凶的那一面，总是朝着对面。',
     hp: 960, hpG: 102, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.4, range: 8.6, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.3,
-    build: ['lianxing', 'mingpan', 'xingluo'],
+    build: ['xingluo', 'lianxing', 'mingpan'],
     passive: { name: '余荫', icon: 'i_disc', desc: '身边的同门气血跌破 30% 时，替他挡一次：给一层相当于其 18% 最大气血的罡气。每人 30 秒一次。' },
     skills: [
       S('Q', 'coin', '问卦钱', 'proj', { range: 15, speed: 30, width: 0.9, cd: 5.4, mana: 38, b: 80, l: 17, ap: 0.75, slow: [0.35, 1.5], splash: 2.2, vfx: 'starbolt', icon: 'starbolt' }, '弹出一枚卦钱，命中第一个敌人后炸开，造成伤害并减速。'),
@@ -332,7 +332,7 @@ export const HEROES = {
   wenren: {
     id: 'wenren', size: 1.26, tint: [1.0, 0.35, 0.6], style: 'dual', name: '闻人遥', short: '遥', title: '大司刑关门弟子', role: '刑修 · 近战', blurb: '大司刑的关门弟子，本该接掌天刑台。师父伏法那一夜，他练功走了火，从此出手再无分寸。他不回宗门，只在山野间游荡，像在找什么人，又像谁都可以。血线一甩，落单的人就到了他面前。倒下一个，他已经在看下一个了。',
     hp: 1150, hpG: 122, mana: 280, manaG: 22, ad: 75, adG: 4.8, ap: 0, apG: 0, ms: 7.3, range: 2.8, period: 0.78, wind: 0.17, ranged: false, r: 0.95, h: 5.0,
-    build: ['dunying', 'tingxue', 'heichi'],
+    build: ['tingxue', 'dunying', 'heichi'],
     passive: { name: '走火入魔', icon: 'rage', desc: '对邪祟的伤害 +35%。参与镇压修士后，「掠影」立刻可以再用。' },
     skills: [
       S('Q', 'fateline', '判命线', 'proj', { range: 12, speed: 30, width: 0.95, cd: 11, mana: 45, b: 55, l: 12, ad: 0.55, stun: 0.4, pull: true, vfx: 'hook', icon: 'hook' }, '甩出一道判命血线，把命中的第一个敌人拽到自己面前。'),

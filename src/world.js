@@ -287,9 +287,14 @@ export function createWorld(R) {
   sun.shadow.mapSize.set(R.quality.shadow, R.quality.shadow);
   add(sun, sun.target);
   W.sun = sun; W.sunDir = sunDir;
+  // The shadow box follows the camera. It must move in whole shadow-map texels measured along the light's own axes, or every
+  // shadow edge in view jumps by a fraction of a texel as the camera moves — the flicker seen when walking.
+  const lsX = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), sunDir).normalize(), lsY = new THREE.Vector3().crossVectors(sunDir, lsX).normalize(), lsP = new THREE.Vector3();
   W.focusLight = (x, z) => {
-    const fx = Math.round(x / 2) * 2, fz = Math.round(z / 2) * 2;
-    sun.target.position.set(fx, 0, fz); sun.position.set(fx + sunOff.x * 1.6, sunOff.y * 1.6, fz + sunOff.z * 1.6);
+    const texel = (sc.right - sc.left) / sun.shadow.mapSize.x; lsP.set(x, 0, z);
+    const a = Math.round(lsP.dot(lsX) / texel) * texel, b = Math.round(lsP.dot(lsY) / texel) * texel, c = lsP.dot(sunDir);
+    lsP.copy(lsX).multiplyScalar(a).addScaledVector(lsY, b).addScaledVector(sunDir, c);
+    sun.target.position.copy(lsP); sun.position.copy(lsP).addScaledVector(sunOff, 1.6);
   };
   W.setShadowSize = s => { if (sun.shadow.mapSize.x !== s) { sun.shadow.mapSize.set(s, s); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } } };
 
