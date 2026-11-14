@@ -6,6 +6,10 @@ import { portrait } from './portraits.js';
 // the colour a hero's abilities glow with on the player's side (same mix as in game.js)
 const accent = d => { const tg = TEAM_COL[FROST].glow, c = [tg[0] * 0.38 + d.tint[0] * 0.62, tg[1] * 0.38 + d.tint[1] * 0.62, tg[2] * 0.38 + d.tint[2] * 0.62], mx = Math.max(...c); return c.map(v => v / mx); };
 const icon = (d, s) => skillIcon(s.icon, accent(d));
+// what an ability's numbers grow with: 攻击力 (weapons, the martial path) or 术法强度 (spirit arts)
+const scaleOf = s => { const out = []; if (s.ad) out.push(['ad', '攻击力', s.ad]); if (s.ap) out.push(['ap', '术法强度', s.ap]); return out; };
+const scaleTag = s => scaleOf(s).map(([k, n]) => `<em class="sc ${k}">${n}</em>`).join('');
+const scaleTxt = s => scaleOf(s).map(([, n, v]) => `${n} ×${v}`).join(' + ');
 const pasIcon = d => skillIcon(d.passive.icon, [1.0, 0.82, 0.42]);
 const face = d => portrait(d.id, accent(d));
 const faceOf = h => portrait(h.def.id, h.fxCol);
@@ -31,7 +35,7 @@ export function createUI(isTouch, audio) {
     el.modeSel.innerHTML = Object.values(MODES).map(m => `<button type="button" data-k="${m.id}"><b>${m.name}</b><span>${m.blurb}</span></button>`).join('');
     el.modeSel.onclick = e => { const c = e.target.closest('button'); if (c) { mode = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.cards.innerHTML = HERO_ORDER.map(k => { const h = HEROES[k]; return `<button type="button" class="card" data-k="${k}"><i class="pt" style="background-image:url(${face(h)})"></i><h3>${h.name}</h3><div class="role">${h.role}</div><div class="ics">${h.skills.map(sk => `<i style="background-image:url(${icon(h, sk)})"></i>`).join('')}</div></button>`; }).join('');
-    const detail = () => { const h = HEROES[hero]; el.detail.innerHTML = `<i class="big" style="background-image:url(${face(h)})"></i><h3>${h.name}<small>${h.title}</small></h3><p>${h.blurb}</p><ul><li class="pv"><i style="background-image:url(${pasIcon(h)})"></i><div><b>被动 · ${h.passive.name}</b><span>${h.passive.desc}</span></div></li>${h.skills.map(sk => `<li><i style="background-image:url(${icon(h, sk)})"></i><div><b>${sk.key} · ${sk.name}</b><span>${sk.desc}</span></div></li>`).join('')}</ul>`; };
+    const detail = () => { const h = HEROES[hero]; el.detail.innerHTML = `<i class="big" style="background-image:url(${face(h)})"></i><h3>${h.name}<small>${h.title}</small></h3><p>${h.blurb}</p><ul><li class="pv"><i style="background-image:url(${pasIcon(h)})"></i><div><b>被动 · ${h.passive.name}</b><span>${h.passive.desc}</span></div></li>${h.skills.map(sk => `<li><i style="background-image:url(${icon(h, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}</b><span>${sk.desc}</span></div></li>`).join('')}</ul>`; };
     el.diff.innerHTML = Object.entries(T.difficulty).map(([k, d]) => `<button type="button" data-k="${k}">${d.name}</button>`).join('');
     const paint = () => { for (const c of el.cards.children) c.classList.toggle('on', c.dataset.k === hero); for (const c of el.diff.children) c.classList.toggle('on', c.dataset.k === diffK); for (const c of el.modeSel.children) c.classList.toggle('on', c.dataset.k === mode); el.sub.textContent = `十二位修士 · ${MODES[mode].team}V${MODES[mode].team} · 摧毁敌方阵眼`; detail(); };
     el.cards.onclick = e => { const c = e.target.closest('.card'); if (c) { hero = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
@@ -55,9 +59,9 @@ export function createUI(isTouch, audio) {
     el.skills.innerHTML = d.skills.map((s, i) => `<div class="sk" data-i="${i}"><button type="button" class="up" hidden aria-label="提升">＋</button><button type="button" class="skill${i === 3 ? ' ult' : ''}" data-i="${i}" style="background-image:url(${icon(d, s)})"><span class="key">${s.key}</span><span class="nm">${s.name}</span><span class="cost">${s.mana}</span><span class="pips">${'<i></i>'.repeat(3)}</span><i class="cd"></i><b class="cdn"></b></button></div>`).join('');
     skillEls = [...el.skills.querySelectorAll('.skill')].map(b => ({ b, cd: b.querySelector('.cd'), cdn: b.querySelector('.cdn'), up: b.parentElement.querySelector('.up'), pips: [...b.querySelectorAll('.pips i')], was: 0 }));
     skillEls.forEach(({ b, up }, i) => {
-      b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); actions.skillDown(i, e); b.animate([{ transform: 'scale(.9)' }, { transform: 'scale(1)' }], { duration: 160 }); };
-      b.onpointermove = e => actions.skillMove(i, e); b.onpointerup = e => actions.skillUp(i, e); b.onpointercancel = e => actions.skillUp(i, e, true);
-      up.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); G.learn(i); };
+      b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); actions.skillDown(i, e); b.animate([{ transform: 'scale(.9)' }, { transform: 'scale(1)' }], { duration: 160 }); if (isTouch) { showTip(i); tipT = 0; } };
+      b.onpointermove = e => actions.skillMove(i, e); b.onpointerup = e => { actions.skillUp(i, e); if (isTouch) tipT = 1.2; }; b.onpointercancel = e => { actions.skillUp(i, e, true); if (isTouch) el.tip.hidden = true; };
+      up.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); G.learn(i); if (isTouch) { showTip(i); tipT = 3.5; } };
       if (!isTouch) { b.onpointerenter = () => showTip(i); b.onpointerleave = () => { el.tip.hidden = true; }; up.onpointerenter = () => showTip(i); up.onpointerleave = () => { el.tip.hidden = true; }; }
     });
     // the shop: three grades, each tile shows what it is made from and what it would cost you right now
@@ -86,7 +90,15 @@ export function createUI(isTouch, audio) {
   };
   // the pause menu: the world stops while it is open (main.js checks ui.menuOpen)
   ui.menuOpen = false; ui.onMenu = {};
-  ui.toggleMenu = on => { ui.menuOpen = on === undefined ? !ui.menuOpen : on; el.menu.hidden = !ui.menuOpen; if (ui.menuOpen) { ui.toggleShop(false); ui.showScore(false); } };
+  ui.toggleMenu = on => {
+    ui.menuOpen = on === undefined ? !ui.menuOpen : on; el.menu.hidden = !ui.menuOpen;
+    if (ui.menuOpen) {
+      ui.toggleShop(false); ui.showScore(false); el.tip.hidden = true;
+      if (G) { const p = G.player, d = p.def;                          // every ability spelled out: the one place to read them on a phone
+        $('mSkills').innerHTML = `<li><i style="background-image:url(${pasIcon(d)});border-radius:50%"></i><div><b>被动 · ${d.passive.name}</b><span>${d.passive.desc}</span></div></li>` + d.skills.map((sk, i) => { const R = i === 3 ? RANK.ult : RANK.basic, r = p.ranks[i], e = G.skill(i), word = sk.kind === 'shield' ? '罡气' : sk.kind === 'heal' ? '治疗' : '伤害';
+          return `<li><i style="background-image:url(${icon(d, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}<u>${r ? R.name[r - 1] : '未学'}</u></b><span>${sk.desc}</span><span class="n">灵力 ${sk.mana} · 调息 ${(e.cd * (1 - p.cdr)).toFixed(1)} 秒${sk.b !== undefined ? ` · ${word} ${Math.round(G.skillDmg(i, Math.max(1, r)))}` : ''}${scaleTxt(sk) ? ` · 随 ${scaleTxt(sk)}` : ''}</span></div></li>`; }).join(''); }
+    }
+  };
   el.menuBtn.onclick = () => { audio.init(); ui.toggleMenu(); }; el.mResume.onclick = () => ui.toggleMenu(false);
   el.mRestart.onclick = () => { ui.toggleMenu(false); if (ui.onMenu.restart) ui.onMenu.restart(); }; el.mQuit.onclick = () => { ui.toggleMenu(false); if (ui.onMenu.quit) ui.onMenu.quit(); };
   el.menu.onpointerdown = e => { if (e.target === el.menu) ui.toggleMenu(false); };
@@ -101,9 +113,10 @@ export function createUI(isTouch, audio) {
     const p = G.player, s = G.skill(i), R = i === 3 ? RANK.ult : RANK.basic, r = p.ranks[i], word = s.kind === 'shield' ? '罡气' : s.kind === 'heal' ? '治疗' : '伤害';
     let nums = `灵力 ${s.mana} · 调息 ${(s.cd * (1 - p.cdr)).toFixed(1)} 秒`;
     if (s.b !== undefined) nums += ` · ${word} ${Math.round(G.skillDmg(i, Math.max(1, r)))}`;
+    const sc = scaleTxt(s) ? `<em class="scl">${word}随 ${scaleTxt(s)} 提高</em>` : '';
     let next = '';
     if (r < R.max) { const nr = r + 1; next = `<em class="nx">${r ? '下一重' : '学会后'}「${R.name[nr - 1]}」${s.b !== undefined ? `：${word} ${Math.round(G.skillDmg(i, nr))}` : ''}${R.cd[nr - 1] < 1 ? `，调息 -${Math.round((1 - R.cd[nr - 1]) * 100)}%` : ''}${nr === R.max ? '，控制和增益时间 +25%' : ''}（需 ${realmOf(R.lvl[nr - 1])}）</em>`; }
-    el.tip.innerHTML = `<i style="background-image:url(${icon(p.def, s)})"></i><div><b>${s.key} · ${s.name}</b> <span class="rk">${r ? R.name[r - 1] : '未学'}</span><br>${s.desc}<em>${nums}</em>${next}</div>`; el.tip.hidden = false;
+    el.tip.innerHTML = `<i style="background-image:url(${icon(p.def, s)})"></i><div><b>${s.key} · ${s.name}</b> <span class="rk">${r ? R.name[r - 1] : '未学'}</span>${scaleTag(s)}<br>${s.desc}<em>${nums}</em>${sc}${next}</div>`; el.tip.hidden = false;
   }
   ui.announce = (text, cls) => { el.announce.textContent = text; el.announce.className = cls || ''; el.announce.animate([{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.12 }, { opacity: 1, offset: 0.8 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 2600, easing: 'ease-out' }); };
   ui.toast = text => { if (!text) return; el.toast.textContent = text; el.toast.animate([{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: 1300 }); };

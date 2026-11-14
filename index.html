@@ -119,7 +119,7 @@ body.touch #chan { bottom: calc(232px + var(--sab)); }
 #sys { position: absolute; right: var(--gr); bottom: calc(10px + var(--sab)); display: flex; gap: 6px; pointer-events: auto; }
 #sys button { padding: 5px 9px; font-size: 11px; color: var(--dim); background: var(--panel); border: 1px solid var(--line-soft); } #sys small { margin-left: 5px; opacity: .7; }
 #menu { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(4, 6, 10, .62); pointer-events: auto; z-index: 5; } #menu[hidden] { display: none; }
-#menu .pane { width: min(320px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 9px; padding: 20px 20px 16px; background: var(--panel-solid); border: 1px solid var(--line); }
+#menu .pane { width: min(380px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow-y: auto; display: flex; flex-direction: column; gap: 9px; padding: 20px 20px 16px; background: var(--panel-solid); border: 1px solid var(--line); }
 #menu h2 { margin: 0 0 6px; text-align: center; font: 400 40px/1 var(--f-brush); letter-spacing: .3em; margin-right: -.3em; color: var(--brass); }
 #menu button { padding: 10px 12px; font-size: 14px; font-weight: 700; color: var(--bone); background: var(--panel); border: 1px solid var(--line); } #menu button small { margin-left: 8px; font-weight: 400; color: var(--dim); }
 #menu button.big { color: #1a1408; background: linear-gradient(#ffe7a8, #d6a441); border-color: #ffe7a8; } #menu button.big small { color: #5a4718; }
@@ -131,6 +131,14 @@ body.touch #chan { bottom: calc(232px + var(--sab)); }
 #modeSel button.on { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass) inset; } #modeSel button.on b { color: var(--brass); }
 .credit { margin-top: 18px; font-size: 11.5px; letter-spacing: .08em; color: var(--dim); text-align: center; }
 .ver { position: absolute; right: var(--gr); bottom: calc(8px + var(--sab)); font-size: 11px; letter-spacing: .1em; color: var(--dim); opacity: .7; }
+#mSkills { list-style: none; margin: 6px 0 2px; padding: 8px 0 0; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 8px; }
+#mSkills li { display: flex; gap: 9px; } #mSkills li > i { flex: 0 0 34px; height: 34px; background: center / cover; border: 1px solid var(--line); }
+#mSkills b { display: block; font-size: 13px; color: var(--bone); } #mSkills b u { float: right; text-decoration: none; font-weight: 400; font-size: 11px; color: var(--dim); }
+#mSkills span { display: block; font-size: 11.5px; line-height: 1.45; color: var(--dim); } #mSkills span.n { color: #b9a877; }
+.sc { display: inline-block; margin-left: 6px; padding: 0 5px; font: 700 10.5px/15px var(--f-ui); font-style: normal; letter-spacing: 0; vertical-align: 1px; border: 1px solid; }
+.sc.ad { color: #ffb37a; border-color: rgba(255, 179, 122, .55); } .sc.ap { color: #b9a5ff; border-color: rgba(185, 165, 255, .55); }
+#tip em.sc { display: inline-block; margin-top: 0; } #tip em.scl { color: #b9a877; }
+body.touch #tip { bottom: auto; top: calc(74px + var(--sat)); width: min(340px, calc(100% - 300px)); font-size: 12px; }
 #ult { position: absolute; left: 0; right: 0; top: 60%; text-align: center; opacity: 0; pointer-events: none; text-shadow: 0 3px 18px rgba(0, 0, 0, .9); }
 #ult b { display: block; font: 400 clamp(46px, 9vw, 104px)/1 var(--f-brush); letter-spacing: .2em; margin-right: -.2em; color: #ffe9b0; } #ult small { font: 700 13px var(--f-ui); letter-spacing: .5em; margin-right: -.5em; color: var(--brass); }
 .floater.say { font: 400 21px var(--f-brush); letter-spacing: .06em; text-shadow: 0 1px 4px #000, 0 0 10px rgba(0, 0, 0, .8); } .floater.say.frost { color: #cfe9ff; } .floater.say.ember { color: #ffd2b8; }
@@ -206,7 +214,7 @@ body.touch #toast { bottom: calc(210px + var(--sab)); }
 
 @media (max-width: 1000px) { #cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } .card .ics { display: none; } .card .pt { grid-row: 1 / 3; width: 44px; height: 44px; } .card { grid-template-columns: 44px 1fr; } .tier { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ros { display: none; } #detail { grid-template-columns: 64px 1fr; } #detail .big { width: 64px; height: 64px; } }
 @media (max-width: 760px) {
-  #detail ul { grid-template-columns: 1fr 1fr; } #detail li span { display: none; }
+  #detail ul { grid-template-columns: 1fr; gap: 7px; } #detail li span { font-size: 11px; }
   #mini { width: 136px; height: 82px; } body.touch #pas { top: calc(var(--mh, 82px) + 18px + var(--sat)); } #mini.sq { width: 112px; height: 112px; } #top { left: auto; right: var(--gr); transform: none; padding: 4px 16px; gap: 8px; } #top b { font-size: 19px; } .pips { display: none; }
   #feed { top: calc(96px + var(--sat)); font-size: 11.5px; } #buff { left: auto; right: var(--gr); transform: none; top: calc(100px + var(--sat)); }
   .skill { width: 54px; height: 54px; } #portrait { width: 58px; height: 58px; font-size: 26px; } #sys { display: none; }
@@ -253,6 +261,7 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
       <button id="mResume" type="button" class="big">继续<small>Esc</small></button>
       <button id="mRestart" type="button">重开此局</button>
       <button id="mQuit" type="button">回山门 · 重新选人</button>
+      <ul id="mSkills"></ul>
       <label>音乐<input id="vMusic" type="range" min="0" max="100" step="5"></label>
       <label>音效<input id="vSfx" type="range" min="0" max="100" step="5"></label>
       <div class="row"><button id="muteBtn" type="button">声音 开</button><button id="qBtn" type="button">画质</button></div>
@@ -262,7 +271,7 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
   <div id="title" class="screen" hidden>
     <h1 class="mark">霜烬之争</h1>
     <div class="sub" id="sub">十二位修士 · 3V3 · 摧毁敌方阵眼</div>
-    <div id="modeSel"></div><div class="ver">v1.0.3</div>
+    <div id="modeSel"></div><div class="ver">v1.1.0-alpha.1</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div class="row"><div class="seg" id="diff"></div><button class="go" id="goBtn" type="button">出战</button></div>
