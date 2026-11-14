@@ -351,8 +351,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // 雷劫: first ten breaths under a closing sky in which the one crossing may still move and pick their ground; then the bolts, one wave a
   // second (结丹 five, 成婴 nine), the one crossing held for all of it and given 罡气. Every wave aims at every cultivator within a screen
   // of them — friend, foe, the one crossing — each with a closing ring; standing together, a wave still strikes each person once only.
-  // A wave is worth 罡气 ÷ waves, so the nine (or five) together come exactly to the 罡气: crossing alone cannot kill.
-  const TRIB = { prep: 10, every: 1.0, warn: 0.9, r: 2.8, reach: 24, small: { bolts: 5, part: 1 / 3 }, big: { bolts: 9, part: 2 / 3 } };
+  // 罡气: half of max 气血 at 结丹, all of it at 成婴. A wave is worth 罡气 ÷ waves, so the nine (or five) together come exactly to the 罡气: crossing alone cannot kill.
+  const TRIB = { prep: 10, every: 1.0, warn: 0.9, r: 2.8, reach: 24, small: { bolts: 5, part: 0.5 }, big: { bolts: 9, part: 1 } };
   function tribulation(h, big = h.tribBig) {
     if (!h.alive || h.dash) { h.tribDue = true; h.tribBig = big; return; }
     h.tribDue = false; const K = big ? TRIB.big : TRIB.small;
