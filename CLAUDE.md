@@ -1,6 +1,6 @@
 # 霜烬之争 — 接手说明
 
-单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v1.2.0-alpha.19**。
+单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v1.2.0-alpha.20**。
 
 先读这份，再读 `docs/进度.md`（现状、下一步、踩过的坑）。其余文档按需：`docs/三路策划.md`、`docs/库选型.md`、`docs/打位演算.md`、`README.md`。
 
@@ -64,6 +64,7 @@ BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mod
 | `src/icons.js` `src/portraits.js` `src/barks.js` | 图标 / 头像 / 台词 |
 | `src/ui.js` `src/input.js` `src/main.js` | HUD 与各界面 / 键鼠触屏 / 启动、换模式、主循环 |
 | `batch.mjs` `analyze.mjs` `seats.mjs` `tune.mjs` | 批量对打 / 汇总 / 位置演算 / 按胜率算两张单人修正表（噪声内不动、守住两个模式的差距上限） |
+| `builds.mjs` | 出装演算汇总：每人每种第一件法宝的胜率（配合 `HERO=` `BUILD=` 环境变量跑 batch） |
 | `mech.mjs` `pace.mjs` `prof.mjs` `gapcheck.mjs` | 单招机制的定点检查 / 各模式的升级节奏 / 模拟耗时分布 / 两张修正表是否守规矩（改表后必跑） |
 
 ### 几个必须知道的抽象

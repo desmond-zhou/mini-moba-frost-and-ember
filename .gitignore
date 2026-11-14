@@ -3,3 +3,4 @@ dist/
 runs/
 *.png
 .DS_Store
+vendor/

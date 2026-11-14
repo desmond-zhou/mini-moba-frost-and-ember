@@ -412,13 +412,13 @@ export const ITEMS = {
   qinghun: I('qinghun', '清魂丹', 2, 400, { mana: 320, cdr: 0.12 }, '+320 灵力，招式调息 -12%', ['huiyuan'], 'i_pill'),
   huaxue: I('huaxue', '化血丹', 2, 420, { ad: 10, ls: 0.12, regen: 0.006 }, '+10 攻击力，普攻吸血 12%', ['xuening'], 'i_gourd'),
   tingxue: I('tingxue', '听雪剑', 3, 560, { ad: 62, as: 0.28, crit: 0.1, ms: 0.85, slowHit: [0.2, 1] }, '+62 攻击力，攻速 +28%，会心 +10%，身法 +13%。普攻带寒气，命中减速', ['qingfeng', 'xingdun'], 'i_tingxue'),
-  heichi: I('heichi', '镇关尺', 3, 560, { ad: 48, as: 0.12, hp: 900, dr: 0.1 }, '+48 攻击力，+900 气血。尺中剑意护体，受到修士的伤害 -10%', ['qingfeng', 'zhenxue'], 'i_ruler'),
+  heichi: I('heichi', '镇关尺', 3, 560, { ad: 40, as: 0.12, hp: 760, dr: 0.1 }, '+40 攻击力，+760 气血。尺中剑意护体，受到修士的伤害 -10%', ['qingfeng', 'zhenxue'], 'i_ruler'),
   mingpan: I('mingpan', '命盘', 3, 560, { ap: 120, mana: 450, cdr: 0.22 }, '+120 术法强度，+450 灵力，招式调息 -22%', ['xingwen', 'qinghun'], 'i_disc'),
-  zhaohun: I('zhaohun', '照魂镜', 3, 560, { ap: 95, ad: 10, ls: 0.12, sv: 0.14 }, '+95 术法强度。照出魂血：招式伤害的 14% 化为自身气血', ['xingwen', 'huaxue'], 'i_mirror'),
+  zhaohun: I('zhaohun', '照魂镜', 3, 560, { ap: 110, ad: 10, ls: 0.12, sv: 0.16 }, '+110 术法强度。照出魂血：招式伤害的 16% 化为自身气血', ['xingwen', 'huaxue'], 'i_mirror'),
   xingluo: I('xingluo', '星络护腕', 3, 560, { hp: 900, mana: 400, cdr: 0.18, regen: 0.008 }, '+900 气血，+400 灵力，招式调息 -18%，气血回复大幅加快', ['zhenxue', 'qinghun'], 'i_bracer'),
-  kunlong: I('kunlong', '困龙索', 3, 560, { hp: 750, ad: 20, ms: 0.85, slowHit: [0.3, 1.2] }, '+750 气血，+20 攻击力，身法 +13%。索头缠人：普攻命中减速 30%', ['zhenxue', 'xingdun'], 'hook'),
+  kunlong: I('kunlong', '困龙索', 3, 560, { hp: 800, ad: 30, ms: 0.85, slowHit: [0.3, 1.2] }, '+800 气血，+30 攻击力，身法 +13%。索头缠人：普攻命中减速 30%', ['zhenxue', 'xingdun'], 'hook'),
   lianxing: I('lianxing', '敛星佩', 3, 560, { ap: 80, hp: 600, cdr: 0.1 }, '+80 术法强度，+600 气血，招式调息 -10%。敛住星力，人也经打', ['xingwen', 'zhenxue'], 'starbolt'),
-  dunying: I('dunying', '遁影镜', 3, 560, { ad: 30, ms: 1.1, ls: 0.16, crit: 0.12 }, '+30 攻击力，身法 +17%，会心 +12%，普攻吸血 16%', ['xingdun', 'huaxue'], 'i_dunying'),
+  dunying: I('dunying', '遁影镜', 3, 560, { ad: 40, ms: 1.1, ls: 0.16, crit: 0.15 }, '+40 攻击力，身法 +17%，会心 +15%，普攻吸血 16%', ['xingdun', 'huaxue'], 'i_dunying'),
 };
 export const ITEM_TIERS = [['jian', 'zhang', 'jia', 'fu', 'huiyuan', 'xuening'], ['qingfeng', 'xingwen', 'zhenxue', 'xingdun', 'qinghun', 'huaxue'], ['tingxue', 'heichi', 'mingpan', 'zhaohun', 'xingluo', 'dunying', 'kunlong', 'lianxing']];
 export const TIER_NAME = ['', '凡器', '灵器', '法宝'];

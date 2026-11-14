@@ -182,16 +182,43 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (h.gold < cost) return '灵石不足';
     h.gold -= cost; h.items = [...pool.map(k => ITEMS[k]), it]; recalc(h); return '';
   }
+  // 出装. The first 法宝 is the cultivator's own core (`build[0]`, chosen from builds.mjs runs). Every later one is picked on the spot:
+  // what the item gives this cultivator (offence in the stat they scale with, defence, movement), weighted by their seat, then bent
+  // by the match — behind leans defensive, ahead leans offensive, a side full of physical damage makes 镇关尺 worth more, a side that
+  // fights from range makes speed worth more to a melee chaser — with a nudge toward the designer's own list.
+  const OVR = (typeof window !== 'undefined' && window.__buildOverride) || {};
+  const ROLE_W = [{ off: 0.6, def: 1.35, mv: 0.5 }, { off: 1.2, def: 0.6, mv: 0.5 }, { off: 1.4, def: 0.4, mv: 0.7 }, { off: 0.6, def: 1.0, mv: 0.4 }, { off: 1.2, def: 0.55, mv: 0.9 }];
+  function itemScore(h, id) {
+    const it = ITEMS[id], d = h.def, ap = d.apG > 0, W = ROLE_W[SEAT_FIT[d.id][0]], E = G.heroes.filter(e => e.team !== h.team), n = E.length || 1;
+    let off = ap ? (it.ap || 0) / 100 + (it.cdr || 0) * 2.2 + (it.sv || 0) * 2 + (it.mana || 0) / 900 : (it.ad || 0) / 48 + (it.as || 0) * 1.3 + (it.crit || 0) * 2.2 + (it.ls || 0) * 1.6 + (it.slowHit ? 0.25 : 0);
+    if (SUPPORTS.includes(d.id)) off = (it.ap || 0) / 130 + (it.cdr || 0) * 3 + (it.mana || 0) / 700;   // a 护法 wants its moves back sooner more than it wants them harder
+    let def = (it.hp || 0) / 850 + (it.dr || 0) * 4 + (it.regen || 0) * 25, mv = (it.ms || 0) / 1.4 + (it.slowHit && !d.ranged ? 0.3 : 0);
+    const kd = G.kills[1 - h.team] - G.kills[h.team], mine = h.deaths - h.kills, behind = kd >= 4 || mine >= 3, ahead = kd <= -4 && mine <= 0;
+    const phys = E.filter(e => e.def.apG === 0).length / n, far = E.filter(e => e.def.ranged).length / n;
+    if (behind) def *= 1.45; if (ahead) off *= 1.2;
+    if (id === 'heichi' && phys >= 0.6) def += 0.4;
+    if (!d.ranged && far >= 0.6) mv *= 1.5;
+    const pref = d.build.indexOf(id), prior = pref === 1 ? 0.3 : pref === 2 ? 0.2 : 0;
+    return off * W.off + def * W.def + mv * W.mv + prior;
+  }
+  function nextPiece(h) {
+    const have = k => h.items.some(x => x.id === k), fixed = OVR[h.def.id];
+    if (fixed) { for (const id of fixed) if (!have(id)) return id; }
+    else if (!have(h.def.build[0])) return h.def.build[0];
+    if (h.nextPick && !have(h.nextPick)) return h.nextPick;            // stay with a choice until it is finished
+    let best = null, bs = -1e9; for (const id of ITEM_TIERS[2]) { if (have(id)) continue; const v = itemScore(h, id); if (v > bs) { bs = v; best = id; } }
+    return (h.nextPick = best);
+  }
   function botWant(h) {       // what the next piece of the build costs from here; bots go home for it once they can pay
     const have = k => h.items.some(x => x.id === k);
-    for (const id of [...h.def.build, ...ITEM_TIERS[2]]) { if (have(id)) continue; const miss = ITEMS[id].tier === 3 ? ITEMS[id].parts.find(q => !have(q)) : null, pool = h.items.map(x => x.id), cost = planBuy(miss || id, pool); return pool.length + 1 > 6 ? 1e9 : cost; }   // one 灵器 at a time
-    return 1e9;
+    const id = nextPiece(h); if (!id) return 1e9;
+    const miss = ITEMS[id].parts.find(q => !have(q)), pool = h.items.map(x => x.id), cost = planBuy(miss || id, pool); return pool.length + 1 > 6 ? 1e9 : cost;   // one 灵器 at a time
   }
   function botShop(h) {       // work toward the next 法宝 in the hero's build, buying the biggest step it can afford
     if (!canShop(h)) return;
     const have = k => h.items.some(x => x.id === k);
     const step = id => { if (ITEMS[id].tier === 3 && have(id)) return false; if (h.gold >= priceOf(h, id)) return buyItem(h, id) === ''; const parts = ITEMS[id].parts; if (parts) for (const pid of parts) if (!have(pid) && step(pid)) return true; return false; };
-    for (const id of [...h.def.build, ...ITEM_TIERS[2]]) { if (have(id)) continue; step(id); return; }
+    const id = nextPiece(h); if (id) step(id);
   }
   // ---- ability ranks ----
   const rankOf = (h, i) => (i === 3 ? RANK.ult : RANK.basic);

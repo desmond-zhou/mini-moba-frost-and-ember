@@ -258,6 +258,12 @@ export function createUI(isTouch, audio) {
     el.endTable.innerHTML = '<tr><th class="c-team">阵营</th><th></th><th>修士</th><th>境界</th><th>镇压</th><th>陨落</th><th>合力</th><th>伤害</th><th class="c-gold">灵石</th></tr>' + G.heroes.map(h => `<tr class="${h === best ? 'best ' : ''}${h.team === FROST ? 'tf' : 'te'}"><td class="c-team ${h.team === FROST ? 'frost' : 'ember'}">${h.team === FROST ? '霜' : '烬'}</td><td><i class="fp" style="background-image:url(${faceOf(h)})"></i></td><td>${h.isPlayer ? '<u>' + h.name + '</u>' : h.name}${h === best ? '<span class="tag">最佳</span>' : ''}</td><td><span class="rl">${REALM[h.level - 1]}</span><span class="rn">${h.level}</span></td><td>${h.kills}</td><td>${h.deaths}</td><td>${h.assists}</td><td>${h.dealt === top ? '<b>' + kfmt(h.dealt) + '</b>' : kfmt(h.dealt)}</td><td class="c-gold">${kfmt(h.earned)}</td></tr>`).join('');
     ui.toggleMenu(false); el.hud.hidden = true; el.end.hidden = false; el.againBtn.onclick = () => { el.end.hidden = true; onAgain(); };
   };
+  // true fullscreen where the browser allows it (not inside a frame that forbids it, not on iPhone Safari): hidden otherwise
+  { const d = document, root = d.documentElement, req = root.requestFullscreen || root.webkitRequestFullscreen, can = !!req && (d.fullscreenEnabled || d.webkitFullscreenEnabled);
+    const on = () => !!(d.fullscreenElement || d.webkitFullscreenElement), btns = [d.getElementById('fsBtn'), d.getElementById('mFull')].filter(Boolean);
+    const label = () => { for (const b of btns) b.textContent = on() ? '退出全屏' : '全屏'; };
+    for (const b of btns) { b.hidden = !can; b.onclick = () => { audio.init(); try { if (on()) (d.exitFullscreen || d.webkitExitFullscreen).call(d); else { const p = req.call(root, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch { /* not on every phone */ } } } catch { /* refused */ } }; }
+    d.addEventListener('fullscreenchange', label); d.addEventListener('webkitfullscreenchange', label); }
   el.muteBtn.onclick = () => { audio.init(); audio.setMuted(!audio.muted); el.muteBtn.textContent = audio.muted ? '声音 关' : '声音 开'; };
   ui.el = el;
   return ui;

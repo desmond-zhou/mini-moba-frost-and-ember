@@ -4,17 +4,18 @@ import puppeteer from 'puppeteer-core';
 const [n = '6', off = '0', maxT = '1200', diff = 'mirror', mode = 'single', seat = '-1'] = process.argv.slice(2);
 const ORDER = ['warden', 'keeper', 'bloodlord', 'berserker', 'shade', 'archer', 'ranger', 'gunner', 'mage', 'cryo', 'storm', 'healer', 'yanzhao', 'yuanshan', 'qingya', 'wenren', 'linshuang', 'peiji'];
 const b = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', protocolTimeout: 600000, args: ['--no-sandbox', '--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=metal', '--mute-audio', '--window-size=640,360'] });
-const page = await b.newPage(); await page.setViewport({ width: 640, height: 360, deviceScaleFactor: 1 });
+const page = await b.newPage();
+if (process.env.BUILD) await page.evaluateOnNewDocument(o => { window.__buildOverride = JSON.parse(o); }, process.env.BUILD);   // BUILD='{"mage":["zhaohun"]}' forces that order for that cultivator await page.setViewport({ width: 640, height: 360, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.error('PAGEERROR', (e.stack || e.message).slice(0, 600)));
 await page.goto((process.env.BASE || 'http://localhost:5179/') + '?auto=mage&bot=1&dyn=0&q=low&diff=' + diff + '&mode=' + mode, { waitUntil: 'load' });
 await new Promise(r => setTimeout(r, 2000));
 for (let i = 0; i < +n; i++) {
-  const hero = ORDER[(i + +off) % ORDER.length];
+  const hero = process.env.HERO || ORDER[(i + +off) % ORDER.length];   // HERO=mage tracks one cultivator every match
   await page.evaluate((h, d, m, st) => { window.__moba.start(h, d, m, st); }, hero, diff, mode, +seat);
   let st = null;
   for (let t = 0; t < +maxT; t += 60) { st = await page.evaluate(() => { try { return window.__moba.sim(60); } catch (e) { return { err: String(e.stack || e) }; } }); if (!st || st.err || st.over) break; }
   if (st && st.err) { console.error('SIMERR', st.err); continue; }
-  const r = await page.evaluate(() => { const G = window.__moba.G; return { t: Math.round(G.t), win: G.over ? G.winner : -1, kills: G.kills, tw: G.structs.map(s => s.list.filter(t => t.alive).length), bot: G.botStat, heroes: G.heroes.map(h => ({ id: h.def.id, team: h.team, me: h.isPlayer ? 1 : 0, seat: h.seat || '', earned: Math.round(h.earned), lv: h.level, k: h.kills, d: h.deaths, a: h.assists, dealt: Math.round(h.dealt), gold: Math.round(h.gold + h.items.reduce((s, x) => s + (x.total || x.cost || 0), 0)) })) }; });
+  const r = await page.evaluate(() => { const G = window.__moba.G; return { t: Math.round(G.t), win: G.over ? G.winner : -1, kills: G.kills, tw: G.structs.map(s => s.list.filter(t => t.alive).length), bot: G.botStat, heroes: G.heroes.map(h => ({ id: h.def.id, team: h.team, me: h.isPlayer ? 1 : 0, seat: h.seat || '', earned: Math.round(h.earned), lv: h.level, k: h.kills, d: h.deaths, a: h.assists, dealt: Math.round(h.dealt), gold: Math.round(h.gold + h.items.reduce((s, x) => s + (x.total || x.cost || 0), 0)), items: h.items.filter(x => x.tier === 3).map(x => x.id) })) }; });
   console.log(JSON.stringify(r));
 }
 await Promise.race([b.close(), new Promise(r => setTimeout(r, 3000))]); process.exit(0);   // never linger: a stuck browser close used to leave these processes behind
