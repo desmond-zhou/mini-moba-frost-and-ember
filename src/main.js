@@ -1,0 +1,79 @@
+// main.js — boot, match lifecycle, camera, frame loop.
+import { createRender, pickQuality, QUALITY } from './render.js';
+import { createFx } from './fx.js';
+import { createWorld } from './world.js';
+import { createModels } from './models.js';
+import { createAudio } from './audio.js';
+import { createUI } from './ui.js';
+import { createInput } from './input.js';
+import { createGame } from './game.js';
+import { uTime } from './mat.js';
+import { laneZ, riverX } from './config.js';
+
+const fatal = document.getElementById('fatal');
+addEventListener('error', e => { fatal.textContent = '出错了：' + (e.message || e.error); });
+
+function boot() {
+  const qs = new URLSearchParams(location.search);
+  const isTouch = qs.get('touch') === '1' || (qs.get('touch') !== '0' && (matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 900)));
+  const R = createRender(document.getElementById('view'), qs.get('q') || pickQuality());
+  const fx = createFx(R), W = createWorld(R), M = createModels(R, fx), audio = createAudio(isTouch), ui = createUI(isTouch, audio), input = createInput(R, fx, ui, audio, isTouch);
+  R.sun = W.sun;
+  if (qs.get('dyn') === '0') R.dyn.enabled = false;
+  R.onQuality = q => { W.setShadowSize(q.shadow); ui.el.qBtn.textContent = '画质 ' + q.label; };
+  ui.el.qBtn.textContent = '画质 ' + R.quality.label;
+  ui.el.qBtn.onclick = () => { const order = ['low', 'medium', 'high']; R.setQuality(order[(order.indexOf(R.quality.name) + 1) % 3]); R.dyn.enabled = false; };
+
+  let G = null, state = 'title', time = 0, last = performance.now(), frames = 0;
+  const focus = { x: 0, z: 0 }, cam = R.camera;
+  let lastPick = ['mage', 'normal'];
+  function start(hero, difficulty) {
+    lastPick = [hero, difficulty]; ui.toggleMenu(false);
+    M.reset(); fx.reset();
+    G = createGame(R, W, M, fx, audio, ui, { hero, difficulty });
+    G.autoPlay = qs.get('bot') === '1'; input.G = G; ui.bind(G, input); state = 'playing'; audio.init();
+    focus.x = G.focus.x; focus.z = G.focus.z;
+  }
+  const toTitle = () => { state = 'title'; G = null; input.G = null; M.reset(); fx.reset(); ui.showTitle(start); };
+  ui.onMenu = { restart: () => start(lastPick[0], lastPick[1]), quit: () => toTitle() };
+  ui.showTitle(start);
+  if (qs.get('auto')) { ui.el.title.hidden = true; start(qs.get('auto'), qs.get('diff') || 'normal'); }
+
+  function frame(now) {
+    const raw = now - last; last = now;
+    let dt = Math.min(0.05, raw / 1000);
+    if (fx.stopT > 0) { fx.stopT -= dt; dt *= 0.06; }
+    else if (fx.slowT > 0) { const k = fx.slowT / fx.slowDur; fx.slowT -= dt; dt *= k > 0.35 ? fx.slowK : fx.slowK + (1 - fx.slowK) * (1 - k / 0.35); }   // a killing blow lingers   // hit-stop: big impacts freeze the world for a few frames
+    const paused = state === 'playing' && ui.menuOpen; if (paused) dt = 0;            // the menu stops the world; the picture and the music carry on
+    time += dt; uTime.value = time;
+    audio.intensity = 0;
+    let hurt = 0, sat = 1.06, shake = fx.shakeAmt, zoom = input.zoom * (cam.aspect < 1.25 ? Math.min(1.55, 1.18 / Math.sqrt(cam.aspect)) : 1);
+    if (state === 'title') {
+      const fxp = Math.sin(time * 0.045) * 52; focus.x = fxp; focus.z = laneZ(fxp); zoom = 0.82;
+    } else {
+      if (!paused) { G.update(dt, time); input.update(); ui.update(dt); }
+      const k = 1 - Math.exp(-dt * (G.over ? 2 : 9));
+      focus.x += ((G.focus.tx ?? focus.x) - focus.x) * k; focus.z += ((G.focus.tz ?? focus.z) - focus.z) * k;
+      G.focus.x = focus.x; G.focus.z = focus.z; audio.listener.x = focus.x; audio.listener.z = focus.z;
+      const p = G.player; audio.intensity = p.alive && p.combatT < 4.5 && !G.over ? 1 : 0; hurt = Math.max(G.hurtFlash || 0, p.alive ? Math.max(0, 0.35 - p.hp / p.maxHp) * 1.6 : 0); if (!p.alive && !G.over) sat = 0.2;
+      if (G.over && G.overT > 3 && state !== 'end') { state = 'end'; audio.play(G.winner === p.team ? 'level' : 'death'); ui.showEnd(toTitle); }
+    }
+    audio.ambient(focus.x, focus.z, riverX(focus.z) - focus.x, state === 'playing' && G.player.alive && G.player.hp / G.player.maxHp < 0.3, dt);
+    fx.update(dt); W.update(focus); W.focusLight(focus.x, focus.z);
+    const sx = (Math.random() - 0.5) * shake * 1.4, sy = (Math.random() - 0.5) * shake * 1.4;
+    zoom *= 1 - 0.1 * Math.sin(Math.PI * fx.zoomK);                      // leaning in for an ultimate
+    cam.position.set(focus.x + sx, 38 * zoom + sy, focus.z + 25 * zoom + 1.5);
+    cam.lookAt(focus.x + sx, 0, focus.z - 1.5);
+    const g = R.grade; g.uPunch.value = fx.punchAmt; g.uHurt.value += (hurt - g.uHurt.value) * Math.min(1, dt * 10); g.uSat.value += (sat - g.uSat.value) * Math.min(1, dt * 4);
+    R.render(time);
+    if (state !== 'title') R.adapt(raw);
+    if (++frames === 2) document.getElementById('boot').classList.add('done');
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  document.addEventListener('visibilitychange', () => { audio.pause(document.hidden); last = performance.now(); });
+
+  // debug / automated-test handle
+  window.__moba = { get G() { return G; }, R, fx, start, input, audio, sim(sec, step = 1 / 30) { for (let t = 0; t < sec && G && !G.over; t += step) { time += step; G.update(step, time); fx.update(step); } return G ? { t: G.t, units: G.units.length, kills: G.kills, over: G.over } : null; } };
+}
+try { boot(); } catch (e) { fatal.textContent = '启动失败：' + (e && e.stack || e); throw e; }

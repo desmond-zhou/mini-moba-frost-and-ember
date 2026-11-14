@@ -1,0 +1,20 @@
+{
+  "name": "mini-moba",
+  "version": "1.0.0",
+  "description": "霜烬之争 — a single-file xianxia mini MOBA: three.js, everything procedural, no asset files",
+  "scripts": {
+    "dev": "node serve.mjs",
+    "build": "node build.mjs",
+    "test": "node test.mjs \"auto=mage&bot=1&dyn=0\" shot.png 300",
+    "batch": "node batch.mjs 30 0 1500",
+    "audiotest": "node audiotest.mjs"
+  },
+  "license": "UNLICENSED",
+  "type": "module",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "puppeteer-core": "^25.17.0",
+    "three": "^0.187.0"
+  },
+  "private": true
+}
