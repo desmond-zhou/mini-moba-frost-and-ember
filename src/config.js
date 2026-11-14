@@ -148,7 +148,7 @@ export const TEAM_COL = [
 const S = (key, id, name, kind, o, desc) => ({ key, id, name, kind, vfx: o.vfx || id, icon: o.icon || id, desc, ...o });
 export const HEROES = {
   warden: {
-    id: 'warden', size: 1.42, tint: [1.0, 0.85, 0.55], style: 'sword', name: '韩不语', short: '韩', title: '刑律堂首座 · 镇关', role: '体修 · 近战', blurb: '人称哑刑官。一把封着剑意的重尺冲阵开团，用定身为同门创造机会。',
+    id: 'warden', size: 1.42, tint: [1.0, 0.85, 0.55], style: 'sword', name: '韩不语', short: '韩', title: '刑律堂首座 · 镇关', role: '体修 · 近战', blurb: '人称哑刑官，三十年没说过一句话，话都封在那把重尺里。皮厚，冲进人堆把人撞住，等同门跟上。',
     hp: 1060, hpG: 114, mana: 260, manaG: 22, ad: 62, adG: 4, ap: 0, apG: 0, ms: 6.8, range: 2.9, period: 0.95, wind: 0.26, ranged: false, r: 1.05, h: 5.2,
     build: ['heichi', 'xingluo', 'tingxue'],
     passive: { name: '不动如山', icon: 'bulwark', max: 5, desc: '被修士、灵塔或邪祟打中时叠一层，每层减伤 4%，最多 5 层；4 秒没挨打就散去。' },
@@ -160,7 +160,7 @@ export const HEROES = {
     ],
   },
   mage: {
-    id: 'mage', size: 1.28, tall: 0.1, tint: [0.75, 0.4, 1.0], style: 'staff', name: '周易', short: '易', title: '天衍传人', role: '术修 · 远程', blurb: '以命盘调度星力。伤害极高但身板脆弱，靠推演预判打出爆发。',
+    id: 'mage', size: 1.28, tall: 0.1, tint: [0.75, 0.4, 1.0], style: 'staff', name: '周易', short: '易', title: '天衍传人', role: '术修 · 远程', blurb: '天衍传人，拿命盘推演星辰的落点。伤害最高，身板最脆，算准了一颗星砸下来能清掉半个场。',
     hp: 860, hpG: 96, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 14, apG: 7.5, ms: 6.4, range: 9.2, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.4,
     build: ['mingpan', 'zhaohun', 'xingluo'],
     passive: { name: '推演', icon: 'i_disc', desc: '招式命中敌方修士时回复 5% 灵力，并让所有招式的调息缩短 0.6 秒。' },
@@ -172,7 +172,7 @@ export const HEROES = {
     ],
   },
   ranger: {
-    id: 'ranger', size: 1.22, tint: [0.4, 1.0, 0.6], style: 'bow', name: '苏紫烟', short: '烟', title: '听雪剑主', role: '剑修 · 远程', blurb: '御剑出手最远、剑招最快，持续输出强，需要保持距离。',
+    id: 'ranger', size: 1.22, tint: [0.4, 1.0, 0.6], style: 'bow', name: '苏紫烟', short: '烟', title: '听雪剑主', role: '剑修 · 远程', blurb: '听雪剑主，隔着半条路出剑。靠招式吃饭：剑气一道接一道，回旋的那一道来回各斩一次。',
     hp: 830, hpG: 93, mana: 300, manaG: 24, ad: 54, adG: 3.7, ap: 0, apG: 0, ms: 6.6, range: 9.2, period: 0.98, wind: 0.18, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'xingluo', 'dunying'],
     passive: { name: '剑意相续', icon: 'i_tingxue', desc: '每次出招后，下一次普攻伤害 +35%、减速 30%，并让「听雪」的调息缩短 1.2 秒。' },
@@ -184,7 +184,7 @@ export const HEROES = {
     ],
   },
   shade: {
-    id: 'shade', size: 1.2, tint: [1.0, 0.2, 0.55], style: 'dual', name: '柳红衣', short: '红', title: '血魂暗子', role: '影修 · 近战', blurb: '一抹红影来去无声，专挑残血和落单的敌人下手，自己也很脆。',
+    id: 'shade', size: 1.2, tint: [1.0, 0.2, 0.55], style: 'dual', name: '柳红衣', short: '红', title: '血魂暗子', role: '影修 · 近战', blurb: '血魂宗埋了多年的暗子，一抹红影。隐身摸到后排，专取残血和落单的；得手就走，自己也脆。',
     hp: 1100, hpG: 118, mana: 280, manaG: 22, ad: 74, adG: 4.8, ap: 0, apG: 0, ms: 7.4, range: 2.7, period: 0.72, wind: 0.16, ranged: false, r: 0.95, h: 4.9,
     build: ['dunying', 'tingxue', 'heichi'],
     passive: { name: '索命', icon: 'dagger', desc: '对气血低于 40% 的目标伤害 +25%；参与镇压修士后回复自身 20% 气血。' },
@@ -196,7 +196,7 @@ export const HEROES = {
     ],
   },
   healer: {
-    id: 'healer', size: 1.16, tall: 0.35, tint: [0.75, 1.0, 0.3], style: 'staff', name: '孙伯', short: '孙', title: '藏经阁扫地人', role: '丹修 · 辅助', blurb: '装了三十年糊涂的老人。丹药和符箓让同门多扛几轮，缚灵符能定住冲上来的敌人。',
+    id: 'healer', size: 1.16, tall: 0.35, tint: [0.75, 1.0, 0.3], style: 'staff', name: '孙伯', short: '孙', title: '藏经阁扫地人', role: '丹修 · 辅助', blurb: '在藏经阁扫了三十年地、装了三十年糊涂的老人。全队的命都在他手里：回血、提速，一张符定住冲上来的人。',
     hp: 910, hpG: 98, mana: 440, manaG: 36, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 9, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.2,
     build: ['mingpan', 'xingluo', 'zhaohun'],
     passive: { name: '药香', icon: 'i_gourd', desc: '身边的同门（含自己）每秒多回复 1% 气血。' },
@@ -208,7 +208,7 @@ export const HEROES = {
     ],
   },
   cryo: {
-    id: 'cryo', size: 1.27, tint: [0.6, 0.95, 1.0], style: 'staff', name: '寒漪', short: '漪', title: '玄霜宗长老', role: '冰修 · 远程', blurb: '修寒冰道。减速、冻结、封路，把敌人留在同门的火力范围里。',
+    id: 'cryo', size: 1.27, tint: [0.6, 0.95, 1.0], style: 'staff', name: '寒漪', short: '漪', title: '玄霜宗长老', role: '冰修 · 远程', blurb: '玄霜宗长老，走到哪里哪里结冰。减速、冻结、封路，把人留在同门的火力里。',
     hp: 840, hpG: 94, mana: 430, manaG: 34, ad: 46, adG: 2.5, ap: 14, apG: 7.5, ms: 6.4, range: 8.8, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.3,
     build: ['mingpan', 'xingluo', 'zhaohun'],
     passive: { name: '霜蚀', icon: 'frostnova', desc: '普攻附带 20% 减速；对已被减速或定身的目标伤害 +12%。' },
@@ -220,7 +220,7 @@ export const HEROES = {
     ],
   },
   berserker: {
-    id: 'berserker', size: 1.46, tint: [1.0, 0.3, 0.12], style: 'axe', name: '老铁', short: '铁', title: '北荒刀客', role: '刀修 · 近战', blurb: '北荒来的向导，一口崩了刃的厚背刀。越打越凶，靠吸血在人堆里站住。',
+    id: 'berserker', size: 1.46, tint: [1.0, 0.3, 0.12], style: 'axe', name: '老铁', short: '铁', title: '北荒刀客', role: '刀修 · 近战', blurb: '北荒来的向导，一口崩了刃的厚背刀。血越少出刀越快、皮越硬，站在人堆里砍到最后。',
     hp: 1240, hpG: 130, mana: 250, manaG: 20, ad: 68, adG: 4.4, ap: 0, apG: 0, ms: 6.9, range: 3.0, period: 0.88, wind: 0.24, ranged: false, r: 1.05, h: 5.3,
     build: ['heichi', 'dunying', 'tingxue'],
     passive: { name: '越战越勇', icon: 'rage', pct: true, desc: '气血越低出刀越快、皮越硬：濒死时攻速 +60%，受到的伤害 -22%。' },
@@ -232,7 +232,7 @@ export const HEROES = {
     ],
   },
   gunner: {
-    id: 'gunner', size: 1.33, tint: [1.0, 0.72, 0.2], style: 'gun', name: '吴镇岳', short: '岳', title: '天元宗峰主', role: '符修 · 远程', blurb: '破魂弩配一腰雷火符，从远处压制一片区域，被近身就得炸符脱身。',
+    id: 'gunner', size: 1.33, tint: [1.0, 0.72, 0.2], style: 'gun', name: '吴镇岳', short: '岳', title: '天元宗峰主', role: '符修 · 远程', blurb: '天元宗峰主，一架破魂弩配一腰雷火符。扎稳了就是一座炮台，一炸一片；架起来之后走不快。',
     hp: 810, hpG: 90, mana: 310, manaG: 24, ad: 61, adG: 4.3, ap: 0, apG: 0, ms: 6.5, range: 9.4, period: 1.04, wind: 0.22, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'dunying', 'heichi'],
     passive: { name: '连珠', icon: 'shell', max: 4, desc: '每第四次普攻换上雷火符：伤害 +25%，并炸伤目标周围的敌人。' },
@@ -244,7 +244,7 @@ export const HEROES = {
     ],
   },
   storm: {
-    id: 'storm', size: 1.3, tall: 0.4, tint: [0.95, 0.9, 0.35], style: 'staff', name: '沈渊', short: '渊', title: '天刑台执法副使', role: '雷修 · 远程', blurb: '掌一方刑印引雷。落雷又快又准，连续命中能把敌人劈得动弹不得。',
+    id: 'storm', size: 1.3, tall: 0.4, tint: [0.95, 0.9, 0.35], style: 'staff', name: '沈渊', short: '渊', title: '天刑台执法副使', role: '雷修 · 远程', blurb: '天刑台执法副使，掌印引雷。落雷又快又准，同一个人挨到第三道就动弹不得。',
     hp: 830, hpG: 92, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7.5, ms: 6.5, range: 9, period: 1.0, wind: 0.2, ranged: true, r: 0.95, h: 5.3,
     build: ['mingpan', 'zhaohun', 'xingluo'],
     passive: { name: '雷印', icon: 'bolt2', desc: '招式命中会在敌人身上留一道雷印，叠满三道即引爆：按最大气血造成伤害并定身 0.5 秒，之后 3.2 秒内不再留印。' },
@@ -256,7 +256,7 @@ export const HEROES = {
     ],
   },
   keeper: {
-    id: 'keeper', size: 1.5, tint: [0.4, 0.6, 1.0], style: 'shield', name: '周远川', short: '川', title: '天衍城守门人', role: '盾修 · 近战', blurb: '在雪原守了五十年门。最能扛，嘲讽把敌人钉在自己身上，静时阵一落整片都动不了。',
+    id: 'keeper', size: 1.5, tint: [0.4, 0.6, 1.0], style: 'shield', name: '周远川', short: '川', title: '天衍城守门人', role: '盾修 · 近战', blurb: '在雪原守了五十年的门，门后是天衍城。最能扛：一声喝令，所有人只能打他。',
     hp: 1260, hpG: 134, mana: 280, manaG: 22, ad: 56, adG: 3.4, ap: 0, apG: 0, ms: 6.6, range: 2.9, period: 1.05, wind: 0.28, ranged: false, r: 1.1, h: 5.3,
     build: ['heichi', 'xingluo', 'tingxue'],
     passive: { name: '守门', icon: 'ward', cd: 45, desc: '气血低于 40% 时自动撑起相当于 16% 最大气血的罡气，持续 4 秒。每 45 秒一次。' },
@@ -268,7 +268,7 @@ export const HEROES = {
     ],
   },
   bloodlord: {
-    id: 'bloodlord', size: 1.46, tint: [1.0, 0.1, 0.12], style: 'dual', name: '血屠子', short: '屠', title: '血魂宗主', role: '血修 · 近战', blurb: '以血养身的魔道宗主。血锁把人拽到面前，打得越久吸得越多，很难杀死。',
+    id: 'bloodlord', size: 1.46, tint: [1.0, 0.1, 0.12], style: 'dual', name: '血屠子', short: '屠', title: '血魂宗主', role: '血修 · 近战', blurb: '以血养身的魔道宗主，见血才算开席。血锁甩中谁就把自己拽过去；打得越久吸得越多，很难杀死。',
     hp: 1290, hpG: 136, mana: 300, manaG: 24, ad: 66, adG: 4.1, ap: 0, apG: 0, ms: 6.7, range: 3.0, period: 1.0, wind: 0.24, ranged: false, r: 1.1, h: 5.3,
     build: ['heichi', 'dunying', 'xingluo'],
     passive: { name: '血食', icon: 'bloodsea', desc: '附近有敌方弟子或邪祟死去时回复 3.5% 气血，死的是修士则回复 14%。' },
@@ -280,7 +280,7 @@ export const HEROES = {
     ],
   },
   archer: {
-    id: 'archer', size: 1.27, tint: [1.0, 0.52, 0.12], style: 'bow', name: '沈焰', short: '焰', title: '火岛守岛人', role: '焰修 · 远程', blurb: '一盏心火守了火岛三百年。不用弓，指尖弹出的火一发接一发连成线；心火一旺出手最快，但被近身就很危险。',
+    id: 'archer', size: 1.27, tint: [1.0, 0.52, 0.12], style: 'bow', name: '沈焰', short: '焰', title: '火岛守岛人', role: '焰修 · 远程', blurb: '一盏心火守了火岛三百年。火从指尖一发接一发弹出去，烧同一个人越烧越快；怕被近身。',
     hp: 790, hpG: 88, mana: 300, manaG: 24, ad: 56, adG: 3.8, ap: 0, apG: 0, ms: 6.7, range: 9.8, period: 0.78, wind: 0.16, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'dunying', 'heichi'],
     passive: { name: '焚心', icon: 'starbolt', max: 5, desc: '连续烧同一个目标，每一发攻速 +6%，最多 5 层；换目标或停手 3 秒后清零。' },
@@ -294,7 +294,7 @@ export const HEROES = {
 
   // ---- six more, to fill the seats that were thin: two who protect, two who hunt, one more archer, one more wall ----
   yanzhao: {
-    id: 'yanzhao', size: 1.2, tint: [0.72, 0.8, 1.0], style: 'staff', name: '言照雪', short: '雪', title: '蔽目之体', role: '幕修 · 辅助', blurb: '天生蔽目之体，能遮住不该被看见的东西。站在同门身边，替他们挡下一部分伤害。',
+    id: 'yanzhao', size: 1.2, tint: [0.72, 0.8, 1.0], style: 'staff', name: '言照雪', short: '雪', title: '蔽目之体', role: '幕修 · 辅助', blurb: '天生蔽目之体，能遮住不该被看见的东西。罩住同门替他们挡伤害，危急时一道幕落下，大家一起隐去身形。',
     hp: 930, hpG: 100, mana: 430, manaG: 35, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 8.8, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.1,
     build: ['xingluo', 'mingpan', 'zhaohun'],
     passive: { name: '蔽目之体', icon: 'smoke', desc: '身边的同门（含自己）受到修士的伤害 -8%。' },
@@ -306,7 +306,7 @@ export const HEROES = {
     ],
   },
   yuanshan: {
-    id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '周远山', short: '山', title: '携钱南下的人', role: '卜修 · 辅助', blurb: '周易的祖父，五十年前带着天衍钱南下。一枚铜钱定吉凶，专替后辈挡灾。',
+    id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '周远山', short: '山', title: '携钱南下的人', role: '卜修 · 辅助', blurb: '周易的祖父，五十年前带着天衍钱南下。一枚铜钱定吉凶：给对面起一卦凶象，他们挨的每一下都更疼。',
     hp: 960, hpG: 102, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.4, range: 8.6, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.3,
     build: ['xingluo', 'mingpan', 'zhaohun'],
     passive: { name: '余荫', icon: 'i_disc', desc: '身边的同门气血跌破 30% 时，替他挡一次：给一层相当于其 18% 最大气血的罡气。每人 30 秒一次。' },
@@ -318,7 +318,7 @@ export const HEROES = {
     ],
   },
   qingya: {
-    id: 'qingya', size: 1.34, tint: [0.5, 1.0, 0.85], style: 'sword', name: '陆青崖', short: '崖', title: '清正', role: '剑修 · 近战', blurb: '苏紫烟与韩不语的师父，蒙冤被逐，宗主后来为他题"清正"二字。一人一剑，最擅长独行清剿。',
+    id: 'qingya', size: 1.34, tint: [0.5, 1.0, 0.85], style: 'sword', name: '陆青崖', short: '崖', title: '清正', role: '剑修 · 近战', blurb: '蒙冤被逐的剑修，宗主后来只为他题了"清正"二字。一人一剑自己养活自己，残血的人躲不过他那一剑。',
     hp: 1190, hpG: 126, mana: 280, manaG: 22, ad: 74, adG: 4.8, ap: 0, apG: 0, ms: 7.2, range: 2.9, period: 0.85, wind: 0.2, ranged: false, r: 1.0, h: 5.2,
     build: ['tingxue', 'heichi', 'dunying'],
     passive: { name: '独行', icon: 'pierce', desc: '普攻吸血 12%。对邪祟的伤害 +40%，每清掉一只回复 4% 气血。' },
@@ -330,7 +330,7 @@ export const HEROES = {
     ],
   },
   wenren: {
-    id: 'wenren', size: 1.26, tint: [1.0, 0.35, 0.6], style: 'dual', name: '闻人遥', short: '遥', title: '大司刑关门弟子', role: '刑修 · 近战', blurb: '闻人策的关门弟子，练功走火，出手再无分寸。在野外游荡，逮着落单的就下死手。',
+    id: 'wenren', size: 1.26, tint: [1.0, 0.35, 0.6], style: 'dual', name: '闻人遥', short: '遥', title: '大司刑关门弟子', role: '刑修 · 近战', blurb: '练功走火，出手再无分寸。在野外游荡，一道血线把人拽到面前，杀了一个还能接着追下一个。',
     hp: 1150, hpG: 122, mana: 280, manaG: 22, ad: 75, adG: 4.8, ap: 0, apG: 0, ms: 7.3, range: 2.8, period: 0.78, wind: 0.17, ranged: false, r: 0.95, h: 5.0,
     build: ['dunying', 'tingxue', 'heichi'],
     passive: { name: '走火入魔', icon: 'rage', desc: '对邪祟的伤害 +35%。参与镇压修士后，「掠影」立刻可以再用。' },
@@ -342,7 +342,7 @@ export const HEROES = {
     ],
   },
   linshuang: {
-    id: 'linshuang', size: 1.24, tint: [0.55, 0.85, 1.0], style: 'archer', name: '林霜', short: '霜', title: '冰岛守岛人', role: '弓修 · 远程', blurb: '三百年前的天衍传人，与沈焰分守冰火两岛。她的箭不快，但中了箭的人再也快不起来。',
+    id: 'linshuang', size: 1.24, tint: [0.55, 0.85, 1.0], style: 'archer', name: '林霜', short: '霜', title: '冰岛守岛人', role: '弓修 · 远程', blurb: '三百年前的天衍传人，守着冰岛。开弓慢，箭重，射得最远；离得越远越疼，残血的人逃不出她那一箭。',
     hp: 800, hpG: 89, mana: 300, manaG: 24, ad: 70, adG: 5.2, ap: 0, apG: 0, ms: 6.5, range: 10.4, period: 1.16, wind: 0.24, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'dunying', 'heichi'],
     passive: { name: '霜弦', icon: 'icelance', desc: '开弓慢，箭重，弦远：对 7 步以外的目标，普攻伤害 +18%。' },
@@ -354,7 +354,7 @@ export const HEROES = {
     ],
   },
   peiji: {
-    id: 'peiji', size: 1.48, tint: [0.88, 0.9, 1.0], style: 'axe', name: '裴寂', short: '寂', title: '天刑台代管', role: '律修 · 近战', blurb: '闻人策伏法后代管天刑台。一根刑杖在手，站在哪里，哪里就是规矩。',
+    id: 'peiji', size: 1.48, tint: [0.88, 0.9, 1.0], style: 'axe', name: '裴寂', short: '寂', title: '天刑台代管', role: '律修 · 近战', blurb: '天刑台如今归他管。他站在哪里，哪里就是规矩。先手拿人：一道令下，四周的人全被拘到他面前。',
     hp: 1170, hpG: 126, mana: 280, manaG: 22, ad: 57, adG: 3.5, ap: 0, apG: 0, ms: 6.6, range: 3.0, period: 1.0, wind: 0.26, ranged: false, r: 1.1, h: 5.3,
     build: ['heichi', 'xingluo', 'tingxue'],
     passive: { name: '铁律', icon: 'gate', desc: '被他的招式打中的敌人，3 秒内受到的所有伤害 +7%。' },
