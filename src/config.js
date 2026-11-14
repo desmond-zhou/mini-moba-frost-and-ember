@@ -54,7 +54,7 @@ export const MODES = {
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
     // 一路's own nudges, set after the bots started playing their roles (v1.2.0-alpha.3). Shared numbers stay as they are.
-    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.04, hp: 1.03 }, keeper: { ad: 1.03 }, peiji: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 1.04, hp: 1.04 }, shade: { ad: 1.08, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.08 }, ranger: { ad: 0.95, hp: 0.97 }, gunner: { ad: 0.93 }, mage: { ap: 0.92, hp: 0.96 }, cryo: { ap: 0.9, hp: 0.92 }, storm: { ap: 0.92, hp: 0.95 }, healer: { pow: 1.1, hp: 1.09 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
+    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.04, hp: 1.03 }, keeper: { ad: 1.03 }, peiji: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 1.04, hp: 1.04 }, shade: { ad: 1.08, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.08 }, ranger: { ad: 0.95, hp: 0.97 }, gunner: { ad: 0.93 }, mage: { ap: 0.92, hp: 0.96 }, cryo: { ap: 0.9, hp: 0.92 }, storm: { ap: 0.97, hp: 0.97 }, healer: { pow: 1.1, hp: 1.09 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
   },
   tri: {
     id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, solid: true, blurb: '5v5 · 约 20 分钟',
@@ -93,7 +93,7 @@ export const MODES = {
       bossAt: 960,                                                     // 渊主残念 takes over the upper pit from here on
       surge: { puppet: [1.4, 55], abyss: [2.0, 90] },                 // how much stronger the side's disciples get, and for how long
     },
-    heroTune: { warden: { ad: 0.96 }, keeper: { ad: 1.1, hp: 1.06 }, bloodlord: { ad: 0.96, hp: 0.96 }, qingya: { ad: 0.97 }, ranger: { ad: 1.03 }, gunner: { ad: 0.94, hp: 0.98 }, cryo: { ap: 0.96 }, storm: { hp: 1.03 }, healer: { pow: 1.1, hp: 1.06 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 } },   // multipliers on base stats, this mode only
+    heroTune: { warden: { ad: 0.96 }, keeper: { ad: 1.1, hp: 1.06 }, bloodlord: { ad: 0.96, hp: 0.96 }, qingya: { ad: 0.97 }, ranger: { ad: 1.03 }, gunner: { ad: 0.94, hp: 0.98 }, cryo: { ap: 0.96 }, storm: { ap: 1.03, hp: 1.04 }, healer: { pow: 1.1, hp: 1.06 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 } },   // multipliers on base stats, this mode only
   },
 };
 
@@ -247,7 +247,7 @@ export const HEROES = {
     id: 'storm', size: 1.3, tall: 0.4, tint: [0.95, 0.9, 0.35], style: 'staff', name: '沈渊', short: '渊', title: '天刑台执法副使', role: '雷修 · 远程', blurb: '天刑台执法副使，掌印引雷。他办案不问缘由，只问有没有印。印落在谁身上，雷就认得谁。一道是警告，两道是判词。第三道落下，就不必再动了。',
     hp: 830, hpG: 92, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7.5, ms: 6.5, range: 9, period: 1.0, wind: 0.2, ranged: true, r: 0.95, h: 5.3,
     build: ['xingluo', 'mingpan', 'zhaohun'],
-    passive: { name: '雷印', icon: 'bolt2', desc: '招式命中会在敌人身上留一道雷印，叠满三道即引爆：按最大气血造成伤害并定身 0.5 秒，之后 3.2 秒内不再留印。' },
+    passive: { name: '雷印', icon: 'bolt2', desc: '招式命中会在敌人身上留一道雷印，叠满三道即引爆：按最大气血造成伤害并定身 0.5 秒，之后 3.8 秒内不再留印。' },
     skills: [
       S('Q', 'bolt', '刑雷', 'zone', { range: 14, radius: 3, delay: 0.45, cd: 4.0, mana: 35, b: 86, l: 18, ap: 0.68 }, '短暂延迟后在目标位置劈下一道闪电。'),
       S('W', 'orb', '锁魂珠', 'proj', { range: 15, speed: 20, width: 1.0, cd: 8, mana: 50, b: 60, l: 14, ap: 0.5, splash: 3.2, stun: 0.6 }, '放出一枚缓慢飞行的雷珠，命中后爆开并短暂麻痹。'),

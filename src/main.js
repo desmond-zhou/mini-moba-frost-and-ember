@@ -62,7 +62,7 @@ function boot() {
       const k = 1 - Math.exp(-dt * (G.over ? 2 : intro > 0 ? 1.6 : 9));
       focus.x += ((G.focus.tx ?? focus.x) - focus.x) * k; focus.z += ((G.focus.tz ?? focus.z) - focus.z) * k;
       G.focus.x = focus.x; G.focus.z = focus.z; audio.listener.x = focus.x; audio.listener.z = focus.z;
-      const p = G.player; audio.intensity = p.alive && p.combatT < 4.5 && !G.over ? 1 : 0; hurt = Math.max(G.hurtFlash || 0, p.alive ? Math.max(0, 0.35 - p.hp / p.maxHp) * 1.6 : 0); if (!p.alive && !G.over) sat = 0.2;
+      const p = G.player; audio.intensity = p.alive && p.combatT < 4.5 && !G.over ? 1 : 0; audio.mood = (G.tribK || 0) > 0.2 ? 'trib' : G.structs.some(s => s.core.alive && s.core.hp < s.core.maxHp * 0.6) || G.t > 900 ? 'end' : 'calm'; hurt = Math.max(G.hurtFlash || 0, p.alive ? Math.max(0, 0.35 - p.hp / p.maxHp) * 1.6 : 0); if (!p.alive && !G.over) sat = 0.2;
       if (G.over && G.overT > 3 && state !== 'end') { state = 'end'; audio.play(G.winner === p.team ? 'level' : 'death'); ui.showEnd(toTitle); }
     }
     audio.ambient(biomeX(focus.x, focus.z), focus.z, RIVER.signed(focus.x, focus.z), state === 'playing' && G.player.alive && G.player.hp / G.player.maxHp < 0.3, dt);

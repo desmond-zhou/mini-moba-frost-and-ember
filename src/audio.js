@@ -4,11 +4,11 @@
 // Effects: layered (body + air + a ring of inharmonic partials), placed around the listener with HRTF panning, duller and
 // wetter with distance, fed through early reflections and a long reverb, pitched a little differently every time, and
 // thinned out when many would sound at once. Abilities add a layer for their element. Ambience follows the camera.
-import { renderBank } from './sfx.js';
+import { renderBank, renderMusic } from './sfx.js';
 export { renderBank };
 
 export function createAudio(lite) {
-  const A = { lite: !!lite, muted: false, listener: { x: 0, z: 0 }, intensity: 0 };
+  const A = { lite: !!lite, muted: false, listener: { x: 0, z: 0 }, intensity: 0, mood: 'calm' };   // mood: calm | trib | end (set from main.js)
   let ctx = null, master = null, musicBus = null, revIn = null, roomIn = null, sfx = null, noiseBuf = null, out = null, tune = 1; const last = {};
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -37,7 +37,7 @@ export function createAudio(lite) {
     sfx = ctx.createGain(); sfx.connect(master); out = sfx;
     A.setVolume(A.vol.music, A.vol.sfx);
     startAmbience(); startMusic();
-    renderBank(ctx, (name, bufs) => { bank[name] = bufs; A.bankN = Object.keys(bank).length; });   // the designed sounds replace the quick ones as they come in
+    renderMusic(ctx, (name, b) => { inst[name] = b; }).then(() => renderBank(ctx, (name, bufs) => { bank[name] = bufs; A.bankN = Object.keys(bank).length; }));   // the instruments first (small), then the effects   // the designed sounds replace the quick ones as they come in
   };
   A.vol = { music: 1, sfx: 1 };
   A.setVolume = (music, fxv) => { A.vol.music = music; A.vol.sfx = fxv; if (!ctx) return; const t = ctx.currentTime; musicBus.gain.setTargetAtTime(0.5 * music, t, 0.05); sfx.gain.setTargetAtTime(fxv, t, 0.05); roomIn.gain.setTargetAtTime(fxv, t, 0.05); };
@@ -119,7 +119,7 @@ export function createAudio(lite) {
   const GAP = { hit: 0.11, thud: 0.07, smack: 0.06, slash: 0.06, heavy: 0.06, bow: 0.05, xbow: 0.05, cast: 0.05, boom: 0.09, ice: 0.12, fire: 0.12, thunder: 0.14, zap: 0.08, blood: 0.12, star: 0.1, sword: 0.1, heal: 0.15, earth: 0.1, wind: 0.15, kill: 0.2, tower: 0.08 };
   const SOFT = { hit: 1, thud: 1, tower: 1 }, WET = { boom: 0.3, thunder: 0.35, kill: 0.4, horn: 0.4, death: 0.4, earth: 0.25, ice: 0.25, star: 0.3, heal: 0.3, magic: 0.25, shield: 0.25, sword: 0.22, level: 0.3, ping: 0.35, arrive: 0.35, recall: 0.3, crit: 0.2 };
   const TRIM = { boom: 0.62, earth: 0.55, kill: 0.55, death: 0.62, blood: 0.7, arrive: 0.75, heart: 0.8, smack: 0.85, bow: 0.8, slash: 1.5, zap: 1.5, ice: 1.45, magic: 1.4, thunder: 1.35, sword: 1.3, star: 1.3, fire: 1.3, xbow: 1.3, crit: 1.25 };
-  const recent = [], bank = {};
+  const recent = [], bank = {}, inst = {};
   // loudness of each designed sound (the bank is normalised); the quick fallback keeps its own TRIM
   const LEVEL = { hit: 0.2, smack: 0.48, thud: 0.38, crit: 0.55, slash: 0.3, heavy: 0.42, bow: 0.42, xbow: 0.36, cast: 0.26, arrow: 0.34, whoosh: 0.34, zap: 0.5, thunder: 0.6, ice: 0.42,
     fire: 0.38, blood: 0.4, star: 0.34, sword: 0.4, wind: 0.38, heal: 0.3, earth: 0.62, shout: 0.34, magic: 0.28, charge: 0.28, shield: 0.28, tower: 0.42, boom: 0.72, kill: 0.5, death: 0.5,
@@ -203,7 +203,9 @@ export function createAudio(lite) {
     const hz = deg => BASE * Math.pow(2, (PENTA[((deg % 5) + 5) % 5] + 12 * Math.floor(deg / 5)) / 12);
     const CHORDS = [[-10, -7, -5, -3], [-11, -8, -6, -4], [-8, -5, -3, -1], [-9, -6, -4, -2]];   // open fifths and fourths, as scale degrees
     const pan = (node, p) => { if (!ctx.createStereoPanner) { node.connect(musicBus); return; } const sp = ctx.createStereoPanner(); sp.pan.value = p; node.connect(sp); sp.connect(musicBus); };
-    function pluck(f, t, vol, p = 0) {               // a plucked silk string: bright pick, quick settle in pitch, long dark tail
+    const play = (b, rate, t, vol, p, dur) => { const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = b; s.playbackRate.value = rate; g.gain.setValueAtTime(vol, t); if (dur) { g.gain.setValueAtTime(vol, t + dur); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.45); } s.connect(g); pan(g, p); s.start(t); if (dur) s.stop(t + dur + 0.5); return g; };
+    function pluck(f, t, vol, p = 0) {               // 古琴 from the rendered notes when ready; otherwise the quick oscillator version below
+      const base = f < 165 ? 110 : f < 330 ? 220 : 440, b = inst['qin' + base]; if (b) { play(b, f / base, t, vol * 1.9, p); return; }
       const dur = clamp(2.6 - Math.log2(f / 110) * 0.55, 0.9, 2.6), g = ctx.createGain(), lp = ctx.createBiquadFilter();
       lp.type = 'lowpass'; lp.frequency.setValueAtTime(Math.min(7000, f * 9), t); lp.frequency.exponentialRampToValueAtTime(Math.max(500, f * 1.6), t + dur * 0.7);
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -215,7 +217,8 @@ export function createAudio(lite) {
       ng.gain.setValueAtTime(vol * 0.5, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.025); n.connect(nf); nf.connect(ng); ng.connect(lp); n.start(t, Math.random()); n.stop(t + 0.04);
       lp.connect(g); pan(g, p);
     }
-    function flute(f, t, dur, vol, p = 0) {          // a bamboo flute: soft attack, breath, vibrato that grows in
+    function flute(f, t, dur, vol, p = 0) {          // 箫 from the rendered note when ready
+      if (inst.xiao440) { play(inst.xiao440, f / 440, t, vol * 2.6, p, Math.min(dur, 2.8)); return; }
       const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.22); g.gain.setValueAtTime(vol, t + dur - 0.3); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.35);
       const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.2; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.007, t + Math.min(dur, 0.9)); lfo.connect(lg); lfo.start(t); lfo.stop(t + dur + 0.5);
       for (const [mult, lvl] of [[1, 1], [2, 0.16], [3, 0.05]]) { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = 'sine'; o.frequency.value = f * mult; lg.connect(o.frequency); og.gain.value = lvl; o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + 0.5); }
@@ -233,6 +236,7 @@ export function createAudio(lite) {
       });
     }
     function drum(t, vol, big) {
+      const b = inst[big ? 'taiko' : 'tang']; if (b) { play(b, 0.97 + Math.random() * 0.06, t, vol * (big ? 1.5 : 1.1), (Math.random() - 0.5) * 0.3); return; }
       const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(big ? 96 : 150, t); o.frequency.exponentialRampToValueAtTime(big ? 42 : 80, t + 0.22);
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + (big ? 0.45 : 0.2)); o.connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.5);
       const n = ctx.createBufferSource(), nf = ctx.createBiquadFilter(), ng = ctx.createGain(); n.buffer = noiseBuf; nf.type = 'lowpass'; nf.frequency.value = big ? 320 : 900;
@@ -257,7 +261,10 @@ export function createAudio(lite) {
         hold = phrase === 1 ? 3 : [0, 0, 1, 1, 2][Math.floor(Math.random() * 5)]; phrase--;
         if (phrase === 0) rest = 3 + Math.floor(Math.random() * 6);
       }
-      if (bar && --fluteWait <= 0 && Math.random() < 0.5) { const c = CHORDS[chordI]; flute(hz(c[1 + Math.floor(Math.random() * 3)] + 15), t, BEAT * (2.5 + Math.random() * 2.5), 0.045, -0.35); fluteWait = 3 + Math.floor(Math.random() * 3); }
+      const mood = A.mood;
+      if (mood === 'trib') { if (step % 16 === 0 && inst.drone) play(inst.drone, 1, t, 0.32, 0, 5.2); if (bar) drum(t, 0.42, true); if (step % 8 === 4) drum(t, 0.22, true); }
+      else if (mood === 'end' && inten <= 0.25) { const s8 = step % 8; if (s8 === 0 || s8 === 4) drum(t, 0.22, true); else if (s8 === 6) drum(t, 0.1, false); }
+      if (mood !== 'trib' && bar && --fluteWait <= 0 && Math.random() < 0.5) { const c = CHORDS[chordI]; flute(hz(c[1 + Math.floor(Math.random() * 3)] + 15), t, BEAT * (2.5 + Math.random() * 2.5), 0.045, -0.35); fluteWait = 3 + Math.floor(Math.random() * 3); }
       if (inten > 0.25) { const s8 = step % 8; if (s8 === 0 || s8 === 5) drum(t, 0.3 * inten, true); else if (s8 === 2 || s8 === 4 || s8 === 7) drum(t, 0.14 * inten, false); }
       step++;
     }

@@ -111,3 +111,43 @@ export async function renderBank(ctx, onSound, n = 3) {
     await new Promise(r => setTimeout(r, 0));                         // let a frame through between sounds
   }
 }
+
+// ---------------- the music's instruments ----------------
+// A few recorded-once notes per instrument; audio.js pitches them with playbackRate to the score's pentatonic notes.
+//   qin  — 古琴: a long, dark plucked silk string; after the attack the pitch breathes a little (吟)
+//   xiao — 箫: soft attack, breath noise, vibrato that grows in; long enough to be faded out at any length
+//   taiko / tang — a big war drum and a small one;  drone — a low, uneasy bed for a tribulation
+function qinNote(f, len, sr) {
+  const n = Math.floor(sr * len), N = Math.max(2, Math.round(sr / f)), a = new Float32Array(n);
+  for (let i = 0; i < N; i++) a[i] = (Math.random() * 2 - 1) * (0.6 + 0.4 * Math.sin(Math.PI * i / N));
+  for (let i = N; i < n; i++) a[i] = (a[i - N] * 0.38 + a[i - N - 1 < 0 ? 0 : i - N - 1] * 0.62) * 0.9985;   // dark and long
+  return a;
+}
+const MUSIC = {
+  qin110: [3.2, K => { const sr = Tone.getContext().sampleRate, s = new Tone.ToneBufferSource(Tone.ToneAudioBuffer.fromArray(qinNote(110, 3.2, sr))), f = new Tone.Filter({ type: 'lowpass', frequency: 2400, Q: 0.6 }), body = new Tone.Filter({ type: 'peaking', frequency: 220, gain: 4, Q: 1 });
+    s.chain(body, f, K.o); new Tone.LFO(4.6, 0.996, 1.004).connect(s.playbackRate).start(0.5); s.start(0); K.thump(0, 70, 0.12, 0.15, 1); }],
+  qin220: [2.6, K => { const sr = Tone.getContext().sampleRate, s = new Tone.ToneBufferSource(Tone.ToneAudioBuffer.fromArray(qinNote(220, 2.6, sr))), f = new Tone.Filter({ type: 'lowpass', frequency: 3200, Q: 0.6 });
+    s.chain(f, K.o); new Tone.LFO(4.8, 0.996, 1.004).connect(s.playbackRate).start(0.45); s.start(0); }],
+  qin440: [2.0, K => { const sr = Tone.getContext().sampleRate, s = new Tone.ToneBufferSource(Tone.ToneAudioBuffer.fromArray(qinNote(440, 2.0, sr))), f = new Tone.Filter({ type: 'lowpass', frequency: 4200, Q: 0.6 });
+    s.chain(f, K.o); new Tone.LFO(5, 0.997, 1.003).connect(s.playbackRate).start(0.4); s.start(0); }],
+  xiao440: [3.4, K => { const v = new Tone.Vibrato({ frequency: 5.2, depth: 0.08 }), lp = new Tone.Filter({ type: 'lowpass', frequency: 2600 }); v.chain(lp, K.o);
+    const s = new Tone.FMSynth({ harmonicity: 1, modulationIndex: 0.6, oscillator: { type: 'sine' }, envelope: { attack: 0.28, decay: 0.2, sustain: 0.85, release: 0.6 }, volume: -4 }).connect(v); s.triggerAttackRelease(440, 2.6, 0);
+    K.burst(0, { c: 'pink', f0: 880, q: 1.6, a: 0.25, d: 2.9, v: 0.12, sw: 2.9, dest: lp }); }],
+  taiko: [1.0, K => { const g = K.grit(0.2); K.thump(0, 52, 0.7, 1, 2, 0.06, g); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 420, f1: 120, a: 0.002, d: 0.22, v: 0.8 }); K.burst(0, { c: 'pink', f0: 1500, f1: 600, q: 1, a: 0.001, d: 0.03, v: 0.35 }); }],
+  tang: [0.5, K => { K.thump(0, 125, 0.25, 1, 1.5, 0.03); K.burst(0, { c: 'pink', f0: 1100, f1: 500, q: 1.2, a: 0.001, d: 0.06, v: 0.45 }); }],
+  drone: [6.0, K => { const s = new Tone.FMSynth({ harmonicity: 0.5, modulationIndex: 3, envelope: { attack: 1.2, decay: 0.5, sustain: 0.9, release: 1.5 }, modulationEnvelope: { attack: 2, decay: 1, sustain: 0.8, release: 1.5 }, volume: -6 }).connect(K.tone(500)); s.triggerAttackRelease(55, 4.3, 0);
+    K.burst(0, { c: 'brown', ft: 'lowpass', f0: 160, a: 1.2, d: 4.6, v: 0.5, sw: 4.6, lfo: 0.7, depth: 0.5 }); }],
+};
+export async function renderMusic(ctx, onSound) {
+  const sr = ctx.sampleRate;
+  for (const [name, [dur, design]] of Object.entries(MUSIC)) {
+    try {
+      const tb = await Tone.Offline(() => { const o = new Tone.Gain(1).toDestination(); const K = kit(o); K.o = o; design(K); }, dur, 1, sr);
+      const src = tb.getChannelData(0); let pk = 0; for (let k = 0; k < src.length; k++) pk = Math.max(pk, Math.abs(src[k]));
+      if (!(pk > 1e-5)) continue; const b = ctx.createBuffer(1, src.length, sr), d = b.getChannelData(0), fade = Math.floor(sr * 0.05);
+      for (let k = 0; k < src.length; k++) d[k] = src[k] / pk * 0.95 * (k > src.length - fade ? (src.length - k) / fade : 1);
+      onSound(name, b);
+    } catch (e) { renderMusic.err = (renderMusic.err || '') + name + ': ' + String(e).slice(0, 120) + '\n'; }
+    await new Promise(r => setTimeout(r, 0));
+  }
+}

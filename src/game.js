@@ -474,9 +474,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
           tgt.markCol = src.fxCol; tgt.markCd = G.t + 0.7; tgt.marks = (tgt.markT > G.t ? tgt.marks : 0) + 1; tgt.markT = G.t + 6;
           if (near(tgt)) fx.line(tgt.x, tgt.h + 3.5, tgt.z, tgt.x, tgt.h * 0.5, tgt.z, src.fxCol, 6, 0.45, 0.22);
           if (tgt.marks >= 3) {
-            tgt.marks = 0; tgt.markCd = G.t + 3.2; applyStun(tgt, 0.5);          // and a while before the next mark will take
+            tgt.marks = 0; tgt.markCd = G.t + 3.8; applyStun(tgt, 0.5);          // and a while before the next mark will take
             if (near(tgt)) { fx.pillar(tgt.x, tgt.z, 1.1, 10, src.fxCol, 0.35); fx.ringWave(tgt.x, tgt.z, 7, src.fxCol, 0.4); audio.play('zap', tgt.x, tgt.z); }
-            damage(src, tgt, 30 + tgt.maxHp * (tgt.kind === 'hero' ? 0.06 : 0.12), { proc: true });
+            damage(src, tgt, 30 + tgt.maxHp * (tgt.kind === 'hero' ? 0.045 : 0.12), { proc: true });
           }
         }
       }
