@@ -54,7 +54,7 @@ export const MODES = {
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
     // 一路's own nudges, set after the bots started playing their roles (v1.2.0-alpha.3). Shared numbers stay as they are.
-    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.02 }, bloodlord: { ad: 1.04, hp: 1.05 }, shade: { ad: 1.07, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.07 }, linshuang: { ad: 0.93 }, ranger: { ad: 0.92, hp: 0.97 }, gunner: { ad: 0.96 }, mage: { ap: 0.93, hp: 0.98 }, cryo: { ap: 0.9, hp: 0.95 }, storm: { ap: 0.97 }, healer: { pow: 1.1, hp: 1.08 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
+    tune: { selfPullStun: 0.5, bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.02 }, bloodlord: { ad: 1.04, hp: 1.05 }, shade: { ad: 1.07, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.07 }, mage: { ap: 0.93, hp: 0.98 }, cryo: { ap: 0.9, hp: 0.95 }, healer: { pow: 1.1, hp: 1.08 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 }, storm: { ap: 0.93, hp: 0.97 }, gunner: { ad: 0.93 }, linshuang: { ad: 0.98 }, peiji: { ad: 1.05, hp: 1.04 }, ranger: { ad: 0.95, hp: 0.97 } },
   },
   tri: {
     id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, solid: true, blurb: '5v5 · 约 20 分钟',
@@ -93,7 +93,7 @@ export const MODES = {
       bossAt: 960,                                                     // 渊主残念 takes over the upper pit from here on
       surge: { puppet: [1.4, 55], abyss: [2.0, 90] },                 // how much stronger the side's disciples get, and for how long
     },
-    heroTune: { warden: { ad: 0.96 }, keeper: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 0.96, hp: 0.97 }, linshuang: { ad: 1.01 }, mage: { ap: 1.01 }, cryo: { ap: 0.96 }, storm: { ap: 1.05, hp: 1.05 }, healer: { pow: 1.08, hp: 1.05 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 } },   // multipliers on base stats, this mode only
+    heroTune: { keeper: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 0.96, hp: 0.97 }, linshuang: { ad: 1.01 }, mage: { ap: 1.01 }, cryo: { ap: 0.96 }, healer: { pow: 1.08, hp: 1.05 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 }, storm: { ap: 1.01, hp: 1.03 }, qingya: { ad: 0.97 }, warden: { ad: 0.94 }, ranger: { ad: 1.03 } },   // multipliers on base stats, this mode only
   },
 };
 
@@ -177,10 +177,10 @@ export const HEROES = {
     build: ['tingxue', 'xingluo', 'dunying'],
     passive: { name: '剑意相续', icon: 'i_tingxue', desc: '每次出招后，下一次普攻伤害 +35%、减速 30%，并让「听雪」的调息缩短 1.2 秒。' },
     skills: [
-      S('Q', 'pierce', '听雪', 'proj', { range: 19, speed: 36, width: 0.85, cd: 4.8, mana: 28, b: 56, l: 13, ad: 0.8, pierce: true }, '斩出一道带着寒气的剑气，贯穿路径上所有敌人。调息很短。'),
+      S('Q', 'pierce', '听雪', 'proj', { range: 19, speed: 36, width: 0.85, cd: 4.8, mana: 28, b: 52, l: 13, ad: 0.8, pierce: true }, '斩出一道带着寒气的剑气，贯穿路径上所有敌人。调息很短。'),
       S('W', 'swallow', '回燕', 'proj', { range: 12.5, speed: 25, width: 1.1, cd: 9, mana: 45, b: 48, l: 11, ad: 0.6, pierce: true, back: 0.65, slow: [0.3, 1.2], vfx: 'swallow', icon: 'whirl' }, '掷出一道回旋的剑气，飞到尽头后折返回手中，来回各伤害一次路径上的敌人并减速。'),
       S('E', 'mirrorstep', '遁影', 'blink', { range: 7.5, cd: 10, mana: 40, kite: 4.6, vfx: 'phase', icon: 'phase' }, '借遁影镜瞬移到指定方向的位置。'),
-      S('R', 'rain', '万剑听雪', 'proj', { range: 34, speed: 40, width: 1.9, cd: 55, mana: 90, b: 165, l: 40, ad: 1.0, pierce: true, big: 0.9, lvl: 4, vfx: 'greatwave' }, '斩出一道横贯战场的巨大剑气，贯穿路径上的所有敌人。'),
+      S('R', 'rain', '万剑听雪', 'proj', { range: 34, speed: 40, width: 1.9, cd: 55, mana: 90, b: 150, l: 38, ad: 1.0, pierce: true, big: 0.9, lvl: 4, vfx: 'greatwave' }, '斩出一道横贯战场的巨大剑气，贯穿路径上的所有敌人。'),
     ],
   },
   shade: {

@@ -145,19 +145,13 @@ export function createVfx(fx, audio) {
         fx.flare(x + dx * 1.6, 2, z + dz * 1.6, m(c, 2.2), 5.5, 0.18);
         for (let k = 1; k <= 3; k++) fx.decal({ mode: 1, x: x + dx * k * 3.4, z: z + dz * k * 3.4, size: 3.2 + k * 0.8, color: m(c, 0.7), dur: 0.22 + k * 0.07 });
         fx.dust(x - dx, z - dz, s.vfx === 'icelance' ? SNOW : DUST, { n: 5, speed: 4, size: 1.5 }); audio.play('arrow', x, z); break;
-      case 'gale': case 'veil': case 'rage':
+      case 'veil': case 'rage':
         fx.ringWave(x, z, 8, c, 0.4); fx.dome(x, z, 0.6, 2.8, c, 0.32); spiral(x, z, c, 26, 1.5, 7); fx.flare(x, 2.2, z, m(c, 1.5), 4.5, 0.22);
         if (s.vfx === 'veil') cloud(x, 0.5, z, [c[0] * 0.1, c[1] * 0.1, c[2] * 0.1], 16, 1.8, 3, 1.4, 0.7);
         else if (s.vfx === 'rage') { fx.pillar(x, z, 1.6, 10, c, 0.5); embers(x, z, c, 18, 1.5); fx.flash(x, 2, z, c, 220, 0.4); fx.punch(0.15); }
-        else fx.dust(x, z, DUST, { n: 8, speed: 7, size: 1.8, opacity: 0.25 });
         audio.play('whoosh', x, z); break;
       case 'backshot':
         fx.flare(x + dx * 1.2, 2, z + dz * 1.2, m(c, 2), 4.5, 0.18); fx.dust(x, z, DUST, { n: 9, speed: 6, size: 1.8 }); fx.ringWave(x, z, 5, c, 0.25); audio.play('arrow', x, z); break;
-      case 'rocketjump':
-        fx.explosion(a.ox, a.oz, 0.7, FLAME); fx.flare(a.ox, 1.5, a.oz, [2.4, 1.6, 0.8], 7, 0.2); fx.ringWave(a.ox, a.oz, 7, c, 0.3); fx.shake(0.25); audio.play('boom', x, z); break;
-      case 'rain':
-        for (let k = 0; k < 16; k++) fx.spark(x + (R() - 0.5), 2.2, z + (R() - 0.5), dx * 8 + (R() - 0.5) * 6, 40 + R() * 16, dz * 8 + (R() - 0.5) * 6, m(c, 1.6), 0.4, 0.3, 0, 0, 0.07);
-        fx.flare(x, 2.6, z, m(c, 1.8), 5, 0.22); audio.play('arrow', x, z); break;
     }
   };
 
@@ -199,7 +193,7 @@ export function createVfx(fx, audio) {
       for (let k = 0; k < 2; k++) fx.fire(p.x - p.dx * k, p.y, p.z - p.dz * k, -p.dx * 5 + (R() - 0.5) * 2, 0.8, -p.dz * 5 + (R() - 0.5) * 2, c, 2.8, 0.4, 0.4);
       for (let k = 0; k < 3; k++) fx.spark(p.x + (R() - 0.5), p.y + (R() - 0.5), p.z + (R() - 0.5), -p.dx * 12 + (R() - 0.5) * 6, R() * 3, -p.dz * 12 + (R() - 0.5) * 6, [3, 1.8, 0.6], 0.36, 0.4, 8, 0.5);
       fx.smoke(p.x, p.y, p.z, 0, 0.8, 0, [0.07, 0.06, 0.055], 1.6, 0.8, 0.3); if (R() < 0.4) fx.flare(p.x, p.y, p.z, [2.6, 1.8, 0.8], 5, 0.1);
-    } else if (id === 'pierce' || id === 'icelance' || id === 'fan' || id === 'shellshot' || id === 'firearrow') {
+    } else if (id === 'pierce' || id === 'icelance' || id === 'fan' || id === 'firearrow') {
       for (let k = 0; k < 3; k++) fx.spark(p.x - p.dx * k * 0.5 + (R() - 0.5) * 0.3, p.y + (R() - 0.5) * 0.3, p.z - p.dz * k * 0.5 + (R() - 0.5) * 0.3, -p.dx * 14, 0, -p.dz * 14, m(c, 1.3), 0.34, 0.26, 0, 0, 0.09);
       if (id === 'icelance' && R() < 0.6) fx.smoke(p.x, p.y, p.z, 0, 0.3, 0, SNOW, 1.0, 0.6, 0.3); else if (id === 'firearrow') fx.fire(p.x, p.y, p.z, -p.dx * 3, 0.6, -p.dz * 3, c, 1.3, 0.3); else if (id === 'shellshot') fx.fire(p.x, p.y, p.z, -p.dx * 3, 0.5, -p.dz * 3, FLAME, 1.2, 0.25);
       else if (R() < 0.35) fx.smoke(p.x, 0.5, p.z, (R() - 0.5), 0.6, (R() - 0.5), DUST, 1.1, 0.5, 0.12);
@@ -219,7 +213,6 @@ export function createVfx(fx, audio) {
     else if (id === 'pierce' || id === 'icelance' || id === 'fan' || id === 'firearrow') { for (let k = 0; k < 12; k++) fx.spark(e.x, 1.2 + R(), e.z, p.dx * (10 + R() * 12) + (R() - 0.5) * 8, 2 + R() * 5, p.dz * (10 + R() * 12) + (R() - 0.5) * 8, m(c, 1.4), 0.3, 0.35, 14, 1); fx.flare(e.x, 1.8, e.z, m(c, 1.6), 3.4, 0.14); if (id === 'icelance') cloud(e.x, 0.8, e.z, SNOW, 3, 0.6, 1.6, 0.7, 0.35); }
     else if (id === 'vine') { spiral(e.x, e.z, c, 14, e.r + 0.4, 1); fx.decal({ mode: 5, x: e.x, z: e.z, size: e.r * 2 + 3, color: c, dur: 0.3, hold: 0.5, seed: R() }); fx.flare(e.x, 1.6, e.z, m(c, 1.5), 4, 0.2); }
     else if (id === 'axe') { fx.flare(e.x, 1.8, e.z, [1.8, 1.6, 1.3], 5, 0.16); fx.burst(e.x, 1.5, e.z, [2.4, 1.8, 1.0], { n: 16, speed: 10, up: 6, life: 0.35, size: 0.26, grav: 18 }); fx.punch(0.1); }
-    else if (id === 'shellshot') { fx.explosion(e.x, e.z, 0.6, FLAME); }
     else fx.burst(e.x, 1.5, e.z, c, { n: 10, speed: 7, life: 0.35, size: 0.28 });
     audio.play('thud', e.x, e.z); audio.layer(p.sid, e.x, e.z, 0.6);
   };

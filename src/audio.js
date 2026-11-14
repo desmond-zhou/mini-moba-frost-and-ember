@@ -144,7 +144,7 @@ export function createAudio(lite) {
   const ELEMENT = {
     icelance: 'ice', frostnova: 'ice', iceslide: 'ice', blizzard: 'ice', stasis: 'ice',
     bolt: 'thunder', orb: 'zap', tempest: 'thunder', concuss: 'thunder',
-    firearrow: 'fire', firestep: 'fire', sunarrow: 'fire', shell: 'fire', barrage: 'fire', rocketjump: 'fire', meteor: 'fire',
+    firearrow: 'fire', firestep: 'fire', sunarrow: 'fire', shell: 'fire', barrage: 'fire', meteor: 'fire',
     bloodclaw: 'blood', hook: 'blood', bloodsea: 'blood', reap: 'blood', veil: 'blood',
     starbolt: 'star', well: 'star', phase: 'star',
     pierce: 'sword', backshot: 'sword', rain: 'sword', cleave: 'sword', fan: 'sword',

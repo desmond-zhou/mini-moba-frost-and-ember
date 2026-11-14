@@ -308,7 +308,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (h.level === 5 || h.level === 9) { tribulation(h); say(h, 'up'); }
       { const t = INSIGHT_LVL.indexOf(h.level); if (t >= 0) { h.insPend.push(t); if (!h.isPlayer || G.autoPlay) takeInsight(h, Math.random() < 0.5 ? 0 : 1); } }
       if (h.alive && near(h)) { fx.ringWave(h.x, h.z, 7, GOLD, 0.6); fx.burst(h.x, 1.5, h.z, GOLD, { n: 18, speed: 3, up: 9, life: 0.8, size: 0.5, grav: 4 }); }
-      if (h.isPlayer) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至小成 · 有所感悟', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 修为已满 · 再悟一重', 'good'); }
+      if (h.isPlayer) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至小成', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 绝招可至大成', 'good'); }
     }
   }
   // 雷劫. Breaking through to 金丹 or 元婴 roots you for a breath inside a ward while the sky gathers, then lightning falls
@@ -569,7 +569,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       case 'dash': h.dash = { dx, dz, left: clamp(d, 4, s.range), speed: s.speed, hit: s.b !== undefined ? new Set() : null, s, dmg }; if (s.reset) { h.atkT = 0; h.windT = -1; } break;
       case 'backdash':
         h.dash = { dx: -dx, dz: -dz, left: s.range, speed: s.speed, hit: null, s };
-        shoot(h, h.x, 1.8, h.z, { dx, dz, speed: 36, range: s.projRange, width: 0.85, dmg, slow: s.slow, color: col, size: 0.28, long: 4, bright: 3.6, sid: s.vfx === 'rocketjump' ? 'shellshot' : 'pierce' });
+        shoot(h, h.x, 1.8, h.z, { dx, dz, speed: 36, range: s.projRange, width: 0.85, dmg, slow: s.slow, color: col, size: 0.28, long: 4, bright: 3.6, sid: 'pierce' });
         break;
       case 'leap': h.dash = { leap: true, sx: h.x, sz: h.z, ex: tx, ez: tz, t: 0, dur: s.delay, s, dmg }; V.telegraph(tx, tz, s.radius, s.delay, 0, ally); break;
       case 'blink': h.x = tx; h.z = tz; collide(h, dx, dz, 0.2); break;
