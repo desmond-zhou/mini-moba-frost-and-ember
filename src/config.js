@@ -97,11 +97,13 @@ export const SEATS = [
   { pos: '护法', lane: 2, off: 1.4, note: '下路，护着养剑位' },
   { pos: '巡山', lane: 0, off: 1.4, jungle: true, note: '清野区，看哪路有机会就去抓人，哪路吃紧去哪路' },
 ];
-// Best seats first, per cultivator — from 720 simulated matches (docs/打位演算.md). Rerun `node seats.mjs` when the bots change.
+// Best seats first, per cultivator. The first is the seat they were built for wherever simulation does not argue against it;
+// after it come seats where they scored clearly above average (docs/打位演算.md). Rerun `node seats.mjs` when the bots change.
 export const SEAT_FIT = {
-  warden: [3, 4], keeper: [0], bloodlord: [1], berserker: [0], shade: [1, 4], archer: [1, 4], ranger: [1], gunner: [2],
-  mage: [2], cryo: [2, 0], storm: [0], healer: [3],
-  yanzhao: [3], yuanshan: [3], qingya: [4, 0], wenren: [4], linshuang: [2], peiji: [0],   // the six new ones: by design until simulated
+  warden: [3, 0], keeper: [0], peiji: [0], berserker: [0, 4], qingya: [0, 4], bloodlord: [1, 0],
+  mage: [1, 2], cryo: [1, 2], storm: [1, 2], yuanshan: [3, 1],
+  archer: [2, 1], ranger: [2, 1], gunner: [2], linshuang: [2],
+  healer: [3], yanzhao: [3], shade: [4, 1], wenren: [4],
 };
 
 export let MODE = MODES.single;
