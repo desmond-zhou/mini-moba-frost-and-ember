@@ -26,6 +26,8 @@ function boot() {
   ui.el.qBtn.onclick = () => { const order = ['low', 'medium', 'high']; R.setQuality(order[(order.indexOf(R.quality.name) + 1) % 3]); R.dyn.enabled = false; };
 
   let G = null, state = 'title', time = 0, last = performance.now(), frames = 0;
+  const INTRO = 2.8; let intro = 0;                                  // the camera starts wide over your own 阵眼 and comes down to you
+
   const focus = { x: 0, z: 0 }, cam = R.camera;
   let lastPick = ['mage', 'normal'];
   function start(hero, difficulty, mode = MODE.id, seat = -1) {
@@ -33,7 +35,7 @@ function boot() {
     if (MODES[mode] && mode !== MODE.id) { W.dispose(); setMode(mode); W = createWorld(R); R.sun = W.sun; W.setShadowSize(R.quality.shadow); }   // other ground: build that world
     M.reset(); fx.reset();
     G = createGame(R, W, M, fx, audio, ui, { hero, difficulty, seat });
-    G.autoPlay = qs.get('bot') === '1'; input.G = G; ui.bind(G, input); state = 'playing'; audio.init();
+    G.autoPlay = qs.get('bot') === '1'; input.G = G; ui.bind(G, input); state = 'playing'; audio.init(); intro = qs.get('auto') ? 0 : INTRO; { const c = G.structs[G.player.team].core; focus.x = c.x; focus.z = c.z; }
     focus.x = G.focus.x; focus.z = G.focus.z;
   }
   const toTitle = () => { state = 'title'; G = null; input.G = null; M.reset(); fx.reset(); ui.showTitle(start); };
@@ -54,7 +56,9 @@ function boot() {
       const L = LANES[MID], q = L.at((L.s0 + L.s1) / 2 + Math.sin(time * 0.045) * (L.s1 - L.s0) * 0.405, 0); focus.x = q.x; focus.z = q.z; zoom = 0.82;
     } else {
       if (!paused) { G.update(dt, time); input.update(); ui.update(dt); }
-      const k = 1 - Math.exp(-dt * (G.over ? 2 : 9));
+      if (intro > 0) { intro -= raw / 1000; const q = Math.max(0, intro / INTRO); zoom *= 1 + 0.75 * q * q; }
+      if (G.over) zoom *= 1 - 0.2 * Math.min(1, G.overT / 1.6);          // closing in on the 阵眼 as it breaks
+      const k = 1 - Math.exp(-dt * (G.over ? 2 : intro > 0 ? 1.6 : 9));
       focus.x += ((G.focus.tx ?? focus.x) - focus.x) * k; focus.z += ((G.focus.tz ?? focus.z) - focus.z) * k;
       G.focus.x = focus.x; G.focus.z = focus.z; audio.listener.x = focus.x; audio.listener.z = focus.z;
       const p = G.player; audio.intensity = p.alive && p.combatT < 4.5 && !G.over ? 1 : 0; hurt = Math.max(G.hurtFlash || 0, p.alive ? Math.max(0, 0.35 - p.hp / p.maxHp) * 1.6 : 0); if (!p.alive && !G.over) sat = 0.2;

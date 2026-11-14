@@ -114,6 +114,31 @@ export function createVfx(fx, audio) {
         for (const al of a.healed || []) V.healed(al, c);
         fx.flash(tx, 2, tz, c, 200, 0.4); audio.play('shield', x, z); break;
       case 'bloom': fx.pillar(x, z, 2, 12, c, 0.7); fx.dome(x, z, 0.8, s.radius, c, 0.6); embers(x, z, m(c, 1.4), 30, s.radius); fx.flare(x, 3, z, m(c, 1.6), 7, 0.3); audio.play('level', x, z); break;
+      case 'swallow':                                                  // 回燕: a crescent thrown flat
+        slash(x + dx * 1.5, z + dz * 1.5, f, 6, 1.5, m(c, 1.5), 1.6, 0.28); fx.flare(x + dx * 1.4, 1.8, z + dz * 1.4, m(c, 2), 4.5, 0.16); audio.play('sword', x, z); audio.play('whoosh', x, z, 0.6); break;
+      case 'greatwave':                                                // 万剑听雪: the whole field in one stroke
+        for (let k = 0; k < 3; k++) slash(x + dx * (2 + k * 2.2), z + dz * (2 + k * 2.2), f, 9 + k * 3, 1.2, m(c, 1.7 - k * 0.3), 1.8, 0.4 + k * 0.08);
+        fx.line(x, 1.6, z, x + dx * 30, 1.6, z + dz * 30, m(c, 1.6), 40, 0.7, 0.4); fx.flash(x, 3, z, c, 420, 0.4); fx.shake(0.4); fx.punch(0.3); audio.play('sword', x, z); audio.play('pierce', x, z); break;
+      case 'snipe':                                                    // 冰封三百年: a line of sight, then the shot
+        fx.line(x, 1.9, z, x + dx * 29, 1.9, z + dz * 29, m(c, 2.2), 46, 0.34, 0.5); fx.flare(x + dx * 1.6, 2, z + dz * 1.6, [2.6, 2.8, 3], 8, 0.25); fx.ringWave(x, z, 9, c, 0.35);
+        fx.dust(x - dx, z - dz, SNOW, { n: 12, speed: 7, size: 2 }); fx.flash(x, 2.5, z, c, 380, 0.35); fx.shake(0.35); fx.punch(0.25); audio.play('icelance', x, z); audio.play('heavy', x, z, 0.8); break;
+      case 'emplace':                                                  // 镇岳: feet planted
+        fx.decal({ mode: 5, x, z, size: 7.5, color: m(c, 0.9), dur: 0.4, hold: s.dur, seed: R() }); fx.dome(x, z, 0.4, 2.4, c, 0.3); chunks(x, z, 8, 5, 5, 0.3); fx.dust(x, z, DUST, { n: 10, speed: 5, size: 1.8 }); fx.shake(0.2); audio.play('thud', x, z); audio.play('tower', x, z, 0.5); break;
+      case 'stride':                                                   // 踏星: a wall that runs
+        fx.dome(x, z, 0.8, 3.4, c, 0.4); fx.ringWave(x, z, 9, c, 0.4); for (let k = 0; k < 5; k++) fx.flare(x + Math.cos(f) * (1 + k * 0.9), 0.5, z + Math.sin(f) * (1 + k * 0.9), m(c, 1.6), 2.2, 0.2 + k * 0.05); fx.dust(x, z, DUST, { n: 10, speed: 8, size: 2 }); audio.play('shield', x, z); audio.play('whoosh', x, z, 0.7); break;
+      case 'seize':                                                    // 镇渊: chains drawn tight to the centre
+        for (let k = 0; k < 10; k++) { const a = k * 0.6283 + R() * 0.2; fx.line(x + Math.cos(a) * s.radius, 0.4 + R() * 2.4, z + Math.sin(a) * s.radius, x, 1.6, z, m(c, 1.9), 16, 0.5, 0.34); }
+        fx.decal({ mode: 1, x, z, size: 2.5, size0: s.radius * 2.1, color: m(c, 0.9), dur: 0.34 }); fx.pillar(x, z, 1.8, 14, c, 0.5); fx.flash(x, 3, z, c, 420, 0.45); fx.shake(0.5); fx.punch(0.3); chunks(x, z, 14, 4, 9, 0.3); audio.play('earth', x, z); audio.play('heavy', x, z); break;
+      case 'verdict':                                                  // 一剑清正: one straight line
+        fx.line(x, 1.7, z, x + dx * 13, 1.7, z + dz * 13, [2.6, 2.6, 2.4], 30, 0.6, 0.38); for (let k = 0; k < 4; k++) slash(x + dx * (2 + k * 3), z + dz * (2 + k * 3), f, 5, 0.9, m(c, 1.6), 1.7, 0.3 + k * 0.05);
+        fx.flash(x, 2.5, z, c, 360, 0.35); fx.punch(0.3); audio.play('sword', x, z); audio.play('pierce', x, z, 0.8); break;
+      case 'flashstep':                                                // 雷行: he is the bolt
+        { let px = x, pz = z; for (let k = 1; k <= 6; k++) { const t = k / 6 * 8.5, nx = x + dx * t + (R() - 0.5) * 1.4, nz = z + dz * t + (R() - 0.5) * 1.4; fx.line(px, 1.6 + R(), pz, nx, 1.2 + R() * 1.4, nz, m(c, 2.4), 8, 0.6, 0.22); px = nx; pz = nz; } }
+        fx.flare(x, 2, z, m(c, 2.4), 6, 0.18); fx.flash(x, 2.5, z, c, 320, 0.25); audio.play('zap', x, z); audio.play('thunder', x, z, 0.5); break;
+      case 'teamveil':                                                 // 藏形幕: a curtain let down over everyone near
+        fx.dome(x, z, 1, s.aoe, [c[0] * 0.5, c[1] * 0.5, c[2] * 0.6], 0.7); fx.decal({ mode: 1, x, z, size: 3, size0: s.aoe * 2, color: m(c, 0.7), dur: 0.5 }); cloud(x, 0.5, z, [0.05, 0.06, 0.09], 30, s.aoe * 0.8, 3.4, 1.6, 0.6); spiral(x, z, c, 20, 2, 5); audio.play('wind', x, z); audio.play('shield', x, z, 0.6); break;
+      case 'pill':                                                     // 行气丹: one flicked to each
+        fx.ringWave(x, z, s.aoe * 2, c, 0.5); for (let k = 0; k < 8; k++) { const a = k * 0.785; fx.spark(x, 2.2, z, Math.cos(a) * 14, 6, Math.sin(a) * 14, m(c, 1.8), 0.4, 0.4, 14, 0.5, 0.05); } embers(x, z, m(c, 1.4), 22, s.aoe * 0.7); fx.flare(x, 2.4, z, m(c, 1.6), 4.5, 0.22); audio.play('mend', x, z); audio.play('gale', x, z, 0.6); break;
       case 'meteor': case 'blizzard': case 'tempest': case 'barrage': case 'bolt': case 'shell': case 'stasis':
         fx.flare(x, 4.2, z, m(c, 2), 6, 0.3); fx.pillar(x, z, 1.2, 12, c, 0.5); spiral(x, z, c, 14, 1.4, 6); audio.play(s.vfx === 'shell' || s.vfx === 'barrage' ? 'whoosh' : 'charge', x, z); break;
       case 'pierce': case 'icelance': case 'firearrow':
@@ -160,6 +185,7 @@ export function createVfx(fx, audio) {
 
   // ---- projectiles ----
   V.projTick = (p, dt) => {
+    if (p.sid === 'swallow') { p.spin += dt * 20; if ((p.fxN = (p.fxN || 0) + 1) % 2 === 0) slash(p.x, p.z, p.spin, 3.6, 1.3, m(p.color, 1.5), p.y, 0.14); }
     const c = p.color, id = p.sid;
     if (id === 'starbolt') {
       p.spin += dt * 20; const nx = -p.dz, nz = p.dx;
@@ -326,7 +352,16 @@ export function createVfx(fx, audio) {
   V.doom = e => fx.flare(e.x, e.h + 1.8, e.z, [2.4, 0.15, 0.2], 1.6, 0.16);                                             // low enough that 柳红衣 hits harder
   V.insight = (h, tgt) => { fx.line(tgt.x, tgt.h * 0.6, tgt.z, h.x, h.h * 0.7, h.z, m(h.fxCol, 1.4), 7, 0.4, 0.3); fx.flare(h.x, h.h + 0.6, h.z, m(h.fxCol, 2), 3, 0.2); };
   V.empowered = (t, c) => { fx.ringWave(t.x, t.z, 6, c, 0.3); fx.flare(t.x, t.h * 0.5, t.z, [2.4, 2.2, 1.8], 5, 0.16); };
+  V.fall = (h, frost) => {                                            // a cultivator comes apart the way their sect would: ice, or embers
+    const x = h.x, z = h.z;
+    if (frost) { chunks(x, z, 16, 8, 9, 0.3, 0, 6.283, [0.6, 0.78, 0.95]); fx.burst(x, 1.6, z, [1.2, 1.7, 2.4], { n: 26, speed: 10, up: 7, life: 0.7, size: 0.26, grav: 16 }); fx.ringWave(x, z, 9, [0.5, 0.9, 1.6], 0.5); fx.dust(x, z, SNOW, { n: 12, speed: 6, size: 2.2 }); }
+    else { embers(x, z, [2.2, 0.7, 0.15], 34, 1.6); for (let k = 0; k < 7; k++) fx.fire(x + (R() - 0.5) * 1.6, 0.5 + R() * 2, z + (R() - 0.5) * 1.6, (R() - 0.5) * 2, 2 + R() * 2, (R() - 0.5) * 2, FLAME, 1.6, 0.5 + R() * 0.3); cloud(x, 0.6, z, [0.05, 0.03, 0.03], 10, 1.2, 2.6, 1.4, 0.55); fx.ringWave(x, z, 9, [1.8, 0.5, 0.15], 0.5); }
+    fx.pillar(x, z, 0.9, 16, frost ? [0.6, 1, 1.8] : [1.9, 0.5, 0.2], 0.7);
+  };
+  V.turn = p => { fx.flare(p.x, p.y, p.z, m(p.color, 2), 4, 0.16); slash(p.x, p.z, R() * 6.283, 4, 1.6, m(p.color, 1.4), 1.6, 0.22); };
   V.status = (h, vis) => {
+    if (vis && h.alive && h.vulnOn) { h.fxV = (h.fxV || 0) + 1; if (h.fxV % 5 === 0) { fx.spark(h.x + (R() - 0.5) * 0.8, h.h + 2.2, h.z, 0, -5, 0, [2.6, 0.25, 0.2], 0.34, 0.3, 0, 0, 0.09); fx.flare(h.x, h.h + 1.5, h.z, [2.4, 0.2, 0.18], 1.5, 0.12); } }   // 易伤: a red mark bleeding down over the head
+    if (vis && h.alive && h.veilT > 0 && R() < 0.5) fx.smoke(h.x + (R() - 0.5) * 1.4, 0.4 + R() * 2.4, h.z + (R() - 0.5) * 1.4, 0, 0.6, 0, [0.04, 0.03, 0.05], 1.6, 0.6, 0.4);
     const on = vis && h.alive && h.shield > 0;
     if (on && !h.bub) h.bub = fx.bubble(h.fxCol, h.r * 1.9 + 1.5);
     if (!on && h.bub) { fx.freeBubble(h.bub); h.bub = null; }

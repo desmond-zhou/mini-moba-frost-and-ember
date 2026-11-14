@@ -74,6 +74,14 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // Team talk. A bot says in a few words what it is about to do; only your own side's is shown, never two lines from the
   // same mouth close together, and not everyone at once.
   let chatAt = -9;
+  const PAIRS = [
+    ['archer', 'linshuang', ['霜，这回并肩。', '嗯。火别灭。'], ['霜……别让我为难。', '各守各的岛。出箭吧。']],
+    ['mage', 'yuanshan', ['祖父，看我推演。', '钱我带着，你放手去算。'], ['祖父，得罪了。', '让我看看你学了几成。']],
+    ['ranger', 'qingya', ['师父，听雪我练熟了。', '出剑，别回头。'], ['师父，请赐教。', '让为师看看你的听雪。']],
+    ['warden', 'qingya', ['……师父。', '不语，守好关。'], ['……', '还是不肯开口？出尺吧。']],
+    ['peiji', 'wenren', ['别再走火。', '管好你的天刑台。'], ['闻人遥，随我回天刑台。', '拿得住我再说。']],
+    ['shade', 'bloodlord', ['宗主，取谁的命？', '红衣，一个不留。'], ['宗主，这口血我不喝了。', '暗子也敢反？']],
+  ];
   function chat(h, text, force) { if (h.team !== G.player.team || h.isPlayer || G.over) return; if (Array.isArray(text)) text = text[Math.floor(Math.random() * text.length)]; if (!force && (G.t - (h.chatT || -9) < 6 || G.t - chatAt < 1.8)) return; h.chatT = chatAt = G.t; ui.chat(h, text); }
   // a line of speech: only for those in view, never two at once from the same mouth, and not everyone talking over each other
   let sayAt = -9; const sayQ = [];
@@ -404,6 +412,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       rec.sort((a, b) => b[1] - a[1]);
       const k = killer || (rec.length ? rec.shift()[0] : null);
       const ended = tgt.streak || 0, worth = clamp(1 + 0.14 * ended - 0.16 * (tgt.fallen || 0), 0.5, 1.8); tgt.streak = 0; tgt.fallen = (tgt.fallen || 0) + 1;
+      if (near(tgt)) V.fall(tgt, tgt.team === FROST); if (tgt.isPlayer) ui.buzz(220); else if (k && k.isPlayer) ui.buzz([40, 50, 90]);
       tgt.deaths++; tgt.respawnT = (T.respawn(tgt.level) + G.t / 60 * 1.4) * T.respawnK * clamp(1 - (G.kills[1 - tgt.team] - G.kills[tgt.team]) * 0.035, 0.55, 1);   // the side that is losing the kill race comes back sooner
       tgt.order = null; tgt.dmgLog.clear(); tgt.shield = 0; tgt.slowT = tgt.stunT = tgt.hasteT = 0; tgt.veilT = 0; tgt.heat = 0;
       G.kills[1 - tgt.team]++;
@@ -425,9 +434,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (!G.firstBlood) { G.firstBlood = true; ui.announce((k ? k.name + ' · ' : '') + '开锋', cls); }
       else if (G.heroes.every(h => h.team !== tgt.team || !h.alive)) ui.announce(good ? '敌方满门尽陨' : '我方满门尽陨', cls);
       else if (k && k.multi >= 3) ui.announce(k.name + ' · 三花聚顶', cls);
-      else if (k && k.multi === 2) ui.announce(k.name + ' · 一气双镇', cls);
+      else if (k && k.multi === 2) { ui.announce(k.name + ' · 一气双镇', cls); audio.play('star', undefined, undefined, 0.9); }
       else if (k && ended >= 3) ui.announce(`${k.name} 斩了 ${tgt.name} 的道 · 终结 ${ended} 连镇`, cls);
-      else if (k && k.streak >= 3) ui.announce(`${k.name} · ${STREAK[Math.min(7, k.streak)]}`, cls);
+      else if (k && k.streak >= 3) { ui.announce(`${k.name} · ${STREAK[Math.min(7, k.streak)]}`, cls); audio.play('star', undefined, undefined, 0.9); }
       else if (tgt.isPlayer) ui.announce('你已陨落', 'bad'); else if (k && k.isPlayer) ui.announce('镇压 ' + tgt.name, 'good');
       fx.burst(tgt.x, 1.6, tgt.z, col, { n: 34, speed: 9, up: 9, life: 1.0, size: 0.32, grav: 14 }); fx.ringWave(tgt.x, tgt.z, 10, col, 0.6); fx.dust(tgt.x, tgt.z, DUST, { n: 12, speed: 4, size: 2.4, life: 1.3 }); fx.flash(tgt.x, 2.5, tgt.z, col, 260, 0.5);
       audio.play(tgt.isPlayer ? 'death' : 'kill', tgt.x, tgt.z); if (near(tgt)) fx.shake(0.35);
@@ -441,11 +450,11 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       for (const h of G.heroes) if (h.team !== tgt.team) { giveGold(h, T.towerGold, h.isPlayer ? tgt : null); addXp(h, 90); }
         ui.announce(good ? '敌方灵塔已被摧毁' : '我方灵塔被摧毁', good ? 'good' : 'bad'); audio.play('horn');
         { const sp = G.heroes.find(h => h.team === G.player.team && h.alive && !h.isPlayer); if (sp) chat(sp, good ? ['塔掉了，继续压', '好，再推一座', '塔没了，小心别冒进'] : ['塔丢了，稳一点', '守不住了，退到下一座', '别急，慢慢打回来']); }
-      } else { G.over = true; G.winner = 1 - tgt.team; G.overT = 0; G.focus.tx = tgt.x; G.focus.tz = tgt.z; }
+      } else { G.over = true; G.winner = 1 - tgt.team; G.overT = 0; fx.slowmo(2.2, 0.22); fx.shake(0.9); ui.buzz([60, 60, 200]); G.focus.tx = tgt.x; G.focus.tz = tgt.z; }
     }
   }
   const applySlow = (e, s) => { if (s && e.alive && !isStruct(e)) { e.slowT = Math.max(e.slowT, s[1]); e.slowPct = Math.max(e.slowT > 0 ? e.slowPct : 0, s[0]); } };
-  const applyStun = (e, t) => { if (t && e.alive && !isStruct(e)) { e.stunT = Math.max(e.stunT, t); e.windT = -1; } };
+  const applyStun = (e, t) => { if (t && e.alive && !isStruct(e)) { if (e.isPlayer && e.stunT <= 0) ui.buzz(70); e.stunT = Math.max(e.stunT, t); e.windT = -1; } };
   function eachEnemy(team, x, z, r, fn) {
     for (const e of G.units) { if (!e.alive || e.team === team || isStruct(e)) continue; if (dist2(e.x, e.z, x, z) <= r + e.r) fn(e); }
   }
@@ -486,7 +495,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
             dead = true; break;
           }
         }
-        if (!dead && p.left <= 0 && p.back && !p.returning) { p.returning = true; p.hit = new Set(); p.left = 99; p.dmg *= p.back; }   // 回燕 turns round
+        if (!dead && p.left <= 0 && p.back && !p.returning) { p.returning = true; p.hit = new Set(); p.left = 99; p.dmg *= p.back; if (near(p)) V.turn(p); }   // 回燕 turns round
         else if (dead || p.left <= 0) { endProj(p, i, dead ? 0 : 4); continue; }
       }
       if (p.bolt) {
@@ -569,7 +578,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       case 'zone': addZone(h, tx, tz, s, dmg); break;
     }
     if (near(h) || near({ x: tx, z: tz })) V.cast(h, s, A);
-    if (i === 3) { say(h, 'ult', h.isPlayer ? 1 : 0.6); if (h.isPlayer) { fx.hitStop(0.09); fx.zoomIn(1); fx.punch(0.3); ui.ultName(s.name, RANK.ult.name[s.rank - 1]); } }
+    if (i === 3) { say(h, 'ult', h.isPlayer ? 1 : 0.6); if (h.isPlayer) { ui.buzz(35); fx.hitStop(0.09); fx.zoomIn(1); fx.punch(0.3); ui.ultName(s.name, RANK.ult.name[s.rank - 1]); } }
     return true;
   }
   function updateDash(h, dt) {
@@ -596,7 +605,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (MODE.noRecall || !h.alive || h.dash || h.stunT > 0 || h.recallT > 0 || G.over) return false;   // 一路 has no 归宗: you buy when you set out and when you fall
     const f = POS.fountain(h.team); if (h.atHome && dist2(h.x, h.z, f.x, f.z) < T.shopR) return false;   // already home with the shop open: nothing to gain
     h.recallT = T.recallTime; h.order = null; h.target = null; h.windT = -1;
-    if (near(h)) h.recallFx = fx.decal({ mode: 5, x: h.x, z: h.z, size: 7, color: TEAM_COL[h.team].glow, dur: T.recallTime, hold: 0.05, alpha: 0.85 });
+    if (near(h)) h.recallFx = fx.decal({ mode: 5, x: h.x, z: h.z, size: 7, color: h.fxCol || TEAM_COL[h.team].glow, dur: T.recallTime, hold: 0.05, alpha: 0.85 });
     if (h.isPlayer) audio.play('recall');
     return true;
   }
@@ -647,7 +656,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     } else { h.windT = -1; moveToward(h, h.x + o.dx * 4, h.z + o.dz * 4, dt); }
   }
   function updateHero(h, dt) {
-    V.status(h, near(h) && canSee(G.player, h));
+    h.vulnOn = h.vulnT > G.t || h.lawT > G.t; V.status(h, near(h) && canSee(G.player, h));
+    if (h.alive && !h.moving && !h.target && h.combatT > 5 && h.recallT <= 0 && near(h)) { if ((h.idleT = (h.idleT || 0) + dt) > (h.idleN || 6)) { h.idleT = 0; h.idleN = 5 + Math.random() * 6; h.animCast = 0.75; } } else h.idleT = 0;   // standing about: a small gesture now and then
     if (h.alive && (h.pfxT = (h.pfxT || 0) - dt) <= 0 && near(h) && canSee(G.player, h)) {
       h.pfxT = 0.09; V.passive(h, G.t);
       if (h.def.id === 'shade') for (const e of G.heroes) if (e.alive && e.team !== h.team && e.hp < e.maxHp * 0.4 && dist(e, h) < 13 && canSee(G.player, e)) V.doom(e);
@@ -1033,6 +1043,10 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (G.t >= G.nextWave) {
         G.nextWave += T.waveEvery; G.wave++;
         if (G.wave === 1) { ui.announce('两宗弟子已下山', ''); audio.play('horn'); }
+        if (G.wave === 2 && !G.pairSaid) {                              // people with history say so once, early
+          G.pairSaid = true; const by = id => G.heroes.filter(h => h.def.id === id); let done = false;
+          for (const [a, b, same, opp] of PAIRS) { if (done) break; for (const A of by(a)) { if (done) break; for (const B of by(b)) { const L = A.team === B.team ? same : opp, pt = G.player.team; fx.say(A.x, A.h + 1.6, A.z, L[0], A.team === pt); fx.say(B.x, B.h + 1.6, B.z, L[1], B.team === pt); const line = (h, t) => { if (!h.isPlayer) ui.chat(h, t); }; if (A.team === pt || B.team === pt) { line(A, L[0]); line(B, L[1]); } done = true; break; } } }
+        }
         if (G.wave === 1) { const sp = G.heroes.filter(h => h.team === G.player.team && !h.isPlayer); if (sp[0]) chat(sp[0], ['稳着打，别送', '都精神点', '这把好好打'], true); if (sp[1]) chat(sp[1], sp[1].ai.jungler ? ['我去巡山，有事喊我'] : ['我这边没问题', '好', '走'], true); }
         for (const team of [FROST, EMBER]) for (let lane = 0; lane < LANES.length; lane++) {
           const lost = !G.structs[1 - team].lanes[lane][1].alive; // the side that broke through gets a stronger wave down that lane

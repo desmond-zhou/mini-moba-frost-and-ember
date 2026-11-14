@@ -232,6 +232,11 @@ body.touch #toast { bottom: calc(210px + var(--sab)); }
 body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bottom: auto; top: calc(var(--mh, 126px) + 22px + var(--sat)); } body.touch #sys small { display: none; }
 @media (max-width: 760px) { body.touch #sys { top: calc(var(--mh, 82px) + 22px + var(--sat)); } }
 @media (prefers-reduced-motion: reduce) { #feed div { animation: none; } }
+/* ---- small motion ---- */
+#shopBtn.can { animation: canBuy 1.6s ease-in-out infinite; border-color: var(--brass); } @keyframes canBuy { 50% { box-shadow: 0 0 14px rgba(223, 189, 120, .7), 0 0 0 1px var(--brass) inset; } }
+body.touch .skill:active, body.touch #atkBtn:active, body.touch #sig button:active, body.touch #recallBtn:active, body.touch #shopBtn:active { transform: scale(.9); filter: brightness(1.35); } body.touch .skill, body.touch #atkBtn, body.touch #sig button { transition: transform .08s; }
+body.veiled #hud::after { content: ''; position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 22vmin 6vmin rgba(18, 4, 22, .82); animation: veilIn .25s ease-out; } @keyframes veilIn { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #shopBtn.can { animation: none; } }
 /* ---- the fallen: the count is the thing to read ---- */
 #dead em { display: block; font: 900 clamp(54px, 11vw, 96px)/1 var(--f-display); font-style: normal; color: var(--brass); font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
 #top .ros.dead i { filter: grayscale(1) brightness(.5); }
@@ -313,7 +318,7 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     <h1 class="mark">霜烬之争</h1>
     <div class="sub" id="sub">十八位修士 · 3V3 · 摧毁敌方阵眼</div>
     <div id="modeSel"></div>
-    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.8</div>
+    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.9</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div class="row"><div class="seg" id="diff"></div><button class="go" id="goBtn" type="button">出战</button></div>

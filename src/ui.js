@@ -23,6 +23,7 @@ export function createUI(isTouch, audio) {
   const ui = { shopOpen: false, onCast: null, onBuy: null };
   const el = {}; for (const id of ['hud', 'title', 'end', 'cards', 'detail', 'diff', 'portrait', 'rosF', 'rosE', 'goBtn', 'help', 'kF', 'kE', 'clock', 'pipF', 'pipE', 'buff', 'feed', 'announce', 'toast', 'dead', 'deadT', 'tip', 'touch', 'pName', 'pLvl', 'skills', 'hpFill', 'hpTxt', 'mpFill', 'mpTxt', 'xpFill', 'gold', 'kda', 'items', 'shop', 'shopGrid', 'shopBtn', 'shopX', 'mini', 'endMark', 'endSub', 'endTable', 'againBtn', 'muteBtn', 'qBtn', 'pas', 'chan', 'chanFill', 'score', 'recallBtn', 'top', 'shopNote', 'menu', 'menuBtn', 'mResume', 'mRestart', 'mQuit', 'vMusic', 'vSfx', 'ult', 'modeSel', 'sub', 'sig', 'seatSel', 'chat']) el[id] = $(id);
   document.body.classList.toggle('touch', isTouch);
+  let goldShown = 0, kWas = [0, 0];
   el.touch.hidden = !isTouch;
   const cache = new Map();
   const txt = (e, v) => { if (cache.get(e) !== v) { cache.set(e, v); e.textContent = v; } };
@@ -129,6 +130,7 @@ export function createUI(isTouch, audio) {
   }
   // what your side's bots say to each other: a face, a name, a few words; three lines at most, each gone in a few seconds
   ui.chat = (h, text) => { const d = document.createElement('div'); d.innerHTML = `<i class="fp" style="background-image:url(${faceOf(h)})"></i><b>${h.name}</b>${text}`; el.chat.append(d); while (el.chat.children.length > 3) el.chat.firstChild.remove(); setTimeout(() => d.remove(), 5200); };
+  ui.buzz = p => { try { if (isTouch && navigator.vibrate) navigator.vibrate(p); } catch { /* not every phone allows it */ } };
   ui.rally = on => { const b = el.sig.querySelector('[data-s=rally]'); if (b) b.classList.toggle('on', on); ui.toast(on ? '开团' : '解散'); };
   ui.announce = (text, cls) => { el.announce.textContent = text; el.announce.className = cls || ''; el.announce.animate([{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.12 }, { opacity: 1, offset: 0.8 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 2600, easing: 'ease-out' }); };
   ui.toast = text => { if (!text) return; el.toast.textContent = text; el.toast.animate([{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: 1300 }); };
@@ -169,7 +171,8 @@ export function createUI(isTouch, audio) {
 
   ui.update = dt => {
     const p = G.player;
-    txt(el.kF, String(G.kills[FROST])); txt(el.kE, String(G.kills[EMBER])); txt(el.clock, fmt(G.t));
+    txt(el.kF, String(G.kills[FROST])); txt(el.kE, String(G.kills[EMBER]));
+    for (const [t, e] of [[FROST, el.kF], [EMBER, el.kE]]) if (kWas[t] !== G.kills[t]) { if (G.kills[t] > kWas[t]) e.animate([{ transform: 'scale(1.9)', filter: 'brightness(2.2)' }, { transform: 'scale(1)', filter: 'brightness(1)' }], { duration: 520, easing: 'ease-out' }); kWas[t] = G.kills[t]; } txt(el.clock, fmt(G.t));
     [el.pipF, el.pipE].forEach((pe, t) => { const s = G.structs[t]; [...s.list, s.core].forEach((u, i) => { const off = !u.alive; if (cache.get(pe.children[i]) !== off) { cache.set(pe.children[i], off); pe.children[i].classList.toggle('off', off); } }); });
     const bt = G.buffT[p.team], be = G.buffT[1 - p.team];
     const heat = p.alive && p.heat > 0 ? `灵塔灼烧 ${p.heat} 层 · 下一发 ×${(1 + T.heatStep * p.heat).toFixed(1)}` : '';
@@ -179,7 +182,8 @@ export function createUI(isTouch, audio) {
     if (cache.get('heat') !== !!heat) { cache.set('heat', !!heat); el.buff.classList.toggle('hot', !!heat); }
     sx(el.hpFill, p.hp / p.maxHp); sx(el.mpFill, p.mana / p.maxMana); sx(el.xpFill, p.level >= T.maxLevel ? 1 : p.xp / T.xpNeed(p.level));
     txt(el.hpTxt, `${Math.ceil(p.hp)} / ${Math.round(p.maxHp)}`); txt(el.mpTxt, `${Math.floor(p.mana)} / ${Math.round(p.maxMana)}`);
-    txt(el.pLvl, realmOf(p.level)); txt(el.gold, String(Math.floor(p.gold))); txt(el.kda, `${p.kills} / ${p.deaths} / ${p.assists}`);
+    txt(el.pLvl, realmOf(p.level)); goldShown = Math.abs(p.gold - goldShown) < 1.5 ? p.gold : goldShown + (p.gold - goldShown) * Math.min(1, dt * 7); txt(el.gold, String(Math.floor(goldShown)));
+    { const can = G.canShop() && p.gold >= 300 && p.items.length < 6, v = p.alive && p.veilT > 0; if (cache.get(el.gold) !== can) { cache.set(el.gold, can); el.shopBtn.classList.toggle('can', can); } if (cache.get(document.body) !== v) { cache.set(document.body, v); document.body.classList.toggle('veiled', v); } } txt(el.kda, `${p.kills} / ${p.deaths} / ${p.assists}`);
     const sig = p.items.map(x => x.id).join();
     if (sig !== lastItems) { lastItems = sig; el.items.innerHTML = Array.from({ length: 6 }, (_, i) => { const it = p.items[i]; return it ? `<i class="t${it.tier}" title="${it.name}：${it.tip}" style="background-image:url(${itemIcon(it)})"></i>` : '<i></i>'; }).join(''); }
     skillEls.forEach((se, i) => {
