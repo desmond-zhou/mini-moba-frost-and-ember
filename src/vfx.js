@@ -357,6 +357,10 @@ export function createVfx(fx, audio) {
   V.tribStart = (h) => { fx.pillar(h.x, h.z, 2.6, 24, [2.0, 1.8, 0.9], 1.4); fx.ringWave(h.x, h.z, 20, [2.0, 1.8, 0.9], 0.9); fx.dome(h.x, h.z, 1, 5, [1.6, 1.5, 0.8], 0.8); audio.play('charge', h.x, h.z); audio.play('thunder', h.x, h.z, 0.5); };
   V.turn = p => { fx.flare(p.x, p.y, p.z, m(p.color, 2), 4, 0.16); slash(p.x, p.z, R() * 6.283, 4, 1.6, m(p.color, 1.4), 1.6, 0.22); };
   V.status = (h, vis) => {
+    if (vis && h.omen) { h.fxO = (h.fxO || 0) + 1; const y = h.h + 1.7, big = h.omen === 2;   // 雷云: a small dark cloud that follows, flickering
+      if (h.fxO % 3 === 0) fx.smoke(h.x + (R() - 0.5) * (big ? 2.6 : 1.8), y + R() * 0.5, h.z + (R() - 0.5) * (big ? 2.6 : 1.8), 0, 0.05, 0, [0.03, 0.03, 0.06], big ? 2.6 : 1.9, 1.0, 0.8, 0.25, 0);
+      { const a = h.fxO * 0.21, rr = big ? 1.5 : 1.1; fx.spark(h.x + Math.cos(a) * rr, y + Math.sin(a * 2.3) * 0.25, h.z + Math.sin(a) * rr, -Math.sin(a) * 3, 0, Math.cos(a) * 3, [2.2, 1.9, 0.9], big ? 0.3 : 0.22, 0.35, 0, 0, 0.08); }   // a ring of static turning overhead
+      if (h.fxO % (big ? 12 : 20) === 0) { const ox = (R() - 0.5) * 1.6, oz = (R() - 0.5) * 1.6; fx.line(h.x + ox, y, h.z + oz, h.x + ox * 0.4, y - 1.6, h.z + oz * 0.4, [2.6, 2.3, 1.2], 5, 0.4, 0.14); fx.flare(h.x + ox, y, h.z + oz, [2.4, 2.1, 1.1], 2.2, 0.1); } }
     if (vis && h.alive && h.vulnOn) { h.fxV = (h.fxV || 0) + 1; if (h.fxV % 5 === 0) { fx.spark(h.x + (R() - 0.5) * 0.8, h.h + 2.2, h.z, 0, -5, 0, [2.6, 0.25, 0.2], 0.34, 0.3, 0, 0, 0.09); fx.flare(h.x, h.h + 1.5, h.z, [2.4, 0.2, 0.18], 1.5, 0.12); } }   // 易伤: a red mark bleeding down over the head
     if (vis && h.alive && h.veilT > 0 && R() < 0.5) fx.smoke(h.x + (R() - 0.5) * 1.4, 0.4 + R() * 2.4, h.z + (R() - 0.5) * 1.4, 0, 0.6, 0, [0.04, 0.03, 0.05], 1.6, 0.6, 0.4);
     const on = vis && h.alive && h.shield > 0;

@@ -81,6 +81,31 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     ['ranger', 'qingya', ['师父，听雪我练熟了。', '出剑，别回头。'], ['师父，请赐教。', '让为师看看你的听雪。']],
     ['warden', 'qingya', ['……师父。', '不语，守好关。'], ['……', '还是不肯开口？出尺吧。']],
     ['peiji', 'wenren', ['别再走火。', '管好你的天刑台。'], ['闻人遥，随我回天刑台。', '拿得住我再说。']],
+    ['mage', 'ranger', ['紫烟，星图我来推，你只管出剑。', '那你算快些，我的剑不等人。'], ['紫烟，这回各走各的星路。', '正好，看看天衍这门功课谁学得深。']],
+    ['peiji', 'storm', ['沈渊，戴罪立功。', '……依约行事。'], ['沈渊，谁放你出来的？', '代管大人，今日各凭本事。']],
+    ['warden', 'wenren', ['……（看了一眼右臂）', '那一线，我没忘。别挡着我。'], ['……（提尺）', '你的右臂好了？再来一线。']],
+    ['cryo', 'ranger', ['冰桥我来架。', '有劳寒漪长老。'], ['这回不替你架桥了。', '长老，得罪。']],
+    ['berserker', 'mage', ['小子，老铁给你开路。', '有劳前辈。'], ['小子，别怪老铁手重。', '前辈，你的刀路我算过。']],
+    ['gunner', 'berserker', ['老铁，再拔一回桩？', '拔！符管够不？'], ['老铁，让开。', '吴峰主，你那叠符吓不住我。']],
+    ['yanzhao', 'mage', ['我替你遮着。', '有你在，我放心算。'], ['这次……我遮的是你的眼。', '照雪，星我还是看得见。']],
+    ['bloodlord', 'mage', ['小辈，那颗星本座还记着。', '此一时，彼一时。'], ['周易！星落之仇，今日清算。', '上回一颗星，这回还是一颗。']],
+    ['shade', 'mage', ['你揭过我一次。', '这次我们同路。'], ['又是你。', '红衣，我还是认得出你。']],
+    ['warden', 'ranger', ['……（把尺往前一横）', '师兄还是老样子。前面交给你。'], ['……（摇头）', '师兄，今天我不让。']],
+    ['healer', 'qingya', ['陆小子，回来了就好。', '孙伯，经阁的地还是您扫？'], ['陆小子，下手轻些，老头子骨头脆。', '孙伯，您装糊涂这招骗不了我。']],
+    ['healer', 'mage', ['易小子，伤了就往我这儿靠。', '孙伯，您那葫芦里到底装了多少？'], ['易小子，老头子今天不帮你喽。', '孙伯，您的丹我认得，骗不过我。']],
+    ['linshuang', 'mage', ['当年替我们传话的，是你。', '三百年的话，传到了就好。'], ['传话的人，也要拦我？', '前辈，各为其主。']],
+    ['archer', 'mage', ['小子，那句话你传得好。', '前辈的火，一直没灭。'], ['小子，火不认人。', '前辈，我算得到火往哪烧。']],
+    ['gunner', 'cryo', ['寒长老，冰原那回，天元宗欠你一座桥。', '吴峰主少说两句，符省着点用。'], ['寒长老，冻不住我的符。', '那就试试。']],
+    ['gunner', 'bloodlord', ['……血魂宗的人，也配与天元宗同列？', '本座不在乎同列，只在乎血。'], ['血海原上没炸死你，今日补上。', '吴峰主，你的符还是那么吵。']],
+    ['cryo', 'bloodlord', ['你的血池，冻过一回。', '……玄霜宗的冰，本座记得。'], ['血池冻得住，你也冻得住。', '这一回，本座的血不会凉。']],
+    ['berserker', 'bloodlord', ['北荒的狼不跟魔头一伙，这回例外。', '老铁，你那口破刀，本座看着碍眼。'], ['北荒的账，今天一起算。', '一个向导，也敢拦本座？']],
+    ['storm', 'mage', ['这回，星影别对着我。', '只要你的雷别落在我们头上。'], ['又是你的星影。', '沈副使，这回依约，不留手。']],
+    ['storm', 'wenren', ['天刑台的旧人，就剩我们两个了。', '……别跟我提天刑台。'], ['你师父的印，还在我手里。', '那就来拿走你的命。']],
+    ['peiji', 'warden', ['刑律堂与天刑台，今日同判。', '……（点头）'], ['韩首座，律法之争，场上见。', '……（提尺）']],
+    ['peiji', 'yanzhao', ['公审那日，委屈你了。', '代管大人秉公而已。'], ['言姑娘，这次你遮不住。', '代管大人，我遮的从来不是自己。']],
+    ['warden', 'shade', ['……（盯着她看了一眼）', '首座放心，我这回是真的站这边。'], ['……（提尺）', '首座的尺，当年没落下来。今天也一样。']],
+    ['keeper', 'linshuang', ['三百年的岛，五十年的门，都守住了。', '前辈守的门，比我的岛冷。'], ['冰岛的人，也要过天衍城的门？', '前辈，门是门，岛是岛。']],
+    ['qingya', 'yuanshan', ['太上长老。', '青崖，你的剑还是那么直。'], ['太上长老，请。', '让老夫看看，你的剑直到几分。']],
     ['shade', 'bloodlord', ['宗主，取谁的命？', '红衣，一个不留。'], ['宗主，血魂宗的路我不走了。', '暗子也敢反？']],
   ];
   let jeerAt = -99; const FOE_SAYS = { kill: 'eKill', die: 'eDie', ahead: 'eAhead', behind: 'eBehind', eStart: 'eStart', focus: 'focus' };
@@ -698,6 +723,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     } else { h.windT = -1; moveToward(h, h.x + o.dx * 4, h.z + o.dz * 4, dt); }
   }
   function updateHero(h, dt) {
+    h.omen = h.alive && (h.level === 4 || h.level === 8) && h.xp >= T.xpNeed(h.level) * 0.72 ? (h.level === 8 ? 2 : 1) : 0;
+    if (h.omen && h.omenAt !== h.level) { h.omenAt = h.level; if (h.isPlayer) ui.toast(h.omen === 2 ? '成婴的雷劫快到了：九道，找个地方' : '结丹的雷劫快到了：五道，找个地方'); else if (h.team !== G.player.team && canSee(G.player, h)) { const sp = G.heroes.find(a => a.team === G.player.team && a.alive && !a.isPlayer && dist(a, h) < 22); if (sp) chat(sp, [`${h.name}头上起雷云了，快渡劫了`], true); } }
     h.vulnOn = h.vulnT > G.t || h.lawT > G.t; V.status(h, near(h) && canSee(G.player, h));
     if (h.alive && !h.moving && !h.target && h.combatT > 5 && h.recallT <= 0 && near(h)) { if ((h.idleT = (h.idleT || 0) + dt) > (h.idleN || 6)) { h.idleT = 0; h.idleN = 5 + Math.random() * 6; h.animCast = 0.75; } } else h.idleT = 0;   // standing about: a small gesture now and then
     if (h.alive && (h.pfxT = (h.pfxT || 0) - dt) <= 0 && near(h) && canSee(G.player, h)) {
@@ -1113,9 +1140,12 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
           if (Math.abs(lead) >= 6) { G.moodAt = G.t; const pick = t => { const L = G.heroes.filter(h => h.team === t && h.alive && !h.isPlayer); return L[Math.floor(Math.random() * L.length)]; }, foe = pick(1 - pt), ally = pick(pt);
             if (foe) chat(foe, lead > 0 ? 'behind' : 'ahead', true); if (ally && Math.random() < 0.6) chat(ally, lead > 0 ? 'ahead' : 'behind'); }
         }
-        if (G.wave === 2 && !G.pairSaid) {                              // people with history say so once, early
-          G.pairSaid = true; const by = id => G.heroes.filter(h => h.def.id === id); let done = false;
-          for (const [a, b, same, opp] of PAIRS) { if (done) break; for (const A of by(a)) { if (done) break; for (const B of by(b)) { const L = A.team === B.team ? same : opp, pt = G.player.team; fx.say(A.x, A.h + 1.6, A.z, L[0], A.team === pt); fx.say(B.x, B.h + 1.6, B.z, L[1], B.team === pt); const line = (h, t) => { if (!h.isPlayer) ui.chat(h, t); }; if (A.team === pt || B.team === pt) { line(A, L[0]); line(B, L[1]); } done = true; break; } } }
+        if ((G.wave === 2 || G.wave === 7) && (G.pairN || 0) < 2) {      // people with history say so: once early, once more a few minutes in, never the same pair twice
+          const by = id => G.heroes.filter(h => h.def.id === id), pt = G.player.team, said = G.pairDone || (G.pairDone = new Set()); let done = false;
+          const order = PAIRS.map((p, k) => [p, k]).sort((a, b) => (by(b[0][0]).some(h => h.isPlayer) || by(b[0][1]).some(h => h.isPlayer) ? 1 : 0) - (by(a[0][0]).some(h => h.isPlayer) || by(a[0][1]).some(h => h.isPlayer) ? 1 : 0) || Math.random() - 0.5);   // the player's own ties first
+          for (const [[a, b, same, opp], k] of order) { if (done) break; if (said.has(k)) continue; for (const A of by(a)) { if (done) break; for (const B of by(b)) { if (A === B) continue; const L = A.team === B.team ? same : opp;
+            fx.say(A.x, A.h + 1.6, A.z, L[0], A.team === pt); fx.say(B.x, B.h + 1.6, B.z, L[1], B.team === pt); if (!A.isPlayer) ui.chat(A, L[0], A.team !== pt, 8000); if (!B.isPlayer) ui.chat(B, L[1], B.team !== pt, 8000);
+            said.add(k); G.pairN = (G.pairN || 0) + 1; done = true; break; } } }
         }
         if (G.wave === 1) { const sp = G.heroes.filter(h => h.team === G.player.team && !h.isPlayer); if (sp[0]) chat(sp[0], 'start', true); if (sp[1]) chat(sp[1], sp[1].ai.jungler ? ['我去巡山，有事喊我'] : 'start', true); const foe = G.heroes.filter(h => h.team !== G.player.team); if (foe.length) chat(foe[Math.floor(Math.random() * foe.length)], 'eStart', true); }
         for (const team of [FROST, EMBER]) for (let lane = 0; lane < LANES.length; lane++) {
