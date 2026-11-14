@@ -76,7 +76,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   let chatAt = -9;
   const PAIRS = [
     ['archer', 'linshuang', ['霜，这回并肩。', '嗯。火别灭。'], ['霜……别让我为难。', '各守各的岛。出手吧。']],
-    ['mage', 'yuanshan', ['祖父，看我推演。', '钱我带着，你放手去算。'], ['祖父，得罪了。', '让我看看你学了几成。']],
+    ['mage', 'yuanshan', ['前辈，上卷我读完了。', '那就替我把后面的走完。'], ['前辈，得罪了。', '让我看看上卷你读懂了几成。']],
+    ['mage', 'keeper', ['伯祖，我回来了。', '门我守着，你放手去算。'], ['伯祖，得罪了。', '想过这道门，先过我。']],
     ['ranger', 'qingya', ['师父，听雪我练熟了。', '出剑，别回头。'], ['师父，请赐教。', '让为师看看你的听雪。']],
     ['warden', 'qingya', ['……师父。', '不语，守好关。'], ['……', '还是不肯开口？出尺吧。']],
     ['peiji', 'wenren', ['别再走火。', '管好你的天刑台。'], ['闻人遥，随我回天刑台。', '拿得住我再说。']],
@@ -341,7 +342,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (amt > 0) { if (tgt.recallT > 0) stopRecall(tgt); if (src) tgt.revealT = Math.max(tgt.revealT, 1); }
     if (tgt.shield > 0) { const a = Math.min(tgt.shield, amt); tgt.shield -= a; amt -= a; }
     tgt.hp -= amt; tgt.flash = 1; tgt.combatT = 0;
-    if (tgt.kind === 'hero' && tgt.hp > 0 && tgt.hp < tgt.maxHp * 0.3 && !(tgt.yinT > G.t)) {            // 余荫: 周远山 steps in for an ally in trouble
+    if (tgt.kind === 'hero' && tgt.hp > 0 && tgt.hp < tgt.maxHp * 0.3 && !(tgt.yinT > G.t)) {            // 余荫: 陆玄机 steps in for an ally in trouble
       const y = G.heroes.find(a => a.alive && a.team === tgt.team && a.def.id === 'yuanshan' && dist(a, tgt) < 11);
       if (y) { tgt.yinT = G.t + 30; tgt.shield = Math.max(tgt.shield, tgt.maxHp * 0.18); tgt.shieldT = 4; if (near(tgt)) { fx.ringWave(tgt.x, tgt.z, 8, y.fxCol, 0.5); fx.line(y.x, y.h * 0.7, y.z, tgt.x, tgt.h * 0.6, tgt.z, y.fxCol, 8, 0.4, 0.3); audio.play('shield', tgt.x, tgt.z); } }
     }

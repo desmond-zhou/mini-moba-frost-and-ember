@@ -306,12 +306,12 @@ export const HEROES = {
     ],
   },
   yuanshan: {
-    id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '周远山', short: '山', title: '携钱南下的人', role: '卜修 · 辅助', blurb: '周易的祖父，五十年前带着天衍钱南下，没有再回去。他说自己这辈子只算准过一件事，就是孙子会比他强。铜钱在他指间转了五十年，边都磨圆了。他不替自己求吉，只替后辈挡灾。铜钱落地，吉凶已定——凶的那一面，总是朝着对面。',
+    id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '陆玄机', short: '玄', title: '天衍上卷持有者', role: '卜修 · 辅助', blurb: '青云宗前太上长老，守着天衍诀的上卷过了一辈子。三十年前他在乱石林被人围杀，石室的门从里面合上，再没有开过。他早就算到了那一天，也算到了后来会有人推开那扇门。几枚卦钱在他指间转了一辈子，边都磨圆了。卦钱落地，吉凶已定——凶的那一面，总是朝着对面。',
     hp: 960, hpG: 102, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.4, range: 8.6, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.3,
     build: ['xingluo', 'mingpan', 'zhaohun'],
     passive: { name: '余荫', icon: 'i_disc', desc: '身边的同门气血跌破 30% 时，替他挡一次：给一层相当于其 18% 最大气血的罡气。每人 30 秒一次。' },
     skills: [
-      S('Q', 'coin', '天衍钱', 'proj', { range: 15, speed: 30, width: 0.9, cd: 5.4, mana: 38, b: 80, l: 17, ap: 0.75, slow: [0.35, 1.5], splash: 2.2, vfx: 'starbolt', icon: 'starbolt' }, '弹出一枚天衍钱，命中第一个敌人后炸开，造成伤害并减速。'),
+      S('Q', 'coin', '问卦钱', 'proj', { range: 15, speed: 30, width: 0.9, cd: 5.4, mana: 38, b: 80, l: 17, ap: 0.75, slow: [0.35, 1.5], splash: 2.2, vfx: 'starbolt', icon: 'starbolt' }, '弹出一枚卦钱，命中第一个敌人后炸开，造成伤害并减速。'),
       S('W', 'omen', '卜凶', 'zone', { range: 13, radius: 4.6, delay: 0.5, cd: 12, mana: 50, b: 40, l: 9, ap: 0.35, vuln: [0.08, 3], vfx: 'well', icon: 'well' }, '给目标区域起一卦凶象：卦成时伤害范围内的敌人，并让他们 3 秒内受到的所有伤害 +8%。'),
       S('E', 'refate', '改命', 'heal', { range: 10, radius: 4.2, cd: 7.5, mana: 55, b: 125, l: 27, ap: 0.72, vfx: 'mend', icon: 'bloom' }, '把目标区域内同门的伤势改轻几分，回复气血。'),
       S('R', 'misfortune', '逆运', 'zone', { range: 14, radius: 6.5, delay: 0.75, cd: 60, mana: 100, b: 175, l: 40, ap: 0.8, stun: 1.2, lvl: 4, vfx: 'stasis', icon: 'stasis' }, '在目标区域布下逆运之局，局成时范围内的敌人受伤并被定住。'),

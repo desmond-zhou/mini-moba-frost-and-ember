@@ -218,7 +218,7 @@ const OUTFIT = {
     for (let i = 0; i < 2; i++) { const a = i * 3.14; part(P.orbit, G.box(0.5, 0.02, 0.16), '#cfd6ea', Math.cos(a) * 0.9, 2.3 + i * 0.5, Math.sin(a) * 0.9, 0, a, 0, 1, 1, 1, 1.4); }
     return { scale: 1.24, shX: 0.38, cape: cape(P, '#b9c1dc', 0.5, 0.78, 1.5, '#8f9bc0') };
   },
-  // 周远山 · 携钱南下：旧青布袍，背微驼，杖头吊着一枚天衍钱
+  // 陆玄机 · 天衍上卷持有者：旧青布袍，背微驼，杖头吊着一枚卦钱
   yuanshan(P, tc) {
     body(P, { robe: true, top: '#3f5560', sleeve: '#35474f', arm: '#3f5560', skin: '#b8906e' });
     skirt(P, '#36494f', 0.58); collar(P, '#c9b06a'); sash(P, '#8a6a2a', false);
