@@ -54,7 +54,7 @@ export const MODES = {
       { x: -24, z: -23, r: 3.6 }, { x: 24, z: 23, r: 3.6 }, { x: -12, z: 38, r: 3.4 }, { x: 9.5, z: 40, r: 3.4 },
     ],
     // 一路's own nudges, set after the bots started playing their roles (v1.2.0-alpha.3). Shared numbers stay as they are.
-    tune: { bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, heroTune: { warden: { ad: 1.02 }, keeper: { ad: 0.97, hp: 1.03 }, peiji: { ad: 0.97 }, bloodlord: { ad: 0.97, hp: 0.98 }, berserker: { ad: 1.04, hp: 1.02 }, qingya: { ad: 1.04, hp: 1.06 }, shade: { ad: 1.04, hp: 1.08 }, wenren: { ad: 1.13, hp: 1.12 }, ranger: { ad: 0.92, hp: 0.97 }, gunner: { ad: 0.93, hp: 0.96 }, mage: { ap: 0.95, hp: 0.98 }, cryo: { ap: 0.92, hp: 0.96 }, storm: { hp: 1.02 }, healer: { pow: 1.08, hp: 1.12 }, yanzhao: { ap: 1.08, hp: 1.05 }, yuanshan: { ap: 0.97, hp: 0.98 } },
+    tune: { bossAt: 660, surge: { puppet: [1.4, 45], abyss: [1.9, 75] } }, solid: true, noRecall: true, heroTune: { warden: { ad: 1.02 }, keeper: { hp: 0.97 }, bloodlord: { ad: 1.04, hp: 1.05 }, shade: { ad: 1.07, hp: 1.08 }, wenren: { ad: 1.08, hp: 1.07 }, linshuang: { ad: 0.93 }, ranger: { ad: 0.92, hp: 0.97 }, gunner: { ad: 0.96 }, mage: { ap: 0.95, hp: 0.98 }, cryo: { ap: 0.9, hp: 0.95 }, storm: { ap: 0.97 }, healer: { pow: 1.1, hp: 1.08 }, yanzhao: { ap: 1.04, hp: 1.05 }, yuanshan: { ap: 0.95, hp: 0.95 } },
   },
   tri: {
     id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, solid: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。野区有山脊相隔，河道有血海残魂与镇渊傀，十五分钟后渊主残念现世。',
@@ -81,8 +81,8 @@ export const MODES = {
     ridges: [[[-57, 24], [-57, 4]], [[-57, -12], [-57, -26]], [[-48, 34], [-38, 24]], [[-30, 16], [-18, 4]]],
     // 三路's own numbers. Everything not named here falls back to the shared table.
     tune: {
-      waveEvery: 28, coreHp: 5200, towerHp: 3000, lateAt: 780, lateK: 0.3, respawnK: 1.15, startGold: 300,
-      groupAt: 660,                                                    // from here on the bots gather to push a lane together, again and again
+      xpNeed: L => 200 + 57 * L, waveEvery: 28, coreHp: 6100, towerHp: 3550, lateAt: 840, lateK: 0.3, respawnK: 1.15, startGold: 300,
+      groupAt: 720,                                                    // from here on the bots gather to push a lane together, again and again
       // a full-time jungler lives off these, so each camp pays less and comes back slower than in 一路
       neutral: {
         golem: { hp: 520, ad: 26, range: 2.2, period: 1.2, wind: 0.35, ms: 6, r: 1.3, h: 3.4, gold: 26, xp: 40, respawn: 62 },
@@ -90,10 +90,10 @@ export const MODES = {
         puppet: { hp: 2300, ad: 62, range: 3.2, period: 1.3, wind: 0.42, ms: 5.5, r: 2.3, h: 6.0, gold: 80, xp: 200, respawn: 110 },
         abyss: { hp: 6800, ad: 125, range: 4.2, period: 1.3, wind: 0.45, ms: 5.5, r: 3.3, h: 8.6, gold: 160, xp: 420, respawn: 170 },
       },
-      bossAt: 900,                                                     // 渊主残念 takes over the upper pit from here on
+      bossAt: 960,                                                     // 渊主残念 takes over the upper pit from here on
       surge: { puppet: [1.4, 55], abyss: [2.0, 90] },                 // how much stronger the side's disciples get, and for how long
     },
-    heroTune: { warden: { ad: 0.95 }, keeper: { hp: 1.06 }, peiji: { ad: 1.02 }, bloodlord: { ad: 0.95 }, berserker: { ad: 1.02 }, qingya: { ad: 0.98 }, wenren: { ad: 1.05, hp: 1.04 }, linshuang: { ad: 1.02 }, mage: { ap: 1.03 }, cryo: { ap: 0.98 }, storm: { ap: 1.08, hp: 1.06 }, healer: { pow: 1.06, hp: 1.05 }, yuanshan: { ap: 1.05 } },   // multipliers on base stats, this mode only
+    heroTune: { warden: { ad: 0.96 }, keeper: { ad: 1.08, hp: 1.05 }, bloodlord: { ad: 0.96, hp: 0.97 }, linshuang: { ad: 1.01 }, mage: { ap: 1.03 }, cryo: { ap: 0.96 }, storm: { ap: 1.05, hp: 1.05 }, healer: { pow: 1.08, hp: 1.05 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 } },   // multipliers on base stats, this mode only
   },
 };
 
@@ -173,14 +173,14 @@ export const HEROES = {
   },
   ranger: {
     id: 'ranger', size: 1.22, tint: [0.4, 1.0, 0.6], style: 'bow', name: '苏紫烟', short: '烟', title: '听雪剑主', role: '剑修 · 远程', blurb: '御剑出手最远、剑招最快，持续输出强，需要保持距离。',
-    hp: 830, hpG: 93, mana: 300, manaG: 24, ad: 54, adG: 3.7, ap: 0, apG: 0, ms: 6.6, range: 9.2, period: 0.94, wind: 0.18, ranged: true, r: 0.95, h: 5.0,
-    build: ['tingxue', 'dunying', 'heichi'],
-    passive: { name: '剑意三叠', icon: 'i_tingxue', max: 3, desc: '每第三次普攻伤害 +25%，并让目标减速 30%。' },
+    hp: 830, hpG: 93, mana: 300, manaG: 24, ad: 54, adG: 3.7, ap: 0, apG: 0, ms: 6.6, range: 9.2, period: 0.98, wind: 0.18, ranged: true, r: 0.95, h: 5.0,
+    build: ['tingxue', 'xingluo', 'dunying'],
+    passive: { name: '剑意相续', icon: 'i_tingxue', desc: '每次出招后，下一次普攻伤害 +35%、减速 30%，并让「听雪」的调息缩短 1.2 秒。' },
     skills: [
-      S('Q', 'pierce', '听雪', 'proj', { range: 19, speed: 36, width: 0.85, cd: 5, mana: 35, b: 60, l: 14, ad: 1.0, pierce: true }, '斩出一道带着寒气的剑气，贯穿路径上所有敌人。'),
-      S('W', 'gale', '轻身符', 'haste', { cd: 13, mana: 40, dur: 4, ms: 0.35, as: 0.4 }, '拍一张轻身符，短时间内身轻如燕，出剑更快。'),
-      S('E', 'backshot', '遁影', 'backdash', { range: 7, speed: 28, cd: 9, mana: 40, b: 40, l: 10, ad: 0.5, slow: [0.5, 1.5], projRange: 13 }, '借遁影镜向后掠开，同时朝目标方向补一道减速剑气。'),
-      S('R', 'rain', '万剑听雪', 'zone', { range: 15, radius: 6.6, delay: 0.5, dur: 3, tick: 0.5, cd: 55, mana: 90, b: 38, l: 9, ad: 0.3, slow: [0.25, 0.8], lvl: 4 }, '剑气如雪落向目标区域，持续造成伤害并减速。'),
+      S('Q', 'pierce', '听雪', 'proj', { range: 19, speed: 36, width: 0.85, cd: 4.8, mana: 28, b: 56, l: 13, ad: 0.8, pierce: true }, '斩出一道带着寒气的剑气，贯穿路径上所有敌人。调息很短。'),
+      S('W', 'swallow', '回燕', 'proj', { range: 12.5, speed: 25, width: 1.1, cd: 9, mana: 45, b: 48, l: 11, ad: 0.6, pierce: true, back: 0.65, slow: [0.3, 1.2], vfx: 'pierce', icon: 'whirl' }, '掷出一道回旋的剑气，飞到尽头后折返回手中，来回各伤害一次路径上的敌人并减速。'),
+      S('E', 'mirrorstep', '遁影', 'blink', { range: 7.5, cd: 10, mana: 40, kite: 4.6, vfx: 'phase', icon: 'phase' }, '借遁影镜瞬移到指定方向的位置。'),
+      S('R', 'rain', '万剑听雪', 'proj', { range: 34, speed: 40, width: 1.9, cd: 55, mana: 90, b: 165, l: 40, ad: 1.0, pierce: true, big: 0.9, lvl: 4, vfx: 'pierce' }, '斩出一道横贯战场的巨大剑气，贯穿路径上的所有敌人。'),
     ],
   },
   shade: {
@@ -191,20 +191,20 @@ export const HEROES = {
     skills: [
       S('Q', 'shadowstep', '红袖', 'dash', { range: 7.5, speed: 36, cd: 4.5, mana: 30, b: 80, l: 15, ad: 0.85, hitR: 1.7, reset: true, vfx: 'shadowstep', icon: 'dagger' }, '化作一道红影穿过敌人，对路径上的目标造成伤害。'),
       S('W', 'fan', '噬魂针', 'fan', { range: 11, speed: 30, width: 0.7, n: 3, spread: 0.2, cd: 6, mana: 35, b: 50, l: 10, ad: 0.5, slow: [0.25, 1] }, '扇形打出三枚噬魂针，命中的敌人受伤并减速。'),
-      S('E', 'veil', '血雾', 'haste', { cd: 11, mana: 35, dur: 3.5, ms: 0.45, as: 0.35, ls: 0.2, dr: 0.4, vfx: 'veil', icon: 'smoke' }, '遁入血雾，短时间内大幅提升移动和攻击速度，普攻吸血，受到的伤害 -40%。'),
+      S('E', 'veil', '血雾', 'haste', { cd: 13, mana: 40, dur: 3.5, ms: 0.4, as: 0.3, dr: 0.3, ls: 0.15, veil: true, vfx: 'veil', icon: 'smoke' }, '遁入血雾：3.5 秒内隐去身形，身法 +40%、攻速 +30%、普攻吸血 15%、受到的伤害 -30%。出手、出招或被贴到身前就会现形，其余效果保留。'),
       S('R', 'reap', '噬魂', 'strike', { range: 12, cd: 45, mana: 80, b: 190, l: 44, ad: 1.2, exec: 0.22, lvl: 4 }, '瞬移到目标修士身后斩击，目标损失的气血越多伤害越高。'),
     ],
   },
   healer: {
     id: 'healer', size: 1.16, tall: 0.35, tint: [0.75, 1.0, 0.3], style: 'staff', name: '孙伯', short: '孙', title: '藏经阁扫地人', role: '丹修 · 辅助', blurb: '装了三十年糊涂的老人。丹药和符箓让同门多扛几轮，缚灵符能定住冲上来的敌人。',
-    hp: 870, hpG: 96, mana: 440, manaG: 36, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 9, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.2,
+    hp: 910, hpG: 98, mana: 440, manaG: 36, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.5, range: 9, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.2,
     build: ['mingpan', 'xingluo', 'zhaohun'],
     passive: { name: '药香', icon: 'i_gourd', desc: '身边的同门（含自己）每秒多回复 1% 气血。' },
     skills: [
-      S('Q', 'mend', '回元丹', 'heal', { range: 11, radius: 4.8, cd: 6.5, mana: 50, b: 125, l: 26, ap: 0.7 }, '弹出一枚回元丹化开，治疗目标区域内的所有同门修士。'),
+      S('Q', 'mend', '回元丹', 'heal', { range: 11, radius: 4.8, cd: 6.2, mana: 50, b: 132, l: 22, ap: 0.9 }, '弹出一枚回元丹化开，治疗目标区域内的所有同门修士。'),
       S('W', 'vine', '缚灵符', 'proj', { range: 15, speed: 26, width: 0.9, cd: 9, mana: 45, b: 60, l: 14, ap: 0.5, stun: 1.1 }, '打出一张缚灵符，命中的第一个敌人受伤并被缠住。'),
-      S('E', 'ward', '镇血符', 'shield', { cd: 12, mana: 55, b: 115, l: 25, ap: 0.5, dur: 3.5, aoe: 7.5 }, '给自己和附近的同门修士各贴一张镇血符，化作罡气。'),
-      S('R', 'bloom', '清魂阵', 'heal', { range: 0, radius: 8, dur: 4, tick: 0.5, cd: 60, mana: 100, b: 54, l: 12, ap: 0.25, lvl: 4 }, '在脚下布下清魂阵，持续治疗范围内的同门修士。'),
+      S('E', 'ward', '行气丹', 'haste', { cd: 13, mana: 55, dur: 3.5, ms: 0.28, as: 0.25, aoe: 7.5, vfx: 'gale', icon: 'quick' }, '给自己和附近的同门各弹一枚行气丹：3.5 秒内身法 +28%、攻速 +25%。'),
+      S('R', 'bloom', '清魂阵', 'heal', { range: 0, radius: 8, dur: 4, tick: 0.5, cd: 60, mana: 100, b: 54, l: 10, ap: 0.32, lvl: 4 }, '在脚下布下清魂阵，持续治疗范围内的同门修士。'),
     ],
   },
   cryo: {
@@ -233,37 +233,37 @@ export const HEROES = {
   },
   gunner: {
     id: 'gunner', size: 1.33, tint: [1.0, 0.72, 0.2], style: 'gun', name: '吴镇岳', short: '岳', title: '天元宗峰主', role: '符修 · 远程', blurb: '破魂弩配一腰雷火符，从远处压制一片区域，被近身就得炸符脱身。',
-    hp: 810, hpG: 90, mana: 310, manaG: 24, ad: 58, adG: 4.0, ap: 0, apG: 0, ms: 6.5, range: 9.4, period: 0.95, wind: 0.2, ranged: true, r: 0.95, h: 5.0,
+    hp: 810, hpG: 90, mana: 310, manaG: 24, ad: 61, adG: 4.3, ap: 0, apG: 0, ms: 6.5, range: 9.4, period: 1.04, wind: 0.22, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'dunying', 'heichi'],
     passive: { name: '连珠', icon: 'shell', max: 4, desc: '每第四次普攻换上雷火符：伤害 +25%，并炸伤目标周围的敌人。' },
     skills: [
       S('Q', 'shell', '雷火符', 'zone', { range: 13, radius: 3.6, delay: 0.55, cd: 5, mana: 35, b: 75, l: 16, ad: 0.8 }, '朝目标位置甩出一张雷火符，落地爆炸。'),
       S('W', 'concuss', '雷音符', 'cone', { range: 7, angle: 60, cd: 11, mana: 45, b: 40, l: 10, ad: 0.4, stun: 0.7 }, '捏碎一张雷音符，巨响震晕前方扇形范围内的敌人。'),
-      S('E', 'rocketjump', '炸符退', 'backdash', { range: 8, speed: 30, cd: 10, mana: 40, b: 45, l: 10, ad: 0.5, projRange: 12 }, '脚下炸一张符借力后撤，同时向前补一发弩箭。'),
+      S('E', 'emplace', '镇岳', 'haste', { cd: 14, mana: 40, dur: 5, ms: -0.2, as: 0, rng: 2.2, adK: 0.2, vfx: 'rage', icon: 'bulwark' }, '扎稳马步架起弩机：5 秒内射程 +2.2、攻击力 +20%，但身法 -20%。'),
       S('R', 'barrage', '万符齐发', 'zone', { range: 17, radius: 7.5, delay: 0.8, dur: 2.5, tick: 0.5, cd: 60, mana: 100, b: 60, l: 14, ad: 0.45, lvl: 4 }, '把整叠雷火符撒向目标区域，接连爆炸。'),
     ],
   },
   storm: {
     id: 'storm', size: 1.3, tall: 0.4, tint: [0.95, 0.9, 0.35], style: 'staff', name: '沈渊', short: '渊', title: '天刑台执法副使', role: '雷修 · 远程', blurb: '掌一方刑印引雷。落雷又快又准，连续命中能把敌人劈得动弹不得。',
-    hp: 800, hpG: 91, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7.5, ms: 6.5, range: 9, period: 1.0, wind: 0.2, ranged: true, r: 0.95, h: 5.3,
+    hp: 830, hpG: 92, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7.5, ms: 6.5, range: 9, period: 1.0, wind: 0.2, ranged: true, r: 0.95, h: 5.3,
     build: ['mingpan', 'zhaohun', 'xingluo'],
     passive: { name: '雷印', icon: 'bolt2', desc: '招式命中会在敌人身上留一道雷印，叠满三道即引爆：按最大气血造成伤害并定身 0.5 秒，之后 3.2 秒内不再留印。' },
     skills: [
-      S('Q', 'bolt', '刑雷', 'zone', { range: 14, radius: 3, delay: 0.45, cd: 4.2, mana: 35, b: 80, l: 18, ap: 0.68 }, '短暂延迟后在目标位置劈下一道闪电。'),
-      S('W', 'orb', '锁魂珠', 'proj', { range: 15, speed: 20, width: 1.0, cd: 8, mana: 50, b: 60, l: 14, ap: 0.5, splash: 3.2, stun: 0.4 }, '放出一枚缓慢飞行的雷珠，命中后爆开并短暂麻痹。'),
-      S('E', 'flashstep', '雷行', 'blink', { range: 8, cd: 12, mana: 40, vfx: 'phase', icon: 'bolt2' }, '化作一道电光闪现到指定方向的位置。'),
-      S('R', 'tempest', '天刑', 'zone', { range: 15, radius: 6.5, delay: 1.0, dur: 2, tick: 0.4, cd: 60, mana: 100, b: 55, l: 12, ap: 0.33, stun: 0.25, lvl: 4 }, '召来雷暴反复轰击目标区域，每一击都会短暂麻痹。'),
+      S('Q', 'bolt', '刑雷', 'zone', { range: 14, radius: 3, delay: 0.45, cd: 4.0, mana: 35, b: 86, l: 18, ap: 0.68 }, '短暂延迟后在目标位置劈下一道闪电。'),
+      S('W', 'orb', '锁魂珠', 'proj', { range: 15, speed: 20, width: 1.0, cd: 8, mana: 50, b: 60, l: 14, ap: 0.5, splash: 3.2, stun: 0.6 }, '放出一枚缓慢飞行的雷珠，命中后爆开并短暂麻痹。'),
+      S('E', 'flashstep', '雷行', 'dash', { range: 8.5, speed: 44, cd: 11, mana: 45, b: 45, l: 10, ap: 0.4, hitR: 1.8, vfx: 'shadowstep', icon: 'bolt2' }, '化作一道电光穿出一段，电伤路径上的敌人并留下雷印。'),
+      S('R', 'tempest', '天刑', 'zone', { range: 15, radius: 6.5, delay: 1.0, dur: 2, tick: 0.4, cd: 60, mana: 100, b: 60, l: 13, ap: 0.33, stun: 0.25, lvl: 4 }, '召来雷暴反复轰击目标区域，每一击都会短暂麻痹。'),
     ],
   },
   keeper: {
     id: 'keeper', size: 1.5, tint: [0.4, 0.6, 1.0], style: 'shield', name: '周远川', short: '川', title: '天衍城守门人', role: '盾修 · 近战', blurb: '在雪原守了五十年门。最能扛，嘲讽把敌人钉在自己身上，静时阵一落整片都动不了。',
-    hp: 1220, hpG: 132, mana: 280, manaG: 22, ad: 56, adG: 3.4, ap: 0, apG: 0, ms: 6.6, range: 2.9, period: 1.05, wind: 0.28, ranged: false, r: 1.1, h: 5.3,
+    hp: 1260, hpG: 134, mana: 280, manaG: 22, ad: 56, adG: 3.4, ap: 0, apG: 0, ms: 6.6, range: 2.9, period: 1.05, wind: 0.28, ranged: false, r: 1.1, h: 5.3,
     build: ['heichi', 'xingluo', 'tingxue'],
     passive: { name: '守门', icon: 'ward', cd: 45, desc: '气血低于 40% 时自动撑起相当于 16% 最大气血的罡气，持续 4 秒。每 45 秒一次。' },
     skills: [
       S('Q', 'gate', '闭门', 'cone', { range: 6, angle: 95, cd: 8, mana: 35, b: 55, l: 12, ad: 0.6, stun: 0.9, vfx: 'gate' }, '门盾向前猛撞，伤害并定身扇形范围内的敌人。'),
-      S('W', 'taunt', '守门', 'taunt', { radius: 6.5, dur: 1.3, cd: 14, mana: 50, b: 110, l: 30, hpR: 0.08 }, '喝令周围敌人只能攻击自己，同时获得一层罡气。'),
-      S('E', 'starstride', '踏星', 'dash', { range: 8, speed: 26, cd: 11, mana: 40, b: 45, l: 10, ad: 0.5, stun: 0.5, hitR: 2, vfx: 'charge', icon: 'charge' }, '举盾向前冲撞，撞到的敌人受伤并短暂定身。'),
+      S('W', 'taunt', '守门', 'taunt', { radius: 6.5, dur: 1.3, cd: 12, mana: 50, b: 110, l: 30, hpR: 0.08 }, '喝令周围敌人只能攻击自己，同时获得一层罡气。'),
+      S('E', 'starstride', '踏星', 'haste', { cd: 11, mana: 40, dur: 4, ms: 0.4, as: 0, dr: 0.35, vfx: 'rage', icon: 'charge' }, '举盾踏星而行：4 秒内身法 +40%，受到的伤害 -35%。'),
       S('R', 'stasis', '静时阵', 'zone', { range: 10, radius: 6.5, delay: 0.9, cd: 65, mana: 100, b: 120, l: 30, ad: 0.6, stun: 1.5 }, '在目标区域布下封城用的静时阵，阵成时范围内的敌人被定住。'),
     ],
   },
@@ -274,7 +274,7 @@ export const HEROES = {
     passive: { name: '血食', icon: 'bloodsea', desc: '附近有敌方弟子或邪祟死去时回复 3.5% 气血，死的是修士则回复 14%。' },
     skills: [
       S('Q', 'bloodclaw', '血爪', 'cone', { range: 6.2, angle: 80, cd: 5.5, mana: 30, b: 68, l: 14, ad: 0.75, drain: 0.55, vfx: 'bloodclaw' }, '血爪撕开前方扇形，并把造成伤害的一部分吸为自身气血。'),
-      S('W', 'hook', '血锁', 'proj', { range: 13, speed: 27, width: 1.0, cd: 11, mana: 50, b: 60, l: 13, ad: 0.55, stun: 0.6, pull: true }, '甩出一道血锁，把命中的第一个敌人拽到自己面前。'),
+      S('W', 'hook', '血锁', 'proj', { range: 13, speed: 30, width: 1.0, cd: 11, mana: 50, b: 60, l: 13, ad: 0.55, stun: 0.9, pull: 'self' }, '甩出一道血锁，命中第一个敌人后把自己拽到对方身前，并将其定身。'),
       S('E', 'bloodshield', '化血', 'shield', { cd: 12, mana: 45, b: 130, l: 32, hpR: 0.1, dur: 4, vfx: 'bulwark', icon: 'bulwark' }, '化血为甲，获得一层随自身气血上限提高的罡气。'),
       S('R', 'bloodsea', '血海', 'zone', { range: 0, radius: 7, delay: 0.4, dur: 4, tick: 0.5, cd: 60, mana: 100, b: 48, l: 11, ad: 0.34, slow: [0.3, 0.8], drain: 0.7 }, '脚下漫开一片血海，持续伤害并减速范围内的敌人，同时为自己回血。'),
     ],
@@ -299,9 +299,9 @@ export const HEROES = {
     build: ['xingluo', 'mingpan', 'zhaohun'],
     passive: { name: '蔽目之体', icon: 'smoke', desc: '身边的同门（含自己）受到修士的伤害 -8%。' },
     skills: [
-      S('Q', 'veilbolt', '蔽目', 'proj', { range: 15, speed: 26, width: 0.95, cd: 7.5, mana: 45, b: 72, l: 16, ap: 0.6, stun: 0.95, vfx: 'vine', icon: 'smoke' }, '放出一缕蔽目之力，命中的第一个敌人眼前一黑，被定在原地。'),
-      S('W', 'skyveil', '遮天幕', 'shield', { cd: 11, mana: 55, b: 140, l: 30, ap: 0.55, dur: 3.5, aoe: 8, vfx: 'ward', icon: 'ward' }, '给自己和附近的同门各罩上一层幕，化作罡气。'),
-      S('E', 'mirrorheal', '照影', 'heal', { range: 11, radius: 4.6, cd: 7, mana: 50, b: 115, l: 25, ap: 0.68, vfx: 'mend', icon: 'mend' }, '照出目标区域内同门无伤时的影子，为他们回复气血。'),
+      S('Q', 'veilbolt', '蔽目', 'proj', { range: 15, speed: 26, width: 0.95, cd: 7.5, mana: 45, b: 72, l: 16, ap: 0.6, stun: 0.95, vfx: 'vine', icon: 'vine' }, '放出一缕蔽目之力，命中的第一个敌人眼前一黑，被定在原地。'),
+      S('W', 'skyveil', '遮天幕', 'shield', { cd: 11, mana: 55, b: 150, l: 32, ap: 0.6, dur: 3.5, aoe: 8, vfx: 'ward', icon: 'ward' }, '给自己和附近的同门各罩上一层幕，化作罡气。'),
+      S('E', 'mirrorheal', '藏形幕', 'haste', { cd: 14, mana: 55, dur: 2.6, ms: 0.2, as: 0, dr: 0.25, aoe: 7.5, veil: true, b: 60, l: 14, ap: 0.4, vfx: 'veil', icon: 'smoke' }, '给自己和附近的同门罩上一层幕：回复一些气血，2.6 秒内隐去身形，身法 +20%、受到的伤害 -25%。出手、出招或被贴到身前就会现形，其余效果保留。'),
       S('R', 'eclipse', '蔽天', 'zone', { range: 0, radius: 7.5, delay: 0.5, dur: 4, tick: 0.5, cd: 60, mana: 100, b: 44, l: 10, ap: 0.32, slow: [0.4, 1], lvl: 4, vfx: 'blizzard', icon: 'blizzard' }, '以自己为中心张开蔽天之幕，幕中的敌人持续受伤并步履维艰。'),
     ],
   },
@@ -309,12 +309,12 @@ export const HEROES = {
     id: 'yuanshan', size: 1.24, tall: 0.2, tint: [1.0, 0.84, 0.4], style: 'staff', name: '周远山', short: '山', title: '携钱南下的人', role: '卜修 · 辅助', blurb: '周易的祖父，五十年前带着天衍钱南下。一枚铜钱定吉凶，专替后辈挡灾。',
     hp: 960, hpG: 102, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7, ms: 6.4, range: 8.6, period: 1.0, wind: 0.22, ranged: true, r: 0.95, h: 5.3,
     build: ['xingluo', 'mingpan', 'zhaohun'],
-    passive: { name: '余荫', icon: 'i_disc', desc: '身边的同门气血跌破 30% 时，替他挡一次：给一层相当于其 22% 最大气血的罡气。每人 30 秒一次。' },
+    passive: { name: '余荫', icon: 'i_disc', desc: '身边的同门气血跌破 30% 时，替他挡一次：给一层相当于其 18% 最大气血的罡气。每人 30 秒一次。' },
     skills: [
-      S('Q', 'coin', '天衍钱', 'proj', { range: 15, speed: 30, width: 0.9, cd: 5, mana: 38, b: 92, l: 19, ap: 0.75, slow: [0.35, 1.5], splash: 2.2, vfx: 'starbolt', icon: 'starbolt' }, '弹出一枚天衍钱，命中第一个敌人后炸开，造成伤害并减速。'),
-      S('W', 'omen', '卜吉', 'shield', { cd: 13, mana: 55, b: 100, l: 24, ap: 0.45, dur: 3.5, aoe: 7.5, vfx: 'bulwark', icon: 'bulwark' }, '起一卦吉象，自己和附近同门各得一层罡气。'),
-      S('E', 'refate', '改命', 'heal', { range: 10, radius: 4.2, cd: 7.5, mana: 55, b: 135, l: 28, ap: 0.72, vfx: 'mend', icon: 'bloom' }, '把目标区域内同门的伤势改轻几分，回复气血。'),
-      S('R', 'misfortune', '逆运', 'zone', { range: 14, radius: 6.5, delay: 0.75, cd: 60, mana: 100, b: 175, l: 40, ap: 0.8, stun: 1.4, lvl: 4, vfx: 'stasis', icon: 'stasis' }, '在目标区域布下逆运之局，局成时范围内的敌人受伤并被定住。'),
+      S('Q', 'coin', '天衍钱', 'proj', { range: 15, speed: 30, width: 0.9, cd: 5.4, mana: 38, b: 80, l: 17, ap: 0.75, slow: [0.35, 1.5], splash: 2.2, vfx: 'starbolt', icon: 'starbolt' }, '弹出一枚天衍钱，命中第一个敌人后炸开，造成伤害并减速。'),
+      S('W', 'omen', '卜凶', 'zone', { range: 13, radius: 4.6, delay: 0.5, cd: 12, mana: 50, b: 40, l: 9, ap: 0.35, vuln: [0.08, 3], vfx: 'well', icon: 'well' }, '给目标区域起一卦凶象：卦成时伤害范围内的敌人，并让他们 3 秒内受到的所有伤害 +8%。'),
+      S('E', 'refate', '改命', 'heal', { range: 10, radius: 4.2, cd: 7.5, mana: 55, b: 125, l: 27, ap: 0.72, vfx: 'mend', icon: 'bloom' }, '把目标区域内同门的伤势改轻几分，回复气血。'),
+      S('R', 'misfortune', '逆运', 'zone', { range: 14, radius: 6.5, delay: 0.75, cd: 60, mana: 100, b: 175, l: 40, ap: 0.8, stun: 1.2, lvl: 4, vfx: 'stasis', icon: 'stasis' }, '在目标区域布下逆运之局，局成时范围内的敌人受伤并被定住。'),
     ],
   },
   qingya: {
@@ -326,12 +326,12 @@ export const HEROES = {
       S('Q', 'breeze', '清风', 'dash', { range: 8, speed: 34, cd: 5, mana: 30, b: 75, l: 15, ad: 0.8, hitR: 1.8, reset: true, vfx: 'shadowstep', icon: 'slide' }, '一步掠过，对路径上的敌人造成伤害，落地可立刻再出一剑。'),
       S('W', 'upright', '正气', 'shield', { cd: 10, mana: 40, b: 160, l: 34, ad: 0.7, hpR: 0.08, dur: 4, vfx: 'bulwark', icon: 'bulwark' }, '一身正气护体，获得一层罡气。'),
       S('E', 'dispel', '破妄', 'cone', { range: 6.6, angle: 80, cd: 5.5, mana: 30, b: 70, l: 14, ad: 0.85, slow: [0.35, 1.5], drain: 0.35, vfx: 'cleave', icon: 'cleave' }, '横剑扫开前方扇形，造成伤害并减速，伤害的一部分化为自身气血。'),
-      S('R', 'verdict', '一剑清正', 'strike', { range: 12, cd: 45, mana: 80, b: 200, l: 45, ad: 1.2, exec: 0.2, lvl: 4, vfx: 'reap', icon: 'pierce' }, '瞬息间到目标修士身前出剑，目标损失的气血越多伤害越高。'),
+      S('R', 'verdict', '一剑清正', 'dash', { range: 13, speed: 46, cd: 45, mana: 80, b: 170, l: 40, ad: 1.15, exec: 0.16, hitR: 2.3, lvl: 4, vfx: 'shadowstep', icon: 'pierce' }, '人随剑走，直线穿出一大段，重创路径上的所有敌人；对方损失的气血越多伤害越高。'),
     ],
   },
   wenren: {
     id: 'wenren', size: 1.26, tint: [1.0, 0.35, 0.6], style: 'dual', name: '闻人遥', short: '遥', title: '大司刑关门弟子', role: '刑修 · 近战', blurb: '闻人策的关门弟子，练功走火，出手再无分寸。在野外游荡，逮着落单的就下死手。',
-    hp: 1090, hpG: 117, mana: 280, manaG: 22, ad: 72, adG: 4.7, ap: 0, apG: 0, ms: 7.3, range: 2.8, period: 0.78, wind: 0.17, ranged: false, r: 0.95, h: 5.0,
+    hp: 1150, hpG: 122, mana: 280, manaG: 22, ad: 75, adG: 4.8, ap: 0, apG: 0, ms: 7.3, range: 2.8, period: 0.78, wind: 0.17, ranged: false, r: 0.95, h: 5.0,
     build: ['dunying', 'tingxue', 'heichi'],
     passive: { name: '走火入魔', icon: 'rage', desc: '对邪祟的伤害 +35%。参与镇压修士后，「掠影」立刻可以再用。' },
     skills: [
@@ -343,14 +343,14 @@ export const HEROES = {
   },
   linshuang: {
     id: 'linshuang', size: 1.24, tint: [0.55, 0.85, 1.0], style: 'archer', name: '林霜', short: '霜', title: '冰岛守岛人', role: '弓修 · 远程', blurb: '三百年前的天衍传人，与沈焰分守冰火两岛。她的箭不快，但中了箭的人再也快不起来。',
-    hp: 800, hpG: 89, mana: 300, manaG: 24, ad: 53, adG: 3.7, ap: 0, apG: 0, ms: 6.6, range: 9.5, period: 0.88, wind: 0.18, ranged: true, r: 0.95, h: 5.0,
+    hp: 800, hpG: 89, mana: 300, manaG: 24, ad: 70, adG: 5.2, ap: 0, apG: 0, ms: 6.5, range: 10.4, period: 1.16, wind: 0.24, ranged: true, r: 0.95, h: 5.0,
     build: ['tingxue', 'dunying', 'heichi'],
-    passive: { name: '霜弦', icon: 'icelance', desc: '普攻附带 10% 减速；对已被减速或定身的目标，普攻伤害 +12%。' },
+    passive: { name: '霜弦', icon: 'icelance', desc: '开弓慢，箭重，弦远：对 7 步以外的目标，普攻伤害 +18%。' },
     skills: [
-      S('Q', 'frostfeather', '霜羽', 'proj', { range: 18, speed: 34, width: 0.9, cd: 6.5, mana: 35, b: 50, l: 12, ad: 0.8, pierce: true, slow: [0.3, 1.5], vfx: 'icelance', icon: 'icelance' }, '射出一支贯穿敌人的霜羽箭，造成伤害并减速。'),
-      S('W', 'stillheart', '冰心', 'haste', { cd: 13, mana: 40, dur: 4, ms: 0.12, as: 0.42, vfx: 'gale', icon: 'quick' }, '心如冰镜，短时间内开弓大幅加快。'),
+      S('Q', 'frostfeather', '霜羽', 'proj', { range: 21, speed: 42, width: 0.9, cd: 7, mana: 40, b: 70, l: 16, ad: 1.3, slow: [0.4, 1.8], vfx: 'icelance', icon: 'icelance' }, '拉满弓射出一支重箭，命中的第一个敌人受到重创并减速。'),
+      S('W', 'icethorn', '冰棘', 'zone', { range: 13, radius: 3.2, delay: 0.7, cd: 12, mana: 45, b: 45, l: 10, ad: 0.4, stun: 1.0, vfx: 'blizzard', icon: 'frostnova' }, '在目标位置凝出一丛冰棘，片刻后破土而出，伤害并定住范围内的敌人。'),
       S('E', 'snowstep', '踏雪', 'backdash', { range: 7, speed: 28, cd: 9, mana: 40, b: 40, l: 10, ad: 0.5, slow: [0.5, 1.5], projRange: 13, vfx: 'backshot', icon: 'backshot' }, '踏雪后撤，同时朝目标方向补一支减速箭。'),
-      S('R', 'icebound', '冰封三百年', 'zone', { range: 15, radius: 6.6, delay: 0.5, dur: 3, tick: 0.5, cd: 58, mana: 90, b: 32, l: 8, ad: 0.26, slow: [0.3, 0.8], lvl: 4, vfx: 'blizzard', icon: 'blizzard' }, '把冰岛的风雪引到目标区域，持续伤害并减速。'),
+      S('R', 'icebound', '冰封三百年', 'proj', { range: 30, speed: 48, width: 1.2, cd: 55, mana: 90, b: 200, l: 48, ad: 1.35, exec: 0.6, heroOnly: true, big: 0.8, slow: [0.5, 2], lvl: 4, vfx: 'icelance', icon: 'sunarrow' }, '把三百年的寒意凝在一支箭上：穿过弟子和邪祟，命中第一个敌方修士并大幅减速，对方损失的气血越多伤害越高。'),
     ],
   },
   peiji: {
@@ -360,9 +360,9 @@ export const HEROES = {
     passive: { name: '铁律', icon: 'gate', desc: '被他的招式打中的敌人，3 秒内受到的所有伤害 +7%。' },
     skills: [
       S('Q', 'rod', '刑杖', 'cone', { range: 6.2, angle: 85, cd: 7, mana: 35, b: 58, l: 12, ad: 0.6, stun: 0.6, vfx: 'gate', icon: 'gate' }, '刑杖横扫前方扇形，造成伤害并定身。'),
-      S('W', 'writ', '天刑令', 'taunt', { radius: 6.5, dur: 1.4, cd: 14, mana: 50, b: 110, l: 30, hpR: 0.08, vfx: 'taunt', icon: 'taunt' }, '亮出天刑令，周围的敌人只能冲他来，自己获得一层罡气。'),
-      S('E', 'enforce', '执法', 'dash', { range: 8.5, speed: 28, cd: 10, mana: 40, b: 50, l: 11, ad: 0.55, stun: 0.5, hitR: 2, vfx: 'charge', icon: 'charge' }, '大步上前，撞到的敌人受伤并短暂定身。'),
-      S('R', 'abyssseal', '镇渊', 'leap', { range: 11, radius: 5.4, delay: 0.55, cd: 55, mana: 80, b: 165, l: 38, ad: 1.05, stun: 0.95, lvl: 4, vfx: 'skyfall', icon: 'skyfall' }, '跃起砸向目标区域，落地时重创并定住范围内的敌人。'),
+      S('W', 'writ', '天刑令', 'nova', { radius: 6.2, cd: 13, mana: 50, b: 55, l: 12, ad: 0.5, slow: [0.4, 2], hpR: 0.1, vfx: 'taunt', icon: 'taunt' }, '亮出天刑令，震伤并大幅减速周围的敌人，自己获得一层罡气。'),
+      S('E', 'enforce', '执法', 'strike', { range: 8, cd: 12, mana: 45, b: 55, l: 12, ad: 0.6, stun: 0.9, vfx: 'reap', icon: 'charge' }, '瞬息间到目标修士身前，一杖将其定住。'),
+      S('R', 'abyssseal', '镇渊', 'nova', { radius: 7.2, cd: 58, mana: 90, b: 150, l: 34, ad: 0.9, stun: 0.8, pull: true, lvl: 4, vfx: 'whirl', icon: 'skyfall' }, '以天刑令镇压四方：把周围的敌人全部拘到身前，重创并定身。'),
     ],
   },
 };
@@ -410,9 +410,9 @@ export const RANK = {
 const T_BASE = {
   lateAt: 360, lateK: 0.4, respawnK: 1, groupAt: 1e9,
   sight: { hero: 20, minion: 13, neutral: 0, tower: 17, core: 20 },      // how far each kind of unit sees, where the mode has fog                               // when waves start to snowball, and how fast; respawn scale
-  maxLevel: 12, xpNeed: L => 90 + 55 * L,
+  maxLevel: 12, xpNeed: L => 150 + 48 * L,     // 筑基 takes about two and a half minutes; a mode may bring its own curve
   waveFirst: 6, waveEvery: 24,
-  towerHp: 2650, towerAd: 150, towerRange: 13.5, towerPeriod: 1.05,
+  towerHp: 2650, towerAd: 185, towerRange: 13.5, towerPeriod: 1.05,
   // tower fire heats its target: every consecutive hit on a hero makes the next one hit harder; the heat cools off out of range
   heatStep: 0.65, heatMax: 4, heatHold: 3.5, towerLock: 0.55,
   coreHp: 4200,

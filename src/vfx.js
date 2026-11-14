@@ -316,7 +316,7 @@ export function createVfx(fx, audio) {
     const orbit = (k, r, yy, col, size, speed) => { for (let i = 0; i < k; i++) { const a = t * speed + i * 6.283 / k + h.id; fx.flare(h.x + Math.cos(a) * r, yy, h.z + Math.sin(a) * r, col, size, 0.16); } };
     if (id === 'archer' && n > 0) orbit(n, 1.5, y * 0.55, [2.2, 0.9, 0.2], 1.0, 4);                                    // one ember per stack
     else if (id === 'warden' && n > 0) orbit(n, 1.8, 0.9, [1.6, 1.4, 0.9], 1.0, 1.6);                                  // one stone per layer
-    else if (id === 'ranger' && n === 2) orbit(2, 1.2, y * 0.6, m(c, 2), 1.4, 7);                                      // the third sword is ready
+    else if (id === 'ranger' && n === 1) orbit(2, 1.2, y * 0.6, m(c, 2), 1.4, 7);                                      // the third sword is ready
     else if (id === 'gunner' && n === 3) { fx.fire(h.x + Math.cos(h.facing) * 1.1, y * 0.55, h.z + Math.sin(h.facing) * 1.1, 0, 1.2, 0, [1, 0.5, 0.12], 1.1, 0.3); orbit(1, 1.3, y * 0.55, [2.4, 1.3, 0.3], 1.3, 8); }
     else if (id === 'berserker') { const k = 1 - h.hp / h.maxHp; if (k > 0.3 && R() < k) fx.fire(h.x + (R() - 0.5) * 1.4, 0.5 + R() * 2.5, h.z + (R() - 0.5) * 1.4, 0, 2, 0, [1, 0.25, 0.08], 1.2 + k, 0.4); }
     else if (id === 'healer') { if (R() < 0.5) { const a = R() * 6.283, r = R() * 8; fx.spark(h.x + Math.cos(a) * r, 0.2, h.z + Math.sin(a) * r, 0, 2.5, 0, [0.6, 1.6, 0.5], 0.3, 0.9); } }

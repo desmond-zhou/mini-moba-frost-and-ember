@@ -131,7 +131,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   const canShop = h => !h.alive || h.atHome;                         // fallen, or home and not yet stepped out: walking back in does not count, only 归宗 does   // 万宝阁 only trades at home, or with the fallen
   function buyItem(h, id) {   // returns '' on success, else the reason
     const it = ITEMS[id]; if (!it) return '没有这件物品';
-    if (!canShop(h)) return '出过山门就不能买了，走回来也不算 · 归宗（B）或陨落时再来';
+    if (!canShop(h)) return MODE.noRecall ? '出过山门就不能买了 · 一路只有出山前和陨落时能买' : '出过山门就不能买了，走回来也不算 · 归宗（B）或陨落时再来';
     if (it.tier === 3 && h.items.some(x => x.id === id)) return '同一件法宝只能持有一件';
     const pool = h.items.map(x => x.id), cost = planBuy(id, pool);
     if (pool.length + 1 > 6) return '储物戒已满';
@@ -259,15 +259,14 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   function strike(e) {
     const t = e.target; if (!t || !t.alive || dist(e, t) - t.r > e.range + 2.5) return;
     const col = e.fxCol || TEAM_COL[e.team].glow, hero = e.kind === 'hero', crit = hero && Math.random() < 0.18 + (e.critB || 0);
-    let dmg = e.ad * (crit ? 1.6 : 1), slow = null, boom = false, fat = 1;
-    e.revealT = 1.2;                                                   // swinging gives you away
+    let dmg = e.ad * (crit ? 1.6 : 1) * (hero && e.hasteT > 0 && e.hasteAd ? 1 + e.hasteAd : 1), slow = null, boom = false, fat = 1;
+    e.revealT = 1.2; e.veilT = 0;                                      // swinging gives you away
     if (hero) {                                                        // passives that ride on basic attacks
       const id = e.def.id;
-      if (id === 'ranger') { e.pT = 5; if (++e.pStack >= 3) { e.pStack = 0; dmg *= 1.25; slow = [0.3, 1.2]; fat = 1.5; } }
+      if (id === 'ranger') { if (e.pStack) { e.pStack = 0; dmg *= 1.35; slow = [0.3, 1.2]; fat = 1.5; if (e.cds[0] > 0) e.cds[0] = Math.max(0, e.cds[0] - 1.2); } }   // 剑意相续: armed by any move
       else if (id === 'gunner') { e.pT = 6; if (++e.pStack >= 4) { e.pStack = 0; dmg *= 1.25; boom = true; fat = 1.6; } }
       else if (id === 'archer') { if (e.pTgt === t) e.pStack = Math.min(5, e.pStack + 1); else { e.pTgt = t; e.pStack = 1; } e.pT = 3; }
       else if (id === 'cryo') slow = [0.2, 1];
-      else if (id === 'linshuang') slow = [0.1, 1];
     }
     if (e.ranged) {
       const big = e.kind === 'tower', o = big ? 0 : 0.9;
@@ -322,11 +321,11 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (src.kind === 'hero' && isStruct(tgt)) { let escort = false; for (const u of G.units) if (u.alive && u.kind === 'minion' && u.team === src.team && dist(u, tgt) < 14) { escort = true; break; } amt *= escort ? 0.75 : 0.3; }
       if (src.kind === 'hero' && !isStruct(tgt)) { const id = src.def.id; if (id === 'shade' && tgt.hp < tgt.maxHp * 0.4) amt *= 1.25; else if (id === 'cryo' && (tgt.slowT > 0 || tgt.stunT > 0)) amt *= 1.12;
         else if (tgt.kind === 'neutral' && (id === 'qingya' || id === 'wenren')) amt *= id === 'qingya' ? 1.4 : 1.35;             // 独行 / 走火入魔
-        else if (id === 'linshuang' && o.basic && (tgt.slowT > 0 || tgt.stunT > 0)) amt *= 1.12;                               // 霜弦
+        else if (id === 'linshuang' && o.basic && dist(src, tgt) > 7) amt *= 1.18;                                               // 霜弦: from far away
         if (id === 'peiji' && o.ability) tgt.lawT = G.t + 3; }                                                                   // 铁律
       src.combatT = 0;
     }
-    if (tgt.lawT > G.t) amt *= 1.07;
+    if (tgt.lawT > G.t) amt *= 1.07; if (tgt.vulnT > G.t) amt *= 1 + tgt.vulnK;
     if (tgt.kind === 'hero' && src && src.kind === 'hero') for (const a of G.heroes) if (a.alive && a.team === tgt.team && a.def.id === 'yanzhao' && dist(a, tgt) < 9) { amt *= 0.92; break; }   // 蔽目之体
     if (tgt.hasteT > 0 && tgt.hasteDr) amt *= 1 - tgt.hasteDr;
     if (tgt.kind === 'hero' && tgt.def.id === 'berserker') amt *= 1 - 0.22 * (1 - tgt.hp / tgt.maxHp);
@@ -336,7 +335,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     tgt.hp -= amt; tgt.flash = 1; tgt.combatT = 0;
     if (tgt.kind === 'hero' && tgt.hp > 0 && tgt.hp < tgt.maxHp * 0.3 && !(tgt.yinT > G.t)) {            // 余荫: 周远山 steps in for an ally in trouble
       const y = G.heroes.find(a => a.alive && a.team === tgt.team && a.def.id === 'yuanshan' && dist(a, tgt) < 11);
-      if (y) { tgt.yinT = G.t + 30; tgt.shield = Math.max(tgt.shield, tgt.maxHp * 0.22); tgt.shieldT = 4; if (near(tgt)) { fx.ringWave(tgt.x, tgt.z, 8, y.fxCol, 0.5); fx.line(y.x, y.h * 0.7, y.z, tgt.x, tgt.h * 0.6, tgt.z, y.fxCol, 8, 0.4, 0.3); audio.play('shield', tgt.x, tgt.z); } }
+      if (y) { tgt.yinT = G.t + 30; tgt.shield = Math.max(tgt.shield, tgt.maxHp * 0.18); tgt.shieldT = 4; if (near(tgt)) { fx.ringWave(tgt.x, tgt.z, 8, y.fxCol, 0.5); fx.line(y.x, y.h * 0.7, y.z, tgt.x, tgt.h * 0.6, tgt.z, y.fxCol, 8, 0.4, 0.3); audio.play('shield', tgt.x, tgt.z); } }
     }
     if (tgt.kind === 'hero' && tgt.def.id === 'keeper' && tgt.hp > 0 && tgt.hp < tgt.maxHp * 0.4 && tgt.pCd <= 0) {   // 守门: a shield when it matters
       tgt.pCd = 45; tgt.shield = Math.max(tgt.shield, tgt.maxHp * 0.16); tgt.shieldT = 4; audio.play('shield', tgt.x, tgt.z);
@@ -405,7 +404,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const k = killer || (rec.length ? rec.shift()[0] : null);
       const ended = tgt.streak || 0, worth = clamp(1 + 0.14 * ended - 0.16 * (tgt.fallen || 0), 0.5, 1.8); tgt.streak = 0; tgt.fallen = (tgt.fallen || 0) + 1;
       tgt.deaths++; tgt.respawnT = (T.respawn(tgt.level) + G.t / 60 * 1.4) * T.respawnK * clamp(1 - (G.kills[1 - tgt.team] - G.kills[tgt.team]) * 0.035, 0.55, 1);   // the side that is losing the kill race comes back sooner
-      tgt.order = null; tgt.dmgLog.clear(); tgt.shield = 0; tgt.slowT = tgt.stunT = tgt.hasteT = 0; tgt.heat = 0;
+      tgt.order = null; tgt.dmgLog.clear(); tgt.shield = 0; tgt.slowT = tgt.stunT = tgt.hasteT = 0; tgt.veilT = 0; tgt.heat = 0;
       G.kills[1 - tgt.team]++;
       if (k) {
         const fair = clamp(0.35 + 0.65 * tgt.level / k.level, 0.4, 1.4) * worth; // less for stomping a weaker hero, more for an upset or ending a streak
@@ -469,20 +468,23 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         if (d <= step + t.r * 0.6) { damage(p.src, t, p.dmg, { basic: p.basic, crit: p.crit }); if (p.slow) applySlow(t, p.slow); if (p.emp && near(t)) V.empowered(t, p.color); if (p.boom) { eachEnemy(p.team, t.x, t.z, 3.4, o => { if (o !== t) damage(p.src, o, p.dmg * 0.6, { ability: true }); }); if (near(t)) { fx.explosion(t.x, t.z, 0.75, FLAME); audio.play('boom', t.x, t.z); } } if (p.tower && t.kind === 'hero' && t.alive) { t.heat = Math.min(T.heatMax, (t.heat || 0) + 1); t.heatT = T.heatHold; if (t.isPlayer) fx.text(t.x, t.h + 1.4, t.z, '下一发塔伤 ×' + (1 + T.heatStep * t.heat).toFixed(1), 'hurt'); } if (near(t)) V.basicHit(t, p.dx || 0, p.dz || 0, p.color, p.src.kind === 'tower' ? 2 : p.src.kind === 'hero' ? 1 : 0, p.crit); endProj(p, i, 0); continue; }
         p.x += dx / d * step; p.z += dz / d * step; p.y += (t.h * 0.55 - p.y) * Math.min(1, step / d); p.dx = dx / d; p.dz = dz / d;
       } else {
+        if (p.returning) { const c = p.src, qx = c.x - p.x, qz = c.z - p.z, qd = Math.hypot(qx, qz) || 1; if (qd < 1.5 || !c.alive) { endProj(p, i, 0); continue; } p.dx = qx / qd; p.dz = qz / qd; }   // on its way back to the hand
         p.x += p.dx * step; p.z += p.dz * step; p.left -= step;
         let dead = false;
         for (const e of G.units) {
-          if (!e.alive || e.team === p.team || isStruct(e) || dist2(e.x, e.z, p.x, p.z) > p.width + e.r) continue;
+          if (!e.alive || e.team === p.team || isStruct(e) || (p.heroOnly && e.kind !== 'hero') || dist2(e.x, e.z, p.x, p.z) > p.width + e.r) continue;
           if (p.hit) { if (p.hit.has(e)) continue; p.hit.add(e); }
-          damage(p.src, e, p.dmg, { ability: true }); applySlow(e, p.slow); applyStun(e, p.stun);
-          if (p.pull && e.alive && p.src.alive) { const c = p.src, qx = e.x - c.x, qz = e.z - c.z, qd = Math.hypot(qx, qz) || 1, gap = c.r + e.r + 0.5; e.knock = { sx: e.x, sz: e.z, tx: c.x + qx / qd * gap, tz: c.z + qz / qd * gap, t: 0, dur: 0.32 }; applyStun(e, 0.32 + (p.stun || 0)); e.dash = null; }
+          damage(p.src, e, p.dmg * (p.exec && e.kind === 'hero' ? 1 + (1 - e.hp / e.maxHp) * p.exec : 1), { ability: true }); applySlow(e, p.slow); applyStun(e, p.stun);
+          if (p.pull === 'self' && e.alive && p.src.alive) { const c = p.src, qx = c.x - e.x, qz = c.z - e.z, qd = Math.hypot(qx, qz) || 1, gap = c.r + e.r + 0.4; c.knock = { sx: c.x, sz: c.z, tx: e.x + qx / qd * gap, tz: e.z + qz / qd * gap, t: 0, dur: Math.min(0.4, 0.1 + qd / 40) }; c.dash = null; if (c.kind === 'hero' && !c.isPlayer) c.order = { type: 'attack', target: e }; }   // the line hauls its owner in
+          else if (p.pull && e.alive && p.src.alive) { const c = p.src, qx = e.x - c.x, qz = e.z - c.z, qd = Math.hypot(qx, qz) || 1, gap = c.r + e.r + 0.5; e.knock = { sx: e.x, sz: e.z, tx: c.x + qx / qd * gap, tz: c.z + qz / qd * gap, t: 0, dur: 0.32 }; applyStun(e, 0.32 + (p.stun || 0)); e.dash = null; }
           if (near(e)) V.projHit(p, e);
           if (!p.hit) {
             if (p.splash) { eachEnemy(p.team, p.x, p.z, p.splash, o => { if (o !== e) { damage(p.src, o, p.dmg * 0.6, { ability: true }); applyStun(o, p.stun); } }); if (near(p)) V.projBurst(p); }
             dead = true; break;
           }
         }
-        if (dead || p.left <= 0) { endProj(p, i, dead ? 0 : 4); continue; }
+        if (!dead && p.left <= 0 && p.back && !p.returning) { p.returning = true; p.hit = new Set(); p.left = 99; p.dmg *= p.back; }   // 回燕 turns round
+        else if (dead || p.left <= 0) { endProj(p, i, dead ? 0 : 4); continue; }
       }
       if (p.bolt) {
         p.bolt.m.position.set(p.x, p.y, p.z); p.bolt.m.rotation.y = Math.atan2(p.dx || 0, p.dz || 1);
@@ -501,7 +503,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (vis) V.zoneTick(z, dt);
       if (z.t >= z.next) {
         if (z.heal) { for (const a of G.heroes) if (a.alive && a.team === z.team && dist2(a.x, a.z, z.x, z.z) <= z.r + a.r) { heal(a, z.dmg); if (near(a)) { V.healed(a, z.col); if (a.isPlayer || z.src.isPlayer) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(z.dmg), 'heal'); } } }
-        else eachEnemy(z.team, z.x, z.z, z.r, e => { damage(z.src, e, z.dmg, { ability: true, drain: z.s.drain }); applySlow(e, z.s.slow); applyStun(e, z.s.stun); });
+        else eachEnemy(z.team, z.x, z.z, z.r, e => { damage(z.src, e, z.dmg, { ability: true, drain: z.s.drain }); applySlow(e, z.s.slow); applyStun(e, z.s.stun); if (z.s.vuln && e.alive) { e.vulnK = z.s.vuln[0]; e.vulnT = G.t + z.s.vuln[1]; } });
         if (vis) V.zoneFire(z, close(z));
         if (z.tick && z.t < z.delay + z.dur - 0.01) z.next += z.tick; else G.zones.splice(i, 1);
       }
@@ -524,20 +526,25 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (!victim) return false;
     }
     stopRecall(h); h.revealT = 1.5;
-    h.mana -= s.mana; h.cds[i] = s.cd * (1 - h.cdr);
+    h.mana -= s.mana; h.cds[i] = s.cd * (1 - h.cdr); if (h.def.id === 'ranger') { h.pStack = 1; h.pT = 4; }
     const selfCast = s.kind === 'shield' || s.kind === 'haste' || s.kind === 'nova' || s.kind === 'taunt' || ((s.kind === 'heal' || s.kind === 'zone') && !s.range);
     if (!selfCast) h.facing = Math.atan2(dz, dx);
-    h.animCast = 1; h.windT = -1;
+    h.animCast = 1; h.windT = -1; h.veilT = 0;
     switch (s.kind) {
       case 'cone': {
         const half = s.angle * Math.PI / 360;
         eachEnemy(h.team, h.x, h.z, s.range, e => { let a = Math.atan2(e.z - h.z, e.x - h.x) - h.facing; a = Math.atan2(Math.sin(a), Math.cos(a)); if (Math.abs(a) <= half + 0.15) { damage(h, e, dmg, { ability: true, drain: s.drain }); applySlow(e, s.slow); applyStun(e, s.stun); } });
         break;
       }
-      case 'nova': eachEnemy(h.team, h.x, h.z, s.radius, e => { damage(h, e, dmg, { ability: true }); applySlow(e, s.slow); applyStun(e, s.stun); }); break;
+      case 'nova':
+        eachEnemy(h.team, h.x, h.z, s.radius, e => { damage(h, e, dmg, { ability: true }); applySlow(e, s.slow); applyStun(e, s.stun); if (s.pull && e.alive) { const qx = e.x - h.x, qz = e.z - h.z, qd = Math.hypot(qx, qz) || 1, gap = h.r + e.r + 0.6; if (qd > gap) e.knock = { sx: e.x, sz: e.z, tx: h.x + qx / qd * gap, tz: h.z + qz / qd * gap, t: 0, dur: 0.3 }; e.dash = null; } });   // pull: everyone in reach is hauled in
+        if (s.hpR) { h.shield = Math.max(h.shield, h.maxHp * s.hpR); h.shieldT = 3.5; }
+        break;
       case 'shield': for (const a of G.heroes) if (a.alive && a.team === h.team && (a === h || (s.aoe && dist(a, h) < s.aoe))) { a.shield = Math.max(a.shield, dmg + (a === h ? h.maxHp * (s.hpR || 0) : 0)); a.shieldT = s.dur; } break;
       case 'taunt': eachEnemy(h.team, h.x, h.z, s.radius, e => { e.tauntT = s.dur; e.taunter = h; e.windT = -1; }); h.shield = Math.max(h.shield, dmg + h.maxHp * (s.hpR || 0)); h.shieldT = s.dur + 2; break;
-      case 'haste': h.hasteT = s.dur; h.hasteMs = s.ms; h.hasteAs = s.as; h.lsBuff = s.ls || 0; h.hasteDr = s.dr || 0; break;
+      case 'haste':                                                    // rng / adK: a stance rather than a sprint; aoe: handed to those nearby who have none running; veil: out of sight
+        for (const a of G.heroes) { if (!a.alive || a.team !== h.team || (a !== h && !(s.aoe && dist(a, h) < s.aoe && a.hasteT <= 0))) continue; a.hasteT = s.dur; a.hasteMs = s.ms; a.hasteAs = s.as || 0; a.lsBuff = s.ls || 0; a.hasteDr = s.dr || 0; a.hasteRng = s.rng || 0; a.hasteAd = s.adK || 0; if (s.veil) { a.veilT = s.dur; a.revealT = 0; } if (s.b !== undefined) { heal(a, dmg); if (a.isPlayer || h.isPlayer) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(dmg), 'heal'); } }
+        break;
       case 'heal': if (s.dur) addZone(h, tx, tz, s, dmg); else { A.healed = []; for (const a of G.heroes) if (a.alive && a.team === h.team && dist2(a.x, a.z, tx, tz) <= s.radius + a.r) { heal(a, dmg); A.healed.push(a); if (a.isPlayer || h.isPlayer) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(dmg), 'heal'); } } break;
       case 'dash': h.dash = { dx, dz, left: clamp(d, 4, s.range), speed: s.speed, hit: s.b !== undefined ? new Set() : null, s, dmg }; if (s.reset) { h.atkT = 0; h.windT = -1; } break;
       case 'backdash':
@@ -550,11 +557,11 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         const bx = victim.x - h.x, bz = victim.z - h.z, bd = Math.hypot(bx, bz) || 1;
         h.x = victim.x + bx / bd * (victim.r + h.r + 0.3); h.z = victim.z + bz / bd * (victim.r + h.r + 0.3); collide(h, 0, 0, 0);
         h.facing = Math.atan2(victim.z - h.z, victim.x - h.x); A.victim = victim;
-        damage(h, victim, dmg * (1 + (1 - victim.hp / victim.maxHp) * (s.exec || 0) * 4), { ability: true });
+        damage(h, victim, dmg * (1 + (1 - victim.hp / victim.maxHp) * (s.exec || 0) * 4), { ability: true }); applyStun(victim, s.stun);
         h.order = { type: 'attack', target: victim }; h.atkT = 0;
         break;
       }
-      case 'proj': shoot(h, h.x + dx, 1.8, h.z + dz, { dx, dz, speed: s.speed, range: s.range, width: s.width, dmg, pierce: s.pierce, splash: s.splash, slow: s.slow, stun: s.stun, pull: s.pull, color: col, size: s.vfx === 'sunarrow' ? 0.75 : s.pierce ? 0.3 : 0.5, long: s.pierce || s.vfx === 'sunarrow' ? 4 : 1, bright: 3.6, sid: s.vfx }); break;
+      case 'proj': shoot(h, h.x + dx, 1.8, h.z + dz, { dx, dz, speed: s.speed, range: s.range, width: s.width, dmg, pierce: s.pierce, splash: s.splash, slow: s.slow, stun: s.stun, pull: s.pull, exec: s.exec, heroOnly: s.heroOnly, back: s.back, color: col, size: s.big || (s.vfx === 'sunarrow' ? 0.75 : s.pierce ? 0.3 : 0.5), long: s.pierce || s.vfx === 'sunarrow' ? 4 : 1, bright: 3.6, sid: s.vfx }); break;
       case 'fan': for (let k = 0; k < s.n; k++) { const a = h.facing + (k - (s.n - 1) / 2) * s.spread; shoot(h, h.x + Math.cos(a), 1.8, h.z + Math.sin(a), { dx: Math.cos(a), dz: Math.sin(a), speed: s.speed, range: s.range, width: s.width, dmg, slow: s.slow, color: col, size: 0.24, long: 3, bright: 3.4, sid: 'fan' }); } break;
       case 'zone': addZone(h, tx, tz, s, dmg); break;
     }
@@ -575,7 +582,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       return;
     }
     const step = Math.min(D.left, D.speed * dt); h.x += D.dx * step; h.z += D.dz * step; D.left -= step; collide(h, D.dx, D.dz, 0);
-    if (D.hit) eachEnemy(h.team, h.x, h.z, D.s.hitR, e => { if (D.hit.has(e)) return; D.hit.add(e); damage(h, e, D.dmg, { ability: true }); applyStun(e, D.s.stun); if (near(e)) V.dashHit(e, col); });
+    if (D.hit) eachEnemy(h.team, h.x, h.z, D.s.hitR, e => { if (D.hit.has(e)) return; D.hit.add(e); damage(h, e, D.dmg * (D.s.exec && e.kind === 'hero' ? 1 + (1 - e.hp / e.maxHp) * D.s.exec * 4 : 1), { ability: true }); applyStun(e, D.s.stun); if (near(e)) V.dashHit(e, col); });
     if (near(h)) V.dashTick(h, D, col, step);
     if (D.left <= 0.01) h.dash = null;
   }
@@ -583,7 +590,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // ---------------- heroes ----------------
   // 归宗: stand still for a few breaths and the sect's formation pulls you home. Any order, any hit, any cast breaks it.
   function startRecall(h) {
-    if (!h.alive || h.dash || h.stunT > 0 || h.recallT > 0 || G.over) return false;
+    if (MODE.noRecall || !h.alive || h.dash || h.stunT > 0 || h.recallT > 0 || G.over) return false;   // 一路 has no 归宗: you buy when you set out and when you fall
     const f = POS.fountain(h.team); if (h.atHome && dist2(h.x, h.z, f.x, f.z) < T.shopR) return false;   // already home with the shop open: nothing to gain
     h.recallT = T.recallTime; h.order = null; h.target = null; h.windT = -1;
     if (near(h)) h.recallFx = fx.decal({ mode: 5, x: h.x, z: h.z, size: 7, color: TEAM_COL[h.team].glow, dur: T.recallTime, hold: 0.05, alpha: 0.85 });
@@ -648,6 +655,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     heal(h, h.maxHp * dt * (0.008 + (h.regenB || 0) + (ooc ? 0.03 : 0) + (atBase ? 0.16 : 0) + (G.buffT[h.team] > 0 ? 0.01 : 0)));
     h.mana = Math.min(h.maxMana, h.mana + h.maxMana * dt * (0.016 + (ooc ? 0.03 : 0) + (atBase ? 0.2 : 0)));
     for (let i = 0; i < 4; i++) if (h.cds[i] > 0) h.cds[i] -= dt;
+    h.range = h.def.range + (h.hasteT > 0 ? h.hasteRng || 0 : 0);
     if (h.tribDue) tribulation(h);
     if (h.pCd > 0) h.pCd -= dt; if (h.pT > 0 && (h.pT -= dt) <= 0) { h.pStack = 0; h.pTgt = null; }
     if (h.def.id === 'healer') for (const a of G.heroes) if (a.alive && a.team === h.team && dist(a, h) < 9) heal(a, a.maxHp * 0.01 * dt);   // 药香
@@ -841,7 +849,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     for (const i of [3, 0, 1, 2]) {
       if (!canCast(h, i)) continue; const s = h.def.skills[i]; let aim = null;
       switch (s.kind) {
-        case 'proj': if (eh && ehD < s.range * 0.9) aim = lead(eh, ehD / s.speed); else if (nEM >= 3 && manaF > 0.55 && em && !retreat) aim = em; break;
+        case 'proj':
+          if (s.pull === 'self') { if (eh && ehD < s.range * 0.9 && !retreat && !outnum && nAH + 1 >= nEH && hpF > 0.55 && (!danger(eh) || diveOK)) aim = lead(eh, ehD / s.speed); else if (woods && em && emD > 4 && emD < s.range * 0.9) aim = em; break; }   // it hauls him in: only where he would walk in anyway
+          if (eh && ehD < s.range * 0.9 && (!s.exec || eh.hp / eh.maxHp < 0.62)) aim = lead(eh, ehD / s.speed); else if (nEM >= 3 && manaF > 0.55 && em && !retreat) aim = em; break;
         case 'cone': if (eh && ehD < s.range * 0.8) aim = eh; else if (nEM >= 3 && emD < s.range * 0.7 && manaF > 0.55) aim = em; break;
         case 'nova': if (eh && ehD < s.radius * 0.85) aim = h; else if (nEM >= 3 && emD < s.radius * 0.7 && manaF > 0.5) aim = h; break;
         case 'fan': if (eh && ehD < s.range * 0.85) aim = lead(eh, ehD / s.speed); else if (nEM >= 3 && manaF > 0.6 && em && !retreat) aim = em; break;
@@ -850,11 +860,14 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         case 'taunt': if (eh && ehD < s.radius * 0.85 && !retreat && (nAH >= 1 || hpF > 0.5)) aim = h; break;
         case 'zone': if (!s.range) { if (eh && ehD < s.radius * 0.8 && !retreat) aim = h; break; } if (eh && ehD < s.range + s.radius * 0.4 && (i !== 3 || eh.hp / eh.maxHp < 0.8 || nEH >= 2)) aim = lead(eh, s.delay * 0.6); else if (i !== 3 && nEM >= 4 && manaF > 0.7 && em && !retreat) aim = em; break;
         case 'leap': if (eh && ehD < s.range && hpF > 0.4 && !retreat && !outnum && (!danger(eh) || diveOK)) aim = eh; break;
-        case 'dash': if (retreat) { if (eh && ehD < 9) aim = f; } else if (s.b !== undefined && eh && !outnum && ehD > 3.5 && ehD < s.range && hpF > 0.45 && (!danger(eh) || diveOK)) aim = eh; break;
+        case 'dash': if (retreat) { if (eh && ehD < 9) aim = f; } else if (s.b !== undefined && eh && !outnum && ehD > (i === 3 ? 1 : 3.5) && ehD < s.range && hpF > 0.45 && (i !== 3 || eh.hp / eh.maxHp < 0.6) && !h.ranged && (!danger(eh) || diveOK)) aim = eh; break;   // someone who fights from range keeps the dash for getting out
         case 'backdash': if (eh && ehD < 6.5) aim = eh; break;
-        case 'blink': if (retreat && eh && ehD < 9) aim = f; break;
+        case 'blink': if ((retreat && eh && ehD < 9) || (s.kite && thr && !thr.ranged && thrD < s.kite && hpF < 0.9)) aim = f; break;   // kite: also to get a blade off her
         case 'shield': if (eh && ehD < 11 && h.combatT < 1.5) aim = h; break;
-        case 'haste': if ((eh && ehD < h.range + 2 && !retreat) || (retreat && eh && ehD < 10)) aim = h; break;
+        case 'haste':
+          if (s.veil) { if ((retreat && eh && ehD < 11) || (!s.aoe && eh && !retreat && ehD > 4.5 && ehD < 12 && hpF > 0.5) || (s.aoe && eh && ehD < 11 && G.heroes.some(a => a.alive && a.team === team && dist(a, h) < s.aoe && a.hp / a.maxHp < 0.55 && a.combatT < 2))) aim = h; }   // to close in unseen, to get away, or to cover someone who is about to fall
+          else if ((eh && ehD < Math.max(h.range + 2 + (s.rng || 0), s.dr && !s.as ? 8 : 0) && !retreat) || (retreat && eh && ehD < 10 && s.ms > 0)) aim = h;
+          break;
       }
       if (aim) { cast(h, i, aim.x, aim.z); ai.castLock = (0.5 + Math.random() * 0.8) * (team === EMBER ? diff.react : 1); return; }
     }
@@ -950,7 +963,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   G.cmdAttack = t => { const h = P(); if (h.alive && valid(t)) h.order = { type: 'attack', target: t }; };
   G.cmdDir = (dx, dz) => { const h = P(); if (!h.alive) return; if (dx === 0 && dz === 0) { if (h.order && h.order.type === 'dir') h.order = null; } else h.order = { type: 'dir', dx, dz }; };
   G.cmdStop = () => { const h = P(); h.order = null; h.target = null; h.windT = -1; stopRecall(h); };
-  G.recall = () => { const h = P(); if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在山门内，万宝阁开着'); return ok; };
+  G.recall = () => { const h = P(); if (MODE.noRecall) { ui.toast('一路不能归宗：万宝阁只在出山前和陨落时开'); return false; } if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在山门内，万宝阁开着'); return ok; };
   G.pings = []; G.recalls = 0; G.gCall = [0, 0]; G.botStat = { ambush: 0, hunt: 0, hide: 0, shop: 0, jungle: 0, guardian: 0, gank: 0, group: 0 };
   G.plan = [0, 1].map(() => ({ mode: 'rest', lane: 0, until: 0, next: 0 }));
   G.surgeT = [0, 0]; G.surgeK = [1, 1];                              // 破阵 / 渊息: this side's disciples march stronger let pingAt = -9;
@@ -1034,6 +1047,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       // something on the other side (a cultivator, a disciple, a tower). Striking, casting or being hit shows you for a moment.
       for (const e of G.units) {
         if (e.team === NEUTRAL || isStruct(e) || !e.alive || e.revealT > 0) { e.hid = false; continue; }
+        if (e.veilT > 0) { let seen = false; for (const o of G.units) if (o.alive && o.team === 1 - e.team && !isStruct(o) && dist2(o.x, o.z, e.x, e.z) < 3.2) { seen = true; break; } e.hid = !seen; continue; }
         if (e.brush < 0 && !FOG) { e.hid = false; continue; }
         let sight = !FOG, bush = e.brush < 0; const foe = 1 - e.team;
         for (const o of G.units) {
@@ -1050,7 +1064,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       while (sayQ.length && sayQ[0].at <= G.t) { const q = sayQ.shift(); if (q.h.alive) say(q.h, 'kill', q.chance); }
       for (const e of G.units) {
         e.px = e.x; e.pz = e.z;
-        if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slowPct = 0; } if (e.stunT > 0) e.stunT -= dt; if (e.hasteT > 0) e.hasteT -= dt;
+        if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slowPct = 0; } if (e.stunT > 0) e.stunT -= dt; if (e.hasteT > 0) e.hasteT -= dt; if (e.veilT > 0) e.veilT -= dt;
         if (e.shieldT > 0) { e.shieldT -= dt; if (e.shieldT <= 0) e.shield = 0; }
         e.combatT += dt;
         if (e.tauntT > 0) { e.tauntT -= dt; if (e.tauntT <= 0 || !e.taunter || !e.taunter.alive) { e.tauntT = 0; e.taunter = null; } }

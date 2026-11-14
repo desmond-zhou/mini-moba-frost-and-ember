@@ -119,7 +119,7 @@ export function createUI(isTouch, audio) {
   ui.showScore = on => { if (el.score.hidden === !on) return; el.score.hidden = !on; };
   ui.toggleShop = on => { ui.shopOpen = on === undefined ? !ui.shopOpen : on; el.shop.hidden = !ui.shopOpen; if (ui.shopOpen) audio.play('click'); };
   function showTip(i) {
-    const p = G.player, s = G.skill(i), R = i === 3 ? RANK.ult : RANK.basic, r = p.ranks[i], word = s.kind === 'shield' ? '罡气' : s.kind === 'heal' ? '治疗' : '伤害';
+    const p = G.player, s = G.skill(i), R = i === 3 ? RANK.ult : RANK.basic, r = p.ranks[i], word = s.kind === 'shield' ? '罡气' : s.kind === 'heal' || s.kind === 'haste' ? '治疗' : '伤害';
     let nums = `灵力 ${s.mana} · 调息 ${(s.cd * (1 - p.cdr)).toFixed(1)} 秒`;
     if (s.b !== undefined) nums += ` · ${word} ${Math.round(G.skillDmg(i, Math.max(1, r)))}`;
     const sc = scaleTxt(s) ? `<em class="scl">${word}随 ${scaleTxt(s)} 提高</em>` : '';
@@ -210,6 +210,8 @@ export function createUI(isTouch, audio) {
     }
     for (const r of roster) { txt(r.lv, String(r.h.level)); const d = r.h.alive ? '' : String(Math.ceil(r.h.respawnT)); if (cache.get(r.e) !== d) { cache.set(r.e, d); r.dead.textContent = d; r.e.classList.toggle('dead', !r.h.alive); } }
     if (el.dead.hidden === p.alive) el.dead.hidden = p.alive; if (!p.alive) txt(el.deadT, `${Math.ceil(p.respawnT)} 秒后重聚`);
+    if (!el.shopNote.dataset.t) el.shopNote.dataset.t = el.shopNote.textContent;
+    if (el.recallBtn.hidden !== !!MODE.noRecall) { el.recallBtn.hidden = !!MODE.noRecall; el.shopNote.textContent = MODE.noRecall ? '出过山门就只能看、不能买。一路没有归宗：只有出山前和陨落时能买。' : el.shopNote.dataset.t || el.shopNote.textContent; }
     const shopOK = G.canShop(); if (cache.get(el.shopBtn) !== shopOK) { cache.set(el.shopBtn, shopOK); el.shopBtn.classList.toggle('away', !shopOK); el.shopNote.hidden = shopOK; el.shopGrid.classList.toggle('away', !shopOK); }
     if (ui.shopOpen) for (const t of shopTiles) {
       const it = ITEMS[t.k], price = G.price(t.k), have = p.items.filter(x => x.id === t.k).length, full = it.tier === 3 && have > 0;

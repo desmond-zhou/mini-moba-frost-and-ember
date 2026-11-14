@@ -1,6 +1,6 @@
 # 霜烬之争 — 接手说明
 
-单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v1.2.0-alpha.4**。
+单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v1.2.0-alpha.5**。
 
 先读这份，再读 `docs/进度.md`（现状、下一步、踩过的坑）。其余文档按需：`docs/三路策划.md`、`docs/库选型.md`、`docs/打位演算.md`、`README.md`。
 
@@ -17,7 +17,7 @@
 
 - 用中文回复。作者很忙：自己测、自己查、自己拿主意，不要事事问；拿了主意要说清楚替他定了什么。
 - **定期发布**：做完一块就打包、测、发布到上面那个链接、提交并推送。
-- **共用数值不动**（`HEROES` 里的基础数值和招式），**招式机制两个模式共用，不改**。
+- **招式和基础数值两个模式共用**（`HEROES`）。作者在 2026-11-14 要求去掉雷同招式，为此重做了十三个人的部分招式（见 `docs/进度.md` 的"招式去雷同"）；以后再改招式要作者开口，改完两个模式都要重跑平衡。新招式不要和同定位的人撞型。
 - **平衡只动两张单人修正表**：`MODES.single.heroTune` 和 `MODES.tri.heroTune`（乘在气血 `hp`、攻击 `ad`、术法 `ap`、招式威力 `pow` 上）。作者的要求（2026-11-14）：**同一个人两个模式的倍率不能差太多**。现行口径：每个倍率在 0.90–1.15 之间，同一项两个模式相差不超过 0.08。用 `tune.mjs` 算，不要手拍。改共用代码后两个模式都要跑回归。
 - 适合用库的地方用库；文件大小不是硬约束，流畅才是。
 - 文案用修仙用语（见下表），人物和世界观取材自《天衍》。作者提过另一套"有寂静帝的"设定，一直没找到，等他提供。
@@ -34,7 +34,9 @@ node test.mjs "auto=mage&bot=1&dyn=0&mode=tri" shot.png 200 1440 810     # 冒�
 for i in 0 1 2; do node batch.mjs 30 $((i*6)) 1500 mirror single > runs/x_s$i.jsonl & done; wait
 for i in 0 1 2; do node batch.mjs 12 $((i*6)) 2700 mirror tri    > runs/x_t$i.jsonl & done; wait
 node analyze.mjs runs/x_s?.jsonl  # 一路应为：平均 14–15 分钟，一边倒 15%–18%，无报错
-node analyze.mjs runs/x_t?.jsonl  # 三路应为：平均 17–19 分钟，无报错
+node analyze.mjs runs/x_t?.jsonl  # 三路应为：平均 19–20 分钟，无报错
+node mech.mjs                     # 逐个验证新机制（折返、拽自己、群体拘拿、隐身、易伤区……）是否生效
+node pace.mjs tri 3 24            # 节奏：每分钟的平均等级。三路约 3 分钟到 4 级、16 分钟满级；一路约 2 分半到 4 级
 # 调平衡（要大样本，见下）：node tune.mjs "runs/a_s*.jsonl,runs/b_s*.jsonl" "runs/a_t*.jsonl" [--write]
 node build.mjs                    # dist/frostember.html（双击即玩）和 dist/artifact.html（发布用）
 BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mode=tri" shot.png 200   # 测打包产物
@@ -62,6 +64,7 @@ BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mod
 | `src/icons.js` `src/portraits.js` `src/barks.js` | 图标 / 头像 / 台词 |
 | `src/ui.js` `src/input.js` `src/main.js` | HUD 与各界面 / 键鼠触屏 / 启动、换模式、主循环 |
 | `batch.mjs` `analyze.mjs` `seats.mjs` `tune.mjs` | 批量对打 / 汇总 / 位置演算 / 按胜率算两张单人修正表（噪声内不动、守住两个模式的差距上限） |
+| `mech.mjs` `pace.mjs` | 单招机制的定点检查 / 各模式的升级节奏 |
 
 ### 几个必须知道的抽象
 
@@ -71,7 +74,8 @@ BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mod
 - **可见性**：`e.hid` 表示"对方看不见我"。草丛和迷雾都只改这一个标记，所有选目标的地方都认它。
 - **打团按定位**（两个模式都有）：`role = SEAT_FIT[id][0]`。镇关在同门到齐时先上；中军、养剑挑残血的打，被近战贴身且掉血后边打边退，不站到己方近战前面；护法在三路跟着养剑位；巡山挑脆皮和残血，混战里等别人先手（最多等两秒）。代码在 `botThink` 的「the fight itself」。
 - **电脑**：`botThink` 里先是必须做的（撤退、信号、集结 / 回防、围剿目标、回去买东西），再是可选的。三路的可选项由 Yuka `Think` 仲裁（`makeBrain`），一路仍是定时触发的老逻辑。
-- **一路也有的三路功能**（v1.2.0-alpha.4）：第二个目标镇渊傀、11 分钟后的渊主残念、宗门石栏和山门柱是实体并走寻路图（`MODE.solid`）、"某某不见了" 和 "对面人多" 的喊话。迷雾、位置、打野位、分路集结仍只在三路。
+- **一路也有的三路功能**（v1.2.0-alpha.4）：第二个目标镇渊傀、11 分钟后的渊主残念、宗门石栏和山门柱是实体并走寻路图（`MODE.solid`）、"某某不见了" 和 "对面人多" 的喊话。迷雾、位置、打野位、分路集结仍只在三路。**一路没有归宗**（`noRecall`，作者要求）：只有出山前和陨落时能买东西。
+- **招式是 `kind` 加参数**，区分度主要靠参数：`proj` 有 `pierce`（贯穿）、`splash`、`pull: true`（拽人）/ `'self'`（拽自己过去）、`back`（飞到头折返）、`exec`（斩杀加成）、`heroOnly`（穿过弟子只打修士）、`big`；`haste` 有 `rng` / `adK`（架势：加射程和攻击）、`dr`、`aoe`（分给附近同门）、`veil`（隐身，靠 `e.veilT` 和 `e.hid`）、`b`（附带回复）；`nova` 有 `pull`（把周围的人拘到身前）、`hpR`（给自己罡气）；`strike` 有 `exec` / `stun`；`dash` 有 `exec` / `reset`；`zone` 有 `vuln`（易伤）。电脑怎么用每种招式在 `botThink` 末尾的 `switch (s.kind)`。
 - **新增修士要动的地方**：`HEROES`、`HERO_ORDER`、`SEAT_FIT`（config）；`OUTFIT`（heroes.js）；`SPEC`（portraits.js）；`BARKS`；被动若有新机制在 `game.js` 的 `strike` / `damage` / `kill` / `recalc` 里按 id 加；`batch.mjs` 和 `seats.mjs` 里的名单。招式尽量复用现有的 `kind`、`vfx`、`icon`。
 
 ## 用语表
