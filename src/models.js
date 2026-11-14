@@ -53,13 +53,41 @@ export function createModels(R, fx) {
       part(L, G.ico(0.42), rock, 0, 2.05, 0.35); part(L, G.ico(0.45), rock2, 0.55, 0.4, 0.1); part(L, G.ico(0.45), rock2, -0.55, 0.4, 0.1);
       kind(K.cloth); part(L, G.ico(0.5), '#2c4319', 0.2, 1.98, -0.45, 0, 0, 0, 1.3, 0.45, 1.1); part(L, G.ico(0.4), '#2c4319', -0.8, 1.95, 0, 0, 0, 0, 1.1, 0.4, 1.1);
       kind(K.paint); part(L, G.sph(0.09, 8, 6), tc.glow, 0.16, 2.1, 0.72, 0, 0, 0, 1, 1, 1, 2.6); part(L, G.sph(0.09, 8, 6), tc.glow, -0.16, 2.1, 0.72, 0, 0, 0, 1, 1, 1, 2.6);
-    } else { // guardian — a tide elemental: wet black stone shot through with glowing crystal
-      kind(K.metal); const deep = '#0d2c33';
-      part(L, G.ico(1.0), deep, 0, 1.2, 0, 0, 0, 0, 1.2, 1.1, 1.1); part(L, G.ico(0.75), '#134048', 0, 2.3, 0.1);
-      part(L, G.ico(0.6), deep, 1.2, 1.5, 0, 0, 0, 0, 0.8, 1.3, 0.8); part(L, G.ico(0.6), deep, -1.2, 1.5, 0, 0, 0, 0, 0.8, 1.3, 0.8);
-      kind(K.paint); part(L, G.oct(0.4), tc.glow, 0, 1.5, 0.95, 0, 0, 0, 1, 1.4, 0.6, 2.8);
-      part(L, G.sph(0.08, 8, 6), tc.glow, 0.2, 2.45, 0.75, 0, 0, 0, 1, 1, 1, 3.0); part(L, G.sph(0.08, 8, 6), tc.glow, -0.2, 2.45, 0.75, 0, 0, 0, 1, 1, 1, 3.0);
-      for (let i = 0; i < 5; i++) { const a = -0.9 + i * 0.45; part(L, G.oct(0.3), tc.glow, Math.sin(a) * 0.9, 2.4 + Math.cos(a) * 0.5, -0.7, -0.5, 0, -a, 1, 2.6, 1, 1.9); }
+    } else if (type === 'puppet') { // 镇渊傀 — a suit of black iron with nobody in it: sealed by a talisman, chained, a halberd in its fist
+      kind(K.metal); const iron = '#2a2e38', dark = '#1a1d24', steel = '#8a909c', seal = '#c070ff';
+      for (const sx of [-0.42, 0.42]) { part(L, G.box(0.52, 0.95, 0.6), dark, sx, 0.48, 0); part(L, G.box(0.6, 0.22, 0.75), iron, sx, 0.11, 0.06); }
+      part(L, G.box(1.5, 1.25, 0.95), iron, 0, 1.55, 0); part(L, G.cyl(0.9, 0.72, 0.5, 8), '#3a3f4b', 0, 2.05, 0); part(L, G.cyl(0.62, 0.8, 0.3, 8), dark, 0, 1.0, 0);
+      for (const sx of [-1, 1]) { part(L, G.sph(0.52, 10, 8), '#3a3f4b', sx * 1.02, 2.25, 0, 0, 0, 0, 1.15, 0.7, 1.05); part(L, G.cone(0.14, 0.5, 6), steel, sx * 1.25, 2.6, 0, 0, 0, -sx * 0.6); part(L, G.cyl(0.22, 0.27, 1.25, 8), dark, sx * 1.08, 1.5, 0.05); part(L, G.box(0.42, 0.4, 0.46), iron, sx * 1.08, 0.82, 0.08); }
+      part(L, G.box(0.6, 0.55, 0.6), dark, 0, 2.78, 0); part(L, G.box(0.7, 0.12, 0.7), iron, 0, 3.08, 0); for (const sx of [-1, 1]) part(L, G.cone(0.1, 0.62, 6), steel, sx * 0.3, 3.4, -0.05, 0, 0, -sx * 0.35);
+      for (let i = 0; i < 3; i++) part(L, G.tor(0.82 - i * 0.03, 0.045, 5, 18), '#565b68', 0, 1.25 + i * 0.3, 0, PI / 2 + (i - 1) * 0.35, 0, (i - 1) * 0.3, 1, 1, 0.62);   // chains
+      kind(K.wood); part(L, G.cyl(0.055, 0.055, 4.0, 6), '#2a1c14', 1.42, 2.0, 0.35);
+      kind(K.metal); part(L, G.box(0.08, 1.0, 0.62), steel, 1.42, 3.75, 0.5); part(L, G.cone(0.12, 0.7, 6), steel, 1.42, 4.35, 0.35);
+      kind(K.paint); part(L, G.box(0.46, 0.07, 0.05), seal, 0, 2.8, 0.31, 0, 0, 0, 1, 1, 1, 3.2);                                                         // the light behind the visor
+      part(L, G.box(0.5, 0.78, 0.04), '#e6d9ae', 0, 1.7, 0.5); part(L, G.box(0.1, 0.56, 0.05), seal, 0, 1.7, 0.53, 0, 0, 0, 1, 1, 1, 2.6); part(L, G.box(0.34, 0.08, 0.05), seal, 0, 1.86, 0.53, 0, 0, 0, 1, 1, 1, 2.6);
+    } else if (type === 'abyss') { // 渊主残念 — what is left of the Abyss Lord: a robe with no body, a crown of bone, the bone bowl in its hands, the seal-eye open, shards of the mirror turning behind
+      kind(K.cloth); const robe = '#0d0a14', pale = '#e2d6ff', eye = '#b98cff', brew = '#9fffd0';
+      part(L, G.cone(1.55, 3.5, 14), robe, 0, 1.75, 0); part(L, G.cone(1.9, 0.9, 14), '#07060b', 0, 0.45, 0); part(L, G.cyl(0.95, 1.3, 0.55, 12), '#1a1428', 0, 3.05, 0);
+      for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283; part(L, G.cone(0.2, 1.3, 5), '#120e1c', Math.cos(a) * 1.5, 0.5, Math.sin(a) * 1.5, Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9); }   // the hem is in tatters
+      part(L, G.sph(0.52, 12, 9), '#06050a', 0, 3.65, 0, 0, 0, 0, 1, 1.15, 1);
+      kind(K.skin); const bone = '#cfc4ae';
+      for (let i = 0; i < 7; i++) { const a = -1.4 + i * 0.467; part(L, G.cone(0.07, 0.75 - Math.abs(i - 3) * 0.1, 5), bone, Math.sin(a) * 0.48, 4.35 - Math.abs(i - 3) * 0.06, Math.cos(a) * 0.1 - 0.1, -0.15, 0, -a * 0.45); }   // crown
+      for (const sx of [-1, 1]) { part(L, G.cyl(0.07, 0.11, 1.35, 6), bone, sx * 0.62, 2.55, 0.6, -1.05, 0, sx * 0.35); part(L, G.sph(0.14, 8, 6), bone, sx * 0.36, 2.25, 1.12); }
+      part(L, G.sph(0.6, 14, 9), bone, 0, 2.08, 1.15, 0, 0, 0, 1, 0.55, 1); part(L, G.cyl(0.26, 0.36, 0.2, 10), bone, 0, 1.78, 1.15);
+      kind(K.paint); part(L, G.cyl(0.46, 0.46, 0.06, 14), brew, 0, 2.3, 1.15, 0, 0, 0, 1, 1, 1, 2.8);                                                          // what the bowl holds
+      part(L, G.sph(0.17, 10, 8), pale, 0, 3.68, 0.44, 0, 0, 0, 1, 1, 0.6, 3.6);                                                                               // one eye in the hood
+      part(L, G.oct(0.36), eye, 0, 2.95, 0.82, 0, 0, 0, 1.7, 0.75, 0.35, 3.0); part(L, G.sph(0.11, 8, 6), '#08060c', 0, 2.95, 0.96);                           // the seal-eye
+      for (let i = 0; i < 6; i++) { const a = -1.25 + i * 0.5; part(L, G.box(0.5, 0.85, 0.04), '#bfd0ff', Math.sin(a) * 2.2, 3.1 + Math.cos(a) * 0.9, -0.9, 0.2, a * 0.5, a * 0.6, 1, 1, 1, 1.9); }   // mirror shards
+    } else { // guardian 血海残魂 — a remnant soul risen out of its own pool: a column of blood wearing a bone mask, ribs showing, a crown of clots
+      kind(K.metal); const blood = '#5a0a10', deep = '#3a0508', clot = '#8a0f16';
+      part(L, G.cyl(1.75, 1.95, 0.12, 20), deep, 0, 0.06, 0); part(L, G.cyl(1.1, 1.5, 0.5, 14), blood, 0, 0.3, 0);
+      part(L, G.ico(1.0), blood, 0, 1.35, 0, 0, 0, 0, 1.1, 1.5, 1.0); part(L, G.ico(0.72), '#74101a', 0, 2.55, 0.05);
+      for (const sx of [-1, 1]) { part(L, G.ico(0.5), blood, sx * 1.22, 1.75, 0.1, 0, 0, sx * 0.25, 0.62, 1.55, 0.62); part(L, G.ico(0.3), clot, sx * 1.35, 0.85, 0.3, 0, 0, 0, 0.8, 1.3, 0.8); }
+      for (let i = 0; i < 4; i++) { const a = i * 1.57 + 0.6; part(L, G.ico(0.2), clot, Math.cos(a) * 1.7, 2.2 + (i % 2) * 0.7, Math.sin(a) * 1.3, 0, 0, 0, 1, 1.4, 1, 1.5); }           // drops that hang in the air
+      kind(K.skin); const bone = '#d9cdb8';
+      part(L, G.sph(0.44, 12, 9), bone, 0, 2.62, 0.5, 0, 0, 0, 0.86, 1.08, 0.5); part(L, G.box(0.3, 0.26, 0.2), bone, 0, 2.28, 0.6);
+      for (let i = 0; i < 3; i++) for (const sx of [-1, 1]) part(L, G.cyl(0.03, 0.06, 0.95, 5), bone, sx * 0.5, 1.8 - i * 0.3, 0.72, 0.5, 0, sx * 1.15);                              // ribs
+      kind(K.paint); for (const sx of [-0.16, 0.16]) part(L, G.sph(0.1, 8, 6), '#ff2a14', sx, 2.7, 0.74, 0, 0, 0, 1, 1, 0.6, 3.2);
+      for (let i = 0; i < 5; i++) { const a = -0.9 + i * 0.45; part(L, G.cone(0.13, 0.75 - Math.abs(i - 2) * 0.12, 6), clot, Math.sin(a) * 0.55, 3.3 - Math.abs(i - 2) * 0.08, 0, 0, 0, -a * 0.6, 1, 1, 1, 1.7); }   // crown
     }
     kind(K.paint);
     return build(L);

@@ -102,6 +102,7 @@ export function createInput(R, fx, ui, audio, isTouch) {
     else if (k === 'a') { cancelAim(); if (live()) { amove = true; canvas.style.cursor = 'crosshair'; } }
     else if (k === 's') { cancelAim(); I.G.cmdStop(); }
     else if (k === 'z' || k === 'x' || k === 'c') I.signal(k === 'z' ? 'gather' : k === 'x' ? 'attack' : 'retreat', true);
+    else if (k === 'v') I.G.setRally();
     else if (k === 'b') { cancelAim(); I.G.recall(); }
     else if (k === 'p') ui.toggleShop();
     else if (k === 'escape') { if (aim.i >= 0 || amove) cancelAim(); else if (ui.shopOpen) ui.toggleShop(false); else ui.toggleMenu(); }

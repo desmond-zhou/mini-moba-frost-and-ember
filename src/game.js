@@ -754,13 +754,19 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const woods = ai.state === 'jungle' || ai.state === 'guardian';
     // What the leader has asked for. It is weighed, not obeyed: nobody walks into a tower that has no disciples to shoot at,
     // into a crowd the side cannot match, or anywhere at all on a sliver of health. A bot that will not go says so once.
-    const sig = ai.sig && G.t < ai.sig.until && !retreat ? ai.sig : null; let sigAct = null, sigTw = null;
+    let sig = ai.sig && G.t < ai.sig.until && !retreat ? ai.sig : null, sigAct = null, sigTw = null;
+    // 开团 is a standing order rather than a single call: while it is on, the side keeps to its leader and takes the leader's
+    // fights. It is weighed the same way as any signal, every think, so nobody follows into a death.
+    if (G.rally && team === G.player.team && !h.isPlayer && G.player.alive && !retreat) {
+      const pl = G.player, tu = pl.order && pl.order.type === 'attack' && pl.order.target && pl.order.target.alive ? pl.order.target : null;
+      sig = ai.rally = Object.assign(ai.rally || { id: -1, said: false }, { type: 'attack', x: pl.x, z: pl.z, unit: tu, until: G.t + 1 });
+    } else if (ai.rally) ai.rally = null;
     if (sig) {
       if (sig.type === 'retreat') sigAct = 'back';
       else {
         sigTw = G.structs[1 - team].list.find(t => t.alive && dist(t, sig) < t.range + 1.5) || null;
         if (sigTw && G.units.some(u => u.alive && u.kind === 'minion' && u.team === team && dist(u, sigTw) < sigTw.range + 1)) sigTw = null;   // the tower is busy with disciples: fine
-        let foes = 0, pals = 1; for (const o of G.heroes) { if (!o.alive || o === h) continue; if (o.team !== team) { if (!o.hid && dist(o, sig) < 13) foes++; } else if (dist(o, sig) < 13 || (o.ai.sig && o.ai.sig.id === sig.id && G.t < o.ai.sig.until)) pals++; }
+        let foes = 0, pals = 1; for (const o of G.heroes) { if (!o.alive || o === h) continue; if (o.team !== team) { if (!o.hid && dist(o, sig) < 13) foes++; } else if (dist(o, sig) < 13 || (sig.id === -1 ? !!o.ai.rally : o.ai.sig && o.ai.sig.id === sig.id && G.t < o.ai.sig.until)) pals++; }
         sigAct = hpF > 0.4 && foes <= pals + 1 ? sig.type : 'no';
       }
       if (!sig.said) { sig.said = true; if (near(h)) { const say = { back: ['撤', '走'], gather: ['来了', '这就到'], attack: ['上', '随你'], no: ['过不去', '太险，去不得'] }[sigAct]; fx.say(h.x, h.h + 1.6, h.z, say[Math.floor(Math.random() * say.length)], team === G.player.team); } }
@@ -885,7 +891,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     for (let i = 0; i < c.n; i++) {
       const x = c.x + (c.n > 1 ? (i - 0.5) * 3.4 : 0), z = c.z + (i % 2) * 0.8;
       const u = unit('neutral', NEUTRAL, x, z, s); u.stats = s; u.nk = k; u.camp = camp; u.home = { x, z }; u.aggro = null; u.facing = Math.PI / 2;
-      u.name = { guardian: '血海残魂', puppet: '镇渊傀', abyss: '渊主残念' }[k] || '血傀'; u.view = M.minion(k === 'golem' ? 'golem' : 'guardian', NEUTRAL, { guardian: 2.1, puppet: 1.8, abyss: 3.0 }[k] || 1.15); camp.units.push(u);
+      u.name = { guardian: '血海残魂', puppet: '镇渊傀', abyss: '渊主残念' }[k] || '血傀'; u.view = M.minion(k, NEUTRAL, { guardian: 1.9, puppet: 1.85, abyss: 2.15 }[k] || 1.15); camp.units.push(u);
     }
   }
   function updateNeutral(u, dt) {
@@ -946,6 +952,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     return true;
   };
   G.ping = (x, z) => G.signal('gather', x, z);
+  G.rally = false;
+  G.setRally = on => { G.rally = on === undefined ? !G.rally : !!on; if (G.rally && !P().alive) G.rally = false; ui.rally(G.rally); if (G.rally) { audio.play('horn'); const p = P(); fx.ringWave(p.x, p.z, 16, [1.9, 0.45, 0.25], 0.8); } return G.rally; };
   G.passive = () => { const h = P(), d = h.def.passive; return { stacks: d.pct ? Math.round((1 - h.hp / h.maxHp) * 60) : d.max ? h.pStack : 0, cd: d.cd ? Math.max(0, h.pCd) : 0 }; };
   G.pick = (x, z, slack = 1.3) => {
     let best = null, bd = 1e9;
@@ -998,6 +1006,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       }
       for (let i = G.spawnQ.length - 1; i >= 0; i--) if (G.spawnQ[i].t <= G.t) { const q = G.spawnQ[i]; G.spawnQ.splice(i, 1); spawnMinion(q.team, q.type, q.off, q.lane); }
       for (const c of G.camps) if (c.respawnT > 0) { c.respawnT -= dt; if (c.respawnT <= 0) spawnCamp(c); }
+      if (G.rally && !G.player.alive) G.setRally(false);               // the order falls with the one who gave it
       if (LANES.length > 1) { teamThink(FROST); teamThink(EMBER); }
       if (T.bossAt && !G.bossUp && G.t >= T.bossAt) {                  // 渊主残念 rises in the upper pit, whatever was there
         G.bossUp = true; const camp = G.camps.find(c => c.c.kind === 'guardian');

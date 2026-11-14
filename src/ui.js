@@ -48,8 +48,8 @@ export function createUI(isTouch, audio) {
     el.diff.onclick = e => { const c = e.target.closest('button'); if (c) { diffK = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.goBtn.onclick = () => { store.set('hero', hero); store.set('diff', diffK); store.set('mode', mode); store.set('seat', String(seat)); el.title.hidden = true; onStart(hero, diffK, mode, MODES[mode].team === 5 ? seat : -1); };
     el.help.innerHTML = isTouch
-      ? '左侧摇杆移动，松开摇杆自动攻击附近敌人。招式按钮点一下自动瞄准；按住往外拖可以自己瞄，松手释放。点右上角灵石打开万宝阁（只在没离开山门、归宗回来或陨落时能买，走回来不算），旁边是归宗（站定 4 秒，挨打或移动会打断）。小地图下面三个按钮是信号：集合（到我这来）、进攻（打我面前的目标）、撤退。电脑会尽量照办，但不会去送死。按住小地图可以看别处，轻点小地图是在那里集合；点顶部比分看计分板。躲进高草丛，外面的敌人就看不见你，出手或挨打才会暴露。'
-      : '<kbd>鼠标左/右键</kbd>移动或攻击目标 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd>按住瞄准、松开释放（右键取消） <kbd>A</kbd>再点左键是攻击移动（路上一有敌人进入范围就打最近的） <kbd>S</kbd>停止 <kbd>B</kbd>归宗 <kbd>P</kbd>万宝阁 <kbd>Tab</kbd>计分板 <kbd>滚轮</kbd>缩放<br>小地图：左键按住查看，右键移动过去，<kbd>Alt</kbd>+点击是在那里集合。信号：<kbd>Z</kbd>集合 <kbd>X</kbd>进攻 <kbd>C</kbd>撤退，对着鼠标指的地方或目标发；也可以点小地图下面的三个按钮（以自己为准）。电脑会尽量照办，但不会去送死。躲进高草丛，外面的敌人看不见你，出手或挨打才会暴露。归宗要站定 4 秒，挨打或下命令会打断。万宝阁只在刚出生还没离开山门、归宗回来、或陨落时能买；出去后自己走回来不算。<br>镇压弟子和邪祟拿灵石，置办法器，推掉两座灵塔后摧毁敌方阵眼。境界从筑基初期到元婴巅峰共十二层，每突破一层得一点感悟（绝招共三重，对应三个大境界的巅峰：筑基巅峰初悟、金丹巅峰大成、元婴巅峰圆满），按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 或点招式上方的 + 号学习和提升招式。灵塔先打弟子；在塔下打敌方修士会被立刻锁定，连续挨塔打每发伤害再加 65%（第五发起是 3.6 倍），离开一会儿才降温。队友和对手每局从其余修士里随机。';
+      ? '左侧摇杆移动，松开摇杆自动攻击附近敌人。招式按钮点一下自动瞄准；按住往外拖可以自己瞄，松手释放。点右上角灵石打开万宝阁（只在没离开山门、归宗回来或陨落时能买，走回来不算），旁边是归宗（站定 4 秒，挨打或移动会打断）。小地图下面的按钮是信号：集合（到我这来）、进攻（打我面前的目标）、撤退，还有一个开团开关（开着时同门一直跟着你打，再点一次解散）。电脑会尽量照办，但不会去送死。按住小地图可以看别处，轻点小地图是在那里集合；点顶部比分看计分板。躲进高草丛，外面的敌人就看不见你，出手或挨打才会暴露。'
+      : '<kbd>鼠标左/右键</kbd>移动或攻击目标 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd>按住瞄准、松开释放（右键取消） <kbd>A</kbd>再点左键是攻击移动（路上一有敌人进入范围就打最近的） <kbd>S</kbd>停止 <kbd>B</kbd>归宗 <kbd>P</kbd>万宝阁 <kbd>Tab</kbd>计分板 <kbd>滚轮</kbd>缩放<br>小地图：左键按住查看，右键移动过去，<kbd>Alt</kbd>+点击是在那里集合。信号：<kbd>Z</kbd>集合 <kbd>X</kbd>进攻 <kbd>C</kbd>撤退 <kbd>V</kbd>开团（开关：开着时同门一直跟着你、打你打的目标，再按一次解散），对着鼠标指的地方或目标发；也可以点小地图下面的三个按钮（以自己为准）。电脑会尽量照办，但不会去送死。躲进高草丛，外面的敌人看不见你，出手或挨打才会暴露。归宗要站定 4 秒，挨打或下命令会打断。万宝阁只在刚出生还没离开山门、归宗回来、或陨落时能买；出去后自己走回来不算。<br>镇压弟子和邪祟拿灵石，置办法器，推掉两座灵塔后摧毁敌方阵眼。境界从筑基初期到元婴巅峰共十二层，每突破一层得一点感悟（绝招共三重，对应三个大境界的巅峰：筑基巅峰初悟、金丹巅峰大成、元婴巅峰圆满），按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 或点招式上方的 + 号学习和提升招式。灵塔先打弟子；在塔下打敌方修士会被立刻锁定，连续挨塔打每发伤害再加 65%（第五发起是 3.6 倍），离开一会儿才降温。队友和对手每局从其余修士里随机。';
     paint(); el.hud.hidden = true; el.end.hidden = true; el.title.hidden = false;
   };
 
@@ -80,7 +80,7 @@ export function createUI(isTouch, audio) {
     roster = [...ros(el.rosF, FROST), ...ros(el.rosE, EMBER)];
     el.shopBtn.onclick = () => ui.toggleShop(); el.shopX.onclick = () => ui.toggleShop(false);
     el.recallBtn.onclick = () => { audio.init(); G.recall(); };
-    el.sig.onpointerdown = e => { const c = e.target.closest('button'); if (c) { e.preventDefault(); e.stopPropagation(); audio.init(); actions.signal(c.dataset.s, false); c.animate([{ transform: 'scale(.88)' }, { transform: 'scale(1)' }], { duration: 180 }); } };
+    el.sig.onpointerdown = e => { const c = e.target.closest('button'); if (c) { e.preventDefault(); e.stopPropagation(); audio.init(); if (c.dataset.s === 'rally') G.setRally(); else actions.signal(c.dataset.s, false); c.animate([{ transform: 'scale(.88)' }, { transform: 'scale(1)' }], { duration: 180 }); } };
     // the passive: a round tile beside the portrait; hover or tap to read it
     el.pas.style.backgroundImage = `url(${pasIcon(d)})`;
     const pasTip = () => { el.tip.innerHTML = `<i style="background-image:url(${pasIcon(d)});border-radius:50%"></i><div><b>被动 · ${d.passive.name}</b><br>${d.passive.desc}</div>`; el.tip.hidden = false; };
@@ -94,7 +94,7 @@ export function createUI(isTouch, audio) {
     el.top.onpointerdown = e => { if (e.pointerType === 'touch' || isTouch) { e.preventDefault(); ui.showScore(el.score.hidden); } };
     ui.showScore(false); el.chan.hidden = true; el.tip.hidden = true;
     if (p.seat) setTimeout(() => ui.toast(`你的位置：${p.seat} · ${SEATS.find(q => q.pos === p.seat).note}`), 900);
-    el.chat.innerHTML = '';
+    el.chat.innerHTML = ''; { const rb = el.sig.querySelector('[data-s=rally]'); if (rb) rb.classList.remove('on'); }
     el.feed.innerHTML = ''; el.hud.hidden = false; el.end.hidden = true; ui.toggleShop(false);
   };
   // the pause menu: the world stops while it is open (main.js checks ui.menuOpen)
@@ -129,6 +129,7 @@ export function createUI(isTouch, audio) {
   }
   // what your side's bots say to each other: a face, a name, a few words; three lines at most, each gone in a few seconds
   ui.chat = (h, text) => { const d = document.createElement('div'); d.innerHTML = `<i class="fp" style="background-image:url(${faceOf(h)})"></i><b>${h.name}</b>${text}`; el.chat.append(d); while (el.chat.children.length > 3) el.chat.firstChild.remove(); setTimeout(() => d.remove(), 5200); };
+  ui.rally = on => { const b = el.sig.querySelector('[data-s=rally]'); if (b) b.classList.toggle('on', on); ui.toast(on ? '开团：同门向你靠拢，跟你打' : '解散：各回各位'); };
   ui.announce = (text, cls) => { el.announce.textContent = text; el.announce.className = cls || ''; el.announce.animate([{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.12 }, { opacity: 1, offset: 0.8 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 2600, easing: 'ease-out' }); };
   ui.toast = text => { if (!text) return; el.toast.textContent = text; el.toast.animate([{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: 1300 }); };
   const who = u => (u.kind === 'hero' ? `<i class="fp" style="background-image:url(${faceOf(u)})"></i><span class="${u.team === FROST ? 'frost' : 'ember'}">${u.name}</span>` : u.name || (u.kind === 'minion' ? '弟子' : '护山大阵'));

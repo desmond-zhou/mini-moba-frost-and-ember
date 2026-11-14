@@ -123,7 +123,7 @@ body.touch #chan { bottom: calc(232px + var(--sab)); }
 body.touch #chat { top: calc(var(--mh, 126px) + 104px + var(--sat)); font-size: 12px; }
 #sig { position: absolute; left: var(--gl); top: calc(var(--mh, 126px) + 20px + var(--sat)); display: flex; gap: 5px; pointer-events: auto; }
 #sig button { padding: 5px 9px; font-size: 12px; font-weight: 700; background: var(--panel); border: 1px solid var(--line-soft); touch-action: none; } #sig small { margin-left: 4px; font-weight: 400; font-size: 10px; color: var(--dim); }
-#sig button[data-s=gather] { color: #8ff0d0; } #sig button[data-s=attack] { color: #ff9a80; } #sig button[data-s=retreat] { color: #ffe08a; }
+#sig button[data-s=gather] { color: #8ff0d0; } #sig button[data-s=attack] { color: #ff9a80; } #sig button[data-s=retreat] { color: #ffe08a; } #sig button[data-s=rally] { color: #ffd0c0; } #sig button.on { color: #fff; background: #8a1c14; border-color: #ff9a80; box-shadow: 0 0 10px rgba(255, 120, 90, .6); }
 body.touch #sig { top: calc(var(--mh, 126px) + 64px + var(--sat)); } body.touch #sig button { padding: 7px 9px; } body.touch #sig small { display: none; }
 #menu { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(4, 6, 10, .62); pointer-events: auto; z-index: 5; } #menu[hidden] { display: none; }
 #menu .pane { width: min(380px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow-y: auto; display: flex; flex-direction: column; gap: 9px; padding: 20px 20px 16px; background: var(--panel-solid); border: 1px solid var(--line); }
@@ -265,7 +265,7 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
       </div>
     </div>
     <div id="chat"></div>
-    <div id="sig"><button type="button" data-s="gather">集合<small>Z</small></button><button type="button" data-s="attack">进攻<small>X</small></button><button type="button" data-s="retreat">撤退<small>C</small></button></div>
+    <div id="sig"><button type="button" data-s="gather">集合<small>Z</small></button><button type="button" data-s="attack">进攻<small>X</small></button><button type="button" data-s="retreat">撤退<small>C</small></button><button type="button" data-s="rally">开团<small>V</small></button></div>
     <div id="sys"><button id="menuBtn" type="button">菜单<small>Esc</small></button></div>
     <div id="ult"><b></b><small></small></div>
     <div id="menu" hidden><div class="pane">
@@ -284,7 +284,7 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
     <h1 class="mark">霜烬之争</h1>
     <div class="sub" id="sub">十八位修士 · 3V3 · 摧毁敌方阵眼</div>
     <div id="modeSel"></div>
-    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.1</div>
+    <div id="seatSel" hidden></div><div class="ver">v1.2.0-alpha.2</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div class="row"><div class="seg" id="diff"></div><button class="go" id="goBtn" type="button">出战</button></div>
