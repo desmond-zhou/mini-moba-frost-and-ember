@@ -241,6 +241,23 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
   #endTable { font-size: 12px; width: 100%; } #endTable td, #endTable th { padding: 3px 4px; } #endTable .c-team, #endTable .c-gold, #endTable .rl { display: none; } #endTable .rn { display: inline; } #endTable .fp { width: 24px; height: 24px; } #endTable td:nth-child(3) { text-align: left; } #endTable .tag { margin-left: 4px; padding: 0 4px; font-size: 10px; }
 }
 @media (max-height: 520px) { #end .mark { font-size: 28px; display: inline; } #endTable td, #endTable th { padding: 1px 6px; } #endTable .fp { width: 18px; height: 18px; } #endTable .c-gold { display: table-cell; } }
+/* ---- scoreboard on small screens: above everything, one side under the other ---- */
+#score { z-index: 30; }
+@media (max-width: 760px) {
+  #score { top: calc(56px + var(--sat)); width: calc(100% - 16px); max-height: calc(100% - 70px - var(--sab)); grid-template-columns: 1fr; gap: 8px; padding: 10px; }
+  #score h3 { font-size: 20px; margin-bottom: 2px; } #score h3 b { font-size: 18px; }
+  #score .row { grid-template-columns: 28px minmax(0, 1fr) auto auto 62px; grid-template-areas: 'fp nm st lv kda' 'fp its its dmg dmg'; padding: 4px 2px; font-size: 12px; } #score .row .fp { width: 28px; height: 28px; }
+  #score .nm small { display: none; } #score .lv { font-size: 10.5px; white-space: nowrap; } #score .its i { width: 18px; height: 18px; } #score .its { min-height: 18px; }
+}
+@media (max-height: 520px) { #score { top: calc(44px + var(--sat)); max-height: calc(100% - 52px); padding: 8px 12px; gap: 10px; } #score .row { padding: 2px 4px; grid-template-areas: 'fp nm st lv kda'; } #score .its, #score .dmg { display: none; } #score .row .fp { width: 24px; height: 24px; } #score h3 { font-size: 18px; margin: 0; } #score p { display: none; } }
+/* ---- short, wide screens: the menu and the shop spread sideways instead of scrolling for ever ---- */
+#menu { z-index: 40; } #shop { z-index: 35; }
+@media (max-height: 520px) {
+  #menu .pane { width: min(820px, calc(100% - 20px)); display: grid; grid-template-columns: 200px 1fr; column-gap: 16px; row-gap: 6px; padding: 12px 16px; align-content: start; }
+  #menu h2 { font-size: 26px; margin: 0; grid-column: 1; } #menu .pane > button, #menu label, #menu .row { grid-column: 1; } #menu #mSkills { grid-column: 2; grid-row: 1 / span 9; margin: 0; } #menu button { padding: 7px 10px; }
+  #shop { width: calc(100% - 20px); max-height: calc(100% - 14px); padding: 10px 14px; } #shop .tier { grid-template-columns: repeat(6, minmax(0, 1fr)); } #shop h2 { margin: 0 0 4px; font-size: 20px; } #shopNote { padding: 4px 10px; margin: 0 0 4px; font-size: 11.5px; }
+}
+@media (max-width: 480px) { #seatSel { gap: 4px; flex-wrap: nowrap; font-size: 0; margin-bottom: 26px; position: relative; } #seatSel button { padding: 5px 6px; font-size: 12px; white-space: nowrap; } #seatSel button.fit::after { content: '★'; font-size: 9px; } #seatSel em { position: absolute; left: 0; right: 0; top: 100%; margin-top: 5px; font-size: 11px; } }
 /* ---- small motion ---- */
 #shopBtn.can { animation: canBuy 1.6s ease-in-out infinite; border-color: var(--brass); } @keyframes canBuy { 50% { box-shadow: 0 0 14px rgba(223, 189, 120, .7), 0 0 0 1px var(--brass) inset; } }
 body.touch .skill:active, body.touch #atkBtn:active, body.touch #sig button:active, body.touch #recallBtn:active, body.touch #shopBtn:active { transform: scale(.9); filter: brightness(1.35); } body.touch .skill, body.touch #atkBtn, body.touch #sig button { transition: transform .08s; }
