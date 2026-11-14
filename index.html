@@ -277,7 +277,7 @@ body.touch #ins { bottom: calc(306px + var(--sab)); } body.touch #ins kbd { disp
 @media (max-width: 760px), (max-height: 520px) { #rec { justify-content: center; margin: 6px 0 70px; } #rec i:not(.on) { display: none; } #rec .rs { flex-basis: 100%; text-align: center; margin: 0; } }
 #dead span { font-size: 16px; color: var(--bone); opacity: .85; }
 #chat div.foe { border-left-color: var(--ember); } #chat div.foe b { color: var(--ember); } #chat small { display: block; margin-left: 28px; font-size: 11px; color: var(--dim); }
-@media (max-height: 520px) and (orientation: landscape) and (max-width: 760px) { body.touch #eco { top: calc(46px + var(--sat)); } body.touch #feed { top: calc(132px + var(--sat)); } }
+@media (max-height: 520px) and (orientation: landscape) and (max-width: 760px) { html body.touch #eco { top: calc(46px + var(--sat)); } html body.touch #feed { top: calc(132px + var(--sat)); } }
 /* ---- small motion ---- */
 #shopBtn.can { animation: canBuy 1.6s ease-in-out infinite; border-color: var(--brass); } @keyframes canBuy { 50% { box-shadow: 0 0 14px rgba(223, 189, 120, .7), 0 0 0 1px var(--brass) inset; } }
 body.touch .skill:active, body.touch #atkBtn:active, body.touch #sig button:active, body.touch #recallBtn:active, body.touch #shopBtn:active { transform: scale(.9); filter: brightness(1.35); } body.touch .skill, body.touch #atkBtn, body.touch #sig button { transition: transform .08s; }
