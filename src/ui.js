@@ -59,9 +59,9 @@ export function createUI(isTouch, audio) {
     el.skills.innerHTML = d.skills.map((s, i) => `<div class="sk" data-i="${i}"><button type="button" class="up" hidden aria-label="提升">＋</button><button type="button" class="skill${i === 3 ? ' ult' : ''}" data-i="${i}" style="background-image:url(${icon(d, s)})"><span class="key">${s.key}</span><span class="nm">${s.name}</span><span class="cost">${s.mana}</span><span class="pips">${'<i></i>'.repeat(3)}</span><i class="cd"></i><b class="cdn"></b></button></div>`).join('');
     skillEls = [...el.skills.querySelectorAll('.skill')].map(b => ({ b, cd: b.querySelector('.cd'), cdn: b.querySelector('.cdn'), up: b.parentElement.querySelector('.up'), pips: [...b.querySelectorAll('.pips i')], was: 0 }));
     skillEls.forEach(({ b, up }, i) => {
-      b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); actions.skillDown(i, e); b.animate([{ transform: 'scale(.9)' }, { transform: 'scale(1)' }], { duration: 160 }); if (isTouch) { showTip(i); tipT = 0; } };
-      b.onpointermove = e => actions.skillMove(i, e); b.onpointerup = e => { actions.skillUp(i, e); if (isTouch) tipT = 1.2; }; b.onpointercancel = e => { actions.skillUp(i, e, true); if (isTouch) el.tip.hidden = true; };
-      up.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); G.learn(i); if (isTouch) { showTip(i); tipT = 3.5; } };
+      b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); actions.skillDown(i, e); b.animate([{ transform: 'scale(.9)' }, { transform: 'scale(1)' }], { duration: 160 }); };
+      b.onpointermove = e => actions.skillMove(i, e); b.onpointerup = e => actions.skillUp(i, e); b.onpointercancel = e => actions.skillUp(i, e, true);
+      up.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); G.learn(i); };   // on a phone the descriptions live in the menu, nothing pops up over the fight
       if (!isTouch) { b.onpointerenter = () => showTip(i); b.onpointerleave = () => { el.tip.hidden = true; }; up.onpointerenter = () => showTip(i); up.onpointerleave = () => { el.tip.hidden = true; }; }
     });
     // the shop: three grades, each tile shows what it is made from and what it would cost you right now

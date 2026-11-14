@@ -39,7 +39,7 @@ const sineZ = x => 10 * Math.sin(x * Math.PI / 80), sineRiver = z => 6 * Math.si
 export const MODES = {
   single: {
     id: 'single', name: '一路 · 速战', team: 3, blurb: '一条路，3 对 3，十五分钟上下。',
-    map: { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126] },
+    map: { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126], base: 15, baseF: 4 },
     core: t => ({ x: sideSign(t) * 64, z: sineZ(sideSign(t) * 64) }), fountain: t => ({ x: sideSign(t) * 75, z: sineZ(sideSign(t) * 75) }),
     lanes: () => [{ ...funcLane('', sineZ, 64, [24, 46]), glsl: '10.0 * sin(p.x * 0.0392699)' }], mid: 0,
     river: () => ({ func: true, glsl: '6.0 * sin(p.y * 0.0981748)', f: sineRiver, dist: (x, z) => Math.abs(x - sineRiver(z)), signed: (x, z) => sineRiver(z) - x, at: (t, o) => { const z = (t * 2 - 1) * 48; return { x: sineRiver(z) + o, z }; } }),
@@ -58,7 +58,7 @@ export const MODES = {
   tri: {
     id: 'tri', name: '三路 · 宗门大战', team: 5, fog: true, blurb: '王者式地图：对角山门、上中下三路、河道与四片野区，5 对 5，有战争迷雾，二十分钟上下。开发中：电脑还只会各守一路。',
     // frost holds the lower-left corner, ember the upper-right (the camera looks north, so -z is up the screen)
-    map: { hx: 80, hz: 80, ax: Math.SQRT1_2, az: -Math.SQRT1_2, biome: 1.24, mini: [168, 168] },
+    map: { hx: 80, hz: 80, ax: Math.SQRT1_2, az: -Math.SQRT1_2, biome: 1.24, mini: [168, 168], base: 25, baseF: 13 },   // base: radius of each sect's precinct
     core: t => ({ x: sideSign(t) * 56, z: -sideSign(t) * 56 }), fountain: t => ({ x: sideSign(t) * 68, z: -sideSign(t) * 68 }),
     lanes: () => [
       pathLane('上路', [[-56, 56], [-65, 34], [-67, -46], [-46, -67], [34, -65], [56, -56]], [40, 72, 100]),
@@ -81,7 +81,7 @@ export const MODES = {
 };
 
 export let MODE = MODES.single;
-export const MAP = { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126] };
+export const MAP = { hx: 80, hz: 48, ax: 1, az: 0, biome: 1, mini: [210, 126], base: 15, baseF: 4 };
 export const LANES = [], CAMPS = [], BRUSH = [], TOWERS = [];
 export let MID = 0, RIVER = null;
 export const laneZ = (x, lane = MID) => LANES[lane].f(x);            // 一路 only

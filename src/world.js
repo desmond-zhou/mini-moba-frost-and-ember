@@ -100,6 +100,28 @@ const groundPars = () => `
     float h = mix(landH, stoneH + 0.3, paved);
     rough = mix(rough, 0.62 + 0.25 * rnd, paved);
 
+    // --- sect grounds: inside each precinct the floor is dressed flagstone in the sect's own stone, inlaid with its ward —
+    //     two rings and eight spokes that glow faintly — and edged with a dark kerb. Neither road nor wilderness. ---
+    float baseD = min(dPl, dFo + ${F(MAP.baseF)});
+    float sect = 1.0 - smoothstep(${F(MAP.base - 0.5)}, ${F(MAP.base + 0.5)}, baseD + (mid - 0.5) * 0.7);
+    if (sect > 0.001) {
+      float own = step(length(p - ${P2(POS.core(FROST))}), length(p - ${P2(POS.core(EMBER))}));          // 1 on frost's side
+      vec2 bp = p - mix(${P2(POS.core(EMBER))}, ${P2(POS.core(FROST))}, own);
+      float rr = length(bp), ang = atan(bp.y, bp.x);
+      vec2 sp = vec2(bp.x * ${F(MAP.ax)} + bp.y * ${F(MAP.az)}, bp.y * ${F(MAP.ax)} - bp.x * ${F(MAP.az)}) / 3.3, sf = fract(sp);
+      float slab = hash21(floor(sp)), joint = 1.0 - smoothstep(0.015, 0.05, min(min(sf.x, 1.0 - sf.x), min(sf.y, 1.0 - sf.y)));
+      vec3 sc = mix(mix(vec3(0.075, 0.05, 0.046), vec3(0.125, 0.078, 0.064), slab), mix(vec3(0.27, 0.31, 0.37), vec3(0.37, 0.41, 0.47), slab), own) * (0.78 + 0.4 * fine);
+      sc = mix(sc, sc * 0.3, joint);
+      float ringW = max(1.0 - smoothstep(0.0, 0.24, abs(rr - 8.6)), 1.0 - smoothstep(0.0, 0.32, abs(rr - ${F(MAP.base - 2.4)})));
+      float spoke = (1.0 - smoothstep(0.0, 0.2, abs(fract(ang * 1.2732395 + 0.5) - 0.5) * rr * 0.7853982)) * step(8.6, rr) * step(rr, ${F(MAP.base - 2.4)});
+      float ward = max(ringW, spoke) * (1.0 - smoothstep(${F(MAP.base - 1.5)}, ${F(MAP.base)}, dPl));
+      vec3 glowC = mix(vec3(2.4, 0.5, 0.08), vec3(0.35, 1.1, 2.2), own);
+      alb = mix(alb, mix(sc, glowC * 0.1, ward), sect);
+      emis = mix(emis, glowC * ward * (0.28 + 0.16 * pulse), sect);
+      h = mix(h, 0.55 + slab * 0.07 - joint * 0.28 - ward * 0.1, sect); rough = mix(rough, 0.48 + 0.2 * slab, sect);
+      alb = mix(alb, vec3(0.022, 0.02, 0.02), (1.0 - smoothstep(0.0, 0.55, abs(baseD - ${F(MAP.base)}))) * 0.85);       // the kerb
+    }
+
     // --- standing water: rain puddles on the lane (ice on the frost side) ---
     float pud = smoothstep(0.6, 0.66, nB.r * 0.55 + nA.g * 0.45 + (1.0 - smoothstep(0.0, 0.25, edge)) * 0.05) * paved * (1.0 - em);
     alb = mix(alb, mix(alb * 0.45, vec3(0.16, 0.2, 0.25), fr * 0.7), pud);
@@ -138,7 +160,7 @@ export function terrain(x, z) {
   const dPl = Math.min(d2(POS.core(FROST)), d2(POS.core(EMBER))), dFo = Math.min(d2(POS.fountain(FROST)), d2(POS.fountain(EMBER)));
   let camp = 99; for (const c of CAMPS) camp = Math.min(camp, Math.hypot(x - c.x, z - c.z) - c.r);
   const bx = biomeX(x, z) + (vnoise(x * 0.04, z * 0.04) - 0.5) * 30;
-  return { dl, dr, dPl: Math.min(dPl, dFo + 4), camp, fr: 1 - smooth(-52, -16, bx), em: smooth(16, 52, bx), inside: Math.abs(x) < MAP.hx && Math.abs(z) < MAP.hz };
+  return { dl, dr, dPl: Math.min(dPl, dFo + MAP.baseF), camp, fr: 1 - smooth(-52, -16, bx), em: smooth(16, 52, bx), inside: Math.abs(x) < MAP.hx && Math.abs(z) < MAP.hz };
 }
 
 // ---- leaf textures, painted once on a canvas ----
@@ -303,7 +325,7 @@ export function createWorld(R) {
   for (const t of TOWERS) structs.push({ x: t.x, z: t.z, r: 9 });
   const clear = (x, z, m = 0) => {
     const t = terrain(x, z);
-    if (t.dl < 9 + m || t.dr < 7.5 + m || t.dPl < 19 + m || t.camp < 2.5 + m) return null;
+    if (t.dl < 9 + m || t.dr < 7.5 + m || t.dPl < Math.max(19, MAP.base + 4) + m || t.camp < 2.5 + m) return null;
     for (const s of structs) if (Math.hypot(x - s.x, z - s.z) < s.r + m) return null;
     return t;
   };
@@ -419,6 +441,31 @@ export function createWorld(R) {
   }
   instanced(rg, vcMat({ world: true }), rocks);
 
+  // ---- sect precincts: a low stone balustrade around each one, and a gate (山门) where every lane comes in ----
+  {
+    const WL = [], GT = []; kind(K.stone);
+    part(WL, G.box(2.5, 0.95, 0.8), '#77736c', 0, 0.48, 0); part(WL, G.box(2.75, 0.2, 1.05), '#55524d', 0, 1.02, 0); part(WL, G.box(0.5, 1.5, 0.95), '#6a665f', 1.25, 0.75, 0); part(WL, G.box(0.66, 0.2, 1.1), '#4d4a45', 1.25, 1.58, 0);
+    for (const sx of [-7.4, 7.4]) { part(GT, G.cyl(0.5, 0.62, 7.2, 10), '#6f6b64', sx, 3.6, 0); part(GT, G.box(1.7, 0.6, 1.7), '#57534d', sx, 0.3, 0); }
+    part(GT, G.box(16.4, 0.7, 0.85), '#5f5b55', 0, 6.3, 0); part(GT, G.box(18.6, 0.42, 1.7), '#3e3b37', 0, 7.35, 0); part(GT, G.box(3.4, 1.15, 0.5), '#2c2a28', 0, 5.35, 0);
+    for (const sx of [-1, 1]) part(GT, G.box(2.2, 0.38, 1.6), '#3e3b37', sx * 9.9, 7.62, 0, 0, 0, sx * 0.3);
+    kind(K.paint);
+    const walls = [], gates = [];
+    for (const team of [FROST, EMBER]) {
+      const c = POS.core(team), f = POS.fountain(team), Rc = MAP.base + 0.9, Rf = MAP.base - MAP.baseF + 0.9, tint = team === FROST ? [0.92, 0.98, 1.1] : [0.8, 0.52, 0.46];
+      const ring = (o, R, other, Ro) => { const n = Math.round(6.2832 * R / 2.75); for (let i = 0; i < n; i++) { const a = i / n * 6.2832, x = o.x + Math.cos(a) * R, z = o.z + Math.sin(a) * R;
+        if (Math.hypot(x - other.x, z - other.z) < Ro - 0.3 || Math.abs(x) > MAP.hx + 6 || Math.abs(z) > MAP.hz + 6) continue;       // inside the other circle, or off the map
+        let open = false; for (const L of LANES) if (L.dist(x, z) < 8.6) open = true; if (open) continue;                        // the lanes come through here
+        walls.push({ x, z, s: 1, ry: -a + Math.PI / 2, c: tint }); } };
+      ring(c, Rc, f, Rf); ring(f, Rf, c, Rc);
+      for (const L of LANES) {                                           // the gate stands where the lane crosses the edge of the precinct
+        const from = team === FROST ? L.s0 : L.s1, dir = team === FROST ? 1 : -1; let s = from, q = L.at(s, 0);
+        for (let k = 0; k < 400 && Math.min(Math.hypot(q.x - c.x, q.z - c.z), Math.hypot(q.x - f.x, q.z - f.z) + MAP.baseF) < MAP.base + 0.9; k++) { s += dir * 0.25; q = L.at(s, 0); }
+        const t = L.tan(s); gates.push({ x: q.x, z: q.z, s: 1, ry: Math.atan2(-t.x, -t.z), c: tint });
+      }
+    }
+    const wm = vcMat({ world: true }); instanced(build(WL), wm, walls); instanced(build(GT), wm, gates);
+  }
+
   // ---- grass: thin blades in tufts, lit like the ground, swaying in the vertex shader ----
   const bl = [], bc = [], bn = [];
   for (let b = 0; b < 5; b++) {
@@ -432,7 +479,7 @@ export function createWorld(R) {
   const tufts = [], nT = Math.round(30000 * R.quality.grass * AREA);
   for (let i = 0; i < nT * 3 && tufts.length < nT; i++) {
     const x = (rand() * 2 - 1) * (MAP.hx + 4), z = (rand() * 2 - 1) * (MAP.hz + 4), t = terrain(x, z);
-    if (t.dl < 6.4 || t.dr < 4.9 || t.dPl < 16 || t.camp < -1) continue;
+    if (t.dl < 6.4 || t.dr < 4.9 || t.dPl < MAP.base + 1 || t.camp < -1) continue;
     const lush = (1 - t.fr * 0.8) * (1 - t.em * 0.85);
     if (rand() > 0.18 + 0.82 * lush * (0.35 + 0.65 * vnoise(x * 0.15, z * 0.15))) continue;
     const v = 0.6 + rand() * 0.7, dry = rand();

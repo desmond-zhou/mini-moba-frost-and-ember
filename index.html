@@ -82,10 +82,10 @@ body.touch #chan { bottom: calc(232px + var(--sab)); }
 #pWrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 #pLvl { display: block; padding: 1px 7px; font: 800 11px/1.5 var(--f-ui); letter-spacing: .06em; color: var(--brass); font-style: normal; background: rgba(3, 5, 9, .8); border: 1px solid var(--line-soft); white-space: nowrap; }
 #mid { display: flex; flex-direction: column; gap: 6px; }
-.meter { position: relative; height: 15px; background: rgba(4, 6, 10, .85); border: 1px solid var(--line-soft); overflow: hidden; }
+.meter { position: relative; height: 20px; background: rgba(4, 6, 10, .85); border: 1px solid var(--line-soft); overflow: hidden; }
 .meter i { position: absolute; inset: 0; transform-origin: 0 50%; }
-.meter span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; text-shadow: 0 1px 2px #000; font-variant-numeric: tabular-nums; }
-.meter.hp i { background: linear-gradient(#5cf089, #25a64e); } .meter.mp { height: 11px; } .meter.mp i { background: linear-gradient(#6fb0ff, #2c62d6); } .meter.xp { height: 4px; border: 0; } .meter.xp i { background: var(--brass); }
+.meter span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; line-height: 1; font-weight: 700; text-shadow: 0 1px 2px #000, 0 0 3px rgba(0, 0, 0, .8); font-variant-numeric: tabular-nums; }
+.meter.hp i { background: linear-gradient(#5cf089, #25a64e); } .meter.mp { height: 17px; } .meter.mp span { font-size: 11px; } .meter.mp i { background: linear-gradient(#6fb0ff, #2c62d6); } .meter.xp { height: 4px; border: 0; } .meter.xp i { background: var(--brass); }
 #skills { display: flex; gap: 8px; }
 .sk { position: relative; }
 .up { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); min-width: 30px; padding: 1px 7px 5px; font: 900 15px/1.1 var(--f-ui); color: #1a1408; background: linear-gradient(#ffe7a8, #d6a441); clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%); animation: upPulse 1s ease-in-out infinite; z-index: 2; white-space: nowrap; touch-action: none; }
@@ -169,7 +169,7 @@ body.touch #tip { bottom: auto; top: calc(74px + var(--sat)); width: min(340px, 
 #atkBtn { position: absolute; right: calc(var(--gr) - 4px); bottom: calc(var(--sab) + 50px); width: 78px; height: 78px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #5a2a22, #1a0c0a); border: 1px solid #c9705a; font-weight: 800; font-size: 15px; letter-spacing: .1em; pointer-events: auto; touch-action: none; }
 body.touch #bar { left: 0; right: 0; transform: none; justify-content: center; bottom: calc(6px + var(--sab)); pointer-events: none; }
 body.touch #portrait, body.touch #items, body.touch #kda, body.touch #sys { display: none; }
-body.touch #mid { width: min(34vw, 240px); } body.touch .meter.hp { height: 12px; } body.touch .meter.mp { height: 8px; } body.touch .meter span { font-size: 9px; }
+body.touch #mid { width: min(34vw, 240px); } body.touch .meter.hp { height: 17px; } body.touch .meter.mp { height: 15px; } body.touch .meter span, body.touch .meter.mp span { font-size: 10.5px; }
 body.touch #shopBtn small { display: none; }
 body.touch #skills { position: fixed; right: 0; bottom: 0; width: 230px; height: 240px; display: block; pointer-events: none; }
 body.touch .sk { position: absolute; width: 62px; height: 62px; pointer-events: auto; } body.touch .skill { width: 62px; height: 62px; border-radius: 50%; } body.touch .pips { bottom: 7px; }
@@ -271,7 +271,7 @@ body.touch #sys { display: flex; left: calc(var(--gl) + 46px); right: auto; bott
   <div id="title" class="screen" hidden>
     <h1 class="mark">霜烬之争</h1>
     <div class="sub" id="sub">十二位修士 · 3V3 · 摧毁敌方阵眼</div>
-    <div id="modeSel"></div><div class="ver">v1.1.0-alpha.1</div>
+    <div id="modeSel"></div><div class="ver">v1.1.0-alpha.2</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div class="row"><div class="seg" id="diff"></div><button class="go" id="goBtn" type="button">出战</button></div>
