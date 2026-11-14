@@ -227,7 +227,7 @@ export const T = {
   waveFirst: 6, waveEvery: 24,
   towerHp: 2650, towerAd: 150, towerRange: 13.5, towerPeriod: 1.05,
   // tower fire heats its target: every consecutive hit on a hero makes the next one hit harder; the heat cools off out of range
-  heatStep: 0.4, heatMax: 4, heatHold: 3.5, towerLock: 0.55,
+  heatStep: 0.65, heatMax: 4, heatHold: 3.5, towerLock: 0.55,
   coreHp: 4200,
   fountainR: 9, recallTime: 4, shopR: 15,
   minion: {
