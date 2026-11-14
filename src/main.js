@@ -41,9 +41,11 @@ function boot() {
   const toTitle = () => { state = 'title'; G = null; input.G = null; M.reset(); fx.reset(); ui.showTitle(start); };
   ui.onMenu = { restart: () => start(lastPick[0], lastPick[1], lastPick[2], lastPick[3]), quit: () => toTitle() };
   ui.showTitle(start);
+  addEventListener('pointerdown', () => audio.init(), { once: true, capture: true });   // the first tap anywhere: sounds render while the player is still choosing
   if (qs.get('auto')) { ui.el.title.hidden = true; start(qs.get('auto'), qs.get('diff') || 'normal', MODE.id, qs.has('seat') ? +qs.get('seat') : -1); }
 
-  function frame(now) {
+  function frame(now) { tick(now); requestAnimationFrame(frame); }
+  function tick(now) {
     const raw = now - last; last = now;
     let dt = Math.min(0.05, raw / 1000);
     if (fx.stopT > 0) { fx.stopT -= dt; dt *= 0.06; }
@@ -77,12 +79,11 @@ function boot() {
     R.render(time);
     if (state !== 'title') R.adapt(raw);
     if (++frames === 2) document.getElementById('boot').classList.add('done');
-    requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
   document.addEventListener('visibilitychange', () => { audio.pause(document.hidden); last = performance.now(); });
 
   // debug / automated-test handle
-  window.__moba = { get G() { return G; }, R, fx, start, input, audio, sim(sec, step = 1 / 30) { for (let t = 0; t < sec && G && !G.over; t += step) { time += step; G.update(step, time); fx.update(step); } return G ? { t: G.t, units: G.units.length, kills: G.kills, over: G.over } : null; } };
+  window.__moba = { get G() { return G; }, R, fx, start, input, audio, frame: dt => tick(last + dt * 1000), sim(sec, step = 1 / 30) { for (let t = 0; t < sec && G && !G.over; t += step) { time += step; G.update(step, time); fx.update(step); } return G ? { t: G.t, units: G.units.length, kills: G.kills, over: G.over } : null; } };
 }
 try { boot(); } catch (e) { fatal.textContent = '启动失败：' + (e && e.stack || e); throw e; }

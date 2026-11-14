@@ -5,6 +5,7 @@
 import * as Tone from 'tone';
 
 const R = (a, b) => a + Math.random() * (b - a);
+const idle = () => new Promise(r => setTimeout(r, 0));   // a breath between renders; measured: no task over 50 ms, all ready in about a second (waiting for idle time made it 5 s)
 const PENTA = [261.6, 293.7, 329.6, 392, 440, 523.3, 587.3, 659.3, 784, 880, 1046.5];
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
@@ -150,7 +151,7 @@ export async function renderBank(ctx, onSound, n0 = 3) {
       }
     } catch (e) { renderBank.err = (renderBank.err || '') + name + ': ' + String(e).slice(0, 120) + '\n'; }
     if (out.length) onSound(name, out);
-    await new Promise(r => setTimeout(r, 0));                         // let a frame through between sounds
+    await idle();
   }
 }
 
@@ -190,7 +191,7 @@ export async function renderMusic(ctx, onSound) {
       for (let k = 0; k < src.length; k++) d[k] = src[k] / pk * 0.95 * (k > src.length - fade ? (src.length - k) / fade : 1);
       onSound(name, b);
     } catch (e) { renderMusic.err = (renderMusic.err || '') + name + ': ' + String(e).slice(0, 120) + '\n'; }
-    await new Promise(r => setTimeout(r, 0));
+    await idle();
   }
 }
 
@@ -219,6 +220,6 @@ export async function renderAmbience(ctx, onBed, loop = 8) {
       for (let i = 0; i < L; i++) { const w = i < xf ? i / xf : 1; d[i] = a[i] * w + (i < xf ? (a[L + i] || 0) * (1 - w) : 0); pk = Math.max(pk, Math.abs(d[i])); }
       if (pk > 1e-5) { for (let i = 0; i < L; i++) d[i] *= 0.9 / pk; onBed(name, b); }
     } catch (e) { renderAmbience.err = (renderAmbience.err || '') + name + ': ' + String(e).slice(0, 120) + '\n'; }
-    await new Promise(r => setTimeout(r, 0));
+    await idle();
   }
 }

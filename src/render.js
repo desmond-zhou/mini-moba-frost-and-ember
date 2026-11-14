@@ -115,6 +115,7 @@ const GradeShader = {
 export function createRender(canvas, qualityName) {
   const R = { quality: { ...QUALITY[qualityName] || QUALITY.high } };
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', alpha: false, stencil: false });
+  renderer.debug.checkShaderErrors = location.hostname === 'localhost';   // the released page skips the per-compile error check
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.shadowMap.enabled = true;
