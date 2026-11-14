@@ -83,14 +83,16 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     ['peiji', 'wenren', ['别再走火。', '管好你的天刑台。'], ['闻人遥，随我回天刑台。', '拿得住我再说。']],
     ['shade', 'bloodlord', ['宗主，取谁的命？', '红衣，一个不留。'], ['宗主，这口血我不喝了。', '暗子也敢反？']],
   ];
-  let jeerAt = -99;
+  let jeerAt = -99; const FOE_SAYS = { kill: 'eKill', die: 'eDie', ahead: 'eAhead', behind: 'eBehind', eStart: 'eStart', focus: 'focus' };
   function chat(h, text, force, vars) {                                // text: a literal, a list to pick from, or an event key spoken in the speaker's own manner
-    if (h.isPlayer || G.over) return; const foe = h.team !== G.player.team;
+    if (h.isPlayer || G.over) return; const foe = h.team !== G.player.team; let hold = 0;
+    if (foe && !Array.isArray(text)) { text = FOE_SAYS[text]; if (!text) return; }   // the other side never reports to its own in your hearing: it only talks at you
+    if (text === 'ins') hold = 11000;
     if (Array.isArray(text)) text = text[Math.floor(Math.random() * text.length)]; else if (VOICE.base[text]) text = voice(h.def.id, text, vars);
     if (!text) return;
     if (foe) { if (!force && (G.t - jeerAt < 22 || G.t - (h.chatT || -99) < 60 || Math.random() < 0.45)) return; jeerAt = G.t; }   // the other side: seldom, for company
-    else if (!force && (G.t - (h.chatT || -9) < 6 || G.t - chatAt < 1.8)) return; else chatAt = G.t;
-    h.chatT = G.t; ui.chat(h, text, foe);
+    else if (!force && (G.t - (h.chatT || -9) < 4 || G.t - chatAt < 1.2)) return; else chatAt = G.t;
+    h.chatT = G.t; ui.chat(h, text, foe, hold);
   }
   // a line of speech: only for those in view, never two at once from the same mouth, and not everyone talking over each other
   let sayAt = -9; const sayQ = [];
@@ -1063,7 +1065,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const t = h.insPend.shift(); if (t === undefined) return false; const q = INSIGHT[h.def.id][t][k ? 1 : 0]; h.ins.push(q);
     if (near(h)) { fx.pillar(h.x, h.z, 1.4, 12, h.fxCol, 0.6); fx.ringWave(h.x, h.z, 9, h.fxCol, 0.5); }
     if (h.isPlayer) { audio.play('star'); ui.announce(`感悟 · ${q[0]}`, 'good'); ui.buzz(40); }
-    else if (h.team === G.player.team) chat(h, [voice(h.def.id, 'ins', { i: q[0], w: WHY[q[4]] }) + `<small>${q[1]}</small>`], true);   // allies report what they took and why; the other side keeps it to itself
+    else if (h.team === G.player.team) chat(h, 'ins', true, { i: q[0], w: WHY[q[4]], d: q[1] });   // allies report what they took and why; the other side keeps it to itself
     return true;
   };
   G.chooseInsight = k => takeInsight(P(), k);

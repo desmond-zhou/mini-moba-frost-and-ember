@@ -129,7 +129,7 @@ export function createUI(isTouch, audio) {
     el.tip.innerHTML = `<i style="background-image:url(${icon(p.def, s)})"></i><div><b>${s.key} · ${s.name}</b> <span class="rk">${r ? R.name[r - 1] : '未学'}</span>${scaleTag(s)}<br>${s.desc}<em>${nums}</em>${sc}${next}</div>`; el.tip.hidden = false;
   }
   // what your side's bots say to each other: a face, a name, a few words; three lines at most, each gone in a few seconds
-  ui.chat = (h, text, foe) => { const d = document.createElement('div'); if (foe) d.className = 'foe'; d.innerHTML = `<i class="fp" style="background-image:url(${faceOf(h)})"></i><b>${h.name}</b>${text}`; el.chat.append(d); while (el.chat.children.length > 3) el.chat.firstChild.remove(); setTimeout(() => d.remove(), 5200); };
+  ui.chat = (h, text, foe, hold) => { const d = document.createElement('div'); if (foe) d.className = 'foe'; d.innerHTML = `<i class="fp" style="background-image:url(${faceOf(h)})"></i><b>${h.name}</b>${text}`; el.chat.append(d); while (el.chat.children.length > 3) el.chat.firstChild.remove(); setTimeout(() => d.remove(), hold || 5200); };
   const ACH = [
     ['kill', '开锋', '镇压一名修士'], ['multi3', '三花聚顶', '十息之内连镇三人'], ['streak7', '一人镇一宗', '不陨落连镇七人'], ['clean', '不染尘', '一次不陨落地赢下一局'],
     ['turn', '逆天改命', '镇压数落后的情况下取胜'], ['fast', '速战', '一路十分钟内取胜'], ['both', '两路通吃', '一路和三路各赢一局'], ['ten', '守山人', '累计赢十局'],
