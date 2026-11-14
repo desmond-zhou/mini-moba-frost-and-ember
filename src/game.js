@@ -74,7 +74,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   // Team talk. A bot says in a few words what it is about to do; only your own side's is shown, never two lines from the
   // same mouth close together, and not everyone at once.
   let chatAt = -9;
-  function chat(h, text, force) { if (h.team !== G.player.team || h.isPlayer || G.over) return; if (!force && (G.t - (h.chatT || -9) < 9 || G.t - chatAt < 2.2)) return; h.chatT = chatAt = G.t; ui.chat(h, text); }
+  function chat(h, text, force) { if (h.team !== G.player.team || h.isPlayer || G.over) return; if (Array.isArray(text)) text = text[Math.floor(Math.random() * text.length)]; if (!force && (G.t - (h.chatT || -9) < 6 || G.t - chatAt < 1.8)) return; h.chatT = chatAt = G.t; ui.chat(h, text); }
   // a line of speech: only for those in view, never two at once from the same mouth, and not everyone talking over each other
   let sayAt = -9; const sayQ = [];
   function say(h, kind, chance = 1) {
@@ -390,6 +390,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         const ours = src.team === G.player.team, cls = ours ? 'good' : 'bad', who = ours ? '我方' : '敌方';
         if (tgt.nk === 'guardian') {
           G.buffT[src.team] = 70; for (const h of G.heroes) if (h.team === src.team) giveGold(h, 90);
+          { const sp = G.heroes.find(h => h.team === src.team && h.alive && !h.isPlayer); if (sp) chat(sp, ['拿到了，趁现在推', '残魂到手，开打', '有加成了，一起上']); }
           ui.announce(`${who}镇压血海残魂 · 全队伤害提升`, cls); audio.play('horn'); fx.ringWave(tgt.x, tgt.z, 26, col, 0.9);
         } else if (tgt.nk === 'puppet' || tgt.nk === 'abyss') {       // 破阵 / 渊息: the side's next waves march much stronger
           const [k, secs] = T.surge[tgt.nk]; G.surgeT[src.team] = secs; G.surgeK[src.team] = k; for (const h of G.heroes) if (h.team === src.team) giveGold(h, tgt.stats.gold);
@@ -409,6 +410,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (k) {
         const fair = clamp(0.35 + 0.65 * tgt.level / k.level, 0.4, 1.4) * worth; // less for stomping a weaker hero, more for an upset or ending a streak
         k.streak = (k.streak || 0) + 1; k.fallen = 0;
+        chat(k, [`${tgt.name}倒了`, '拿下一个', '漂亮，继续压', `${tgt.name}没了，可以打`]); chat(tgt, ['我没了，别硬打', '大意了', '等我重聚', '他们人齐，先别上']);
         k.kills++; giveGold(k, T.killGold * fair + (G.firstBlood ? 0 : 100), tgt); addXp(k, (80 + 16 * tgt.level) * fair);
         k.multi = G.t - k.multiT < 10 ? k.multi + 1 : 1; k.multiT = G.t;
       }
@@ -438,6 +440,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         tgt.warn.visible = false; tgt.beam.visible = false;
       for (const h of G.heroes) if (h.team !== tgt.team) { giveGold(h, T.towerGold, h.isPlayer ? tgt : null); addXp(h, 90); }
         ui.announce(good ? '敌方灵塔已被摧毁' : '我方灵塔被摧毁', good ? 'good' : 'bad'); audio.play('horn');
+        { const sp = G.heroes.find(h => h.team === G.player.team && h.alive && !h.isPlayer); if (sp) chat(sp, good ? ['塔掉了，继续压', '好，再推一座', '塔没了，小心别冒进'] : ['塔丢了，稳一点', '守不住了，退到下一座', '别急，慢慢打回来']); }
       } else { G.over = true; G.winner = 1 - tgt.team; G.overT = 0; G.focus.tx = tgt.x; G.focus.tz = tgt.z; }
     }
   }
@@ -701,7 +704,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const wasBack = ai.state === 'retreat';
     if (ai.state === 'retreat') { if (hpF > 0.8) ai.state = 'lane'; } else if (hpF < (h.def.id === 'shade' || h.def.id === 'qingya' || h.def.id === 'wenren' ? 0.36 : 0.27) || (hpF < 0.45 && nEH > nAH + 1)) ai.state = 'retreat';
     const retreat = ai.state === 'retreat', outnum = nEH > nAH + 1, ownS = frontStruct(team, ai.lane);
-    if (retreat && !wasBack) chat(h, eh ? '顶不住了，我先撤' : '我回去歇口气'); else if (outnum && eh && ehD < 12 && G.t - (G.helpAt || -99) > 25) { G.helpAt = G.t; chat(h, `${LANES[ai.lane].name || '这边'}对面人多，来个人`); }
+    if (retreat && !wasBack) chat(h, eh ? ['顶不住了，我先撤', '残了，撤一下', '先退，别跟'] : ['我回去歇口气', '回去养一下，马上来']); else if (outnum && eh && ehD < 12 && G.t - (G.helpAt || -99) > 25) { G.helpAt = G.t; chat(h, `${LANES[ai.lane].name || '这边'}对面人多，来个人`); }
     // the last enemy hero we had eyes on: if they slip into the grass, the bolder bots go in after them
     if (eh) { const s0 = ai.seen; ai.seen = { u: eh, x: eh.x, z: eh.z, t: G.t, go: s0 && s0.u === eh && G.t - s0.t < 4 ? s0.go : Math.random() < ai.nose }; }
     const sn = ai.seen, hunt = !eh && !retreat && sn && sn.go && G.t - sn.t < 4 && sn.u.alive && sn.u.hid && hpF > 0.45 && (!danger(sn) || diveOK);
@@ -979,6 +982,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     ui.toast({ gather: '集合！', attack: '进攻！', retreat: '撤退！' }[type]);
     const reach = type === 'retreat' ? 50 : 90;
     for (const h of G.heroes) if (h.team === me.team && !h.isPlayer && h.alive && dist2(h.x, h.z, x, z) < reach) h.ai.sig = { id, type, x, z, unit, until: G.t + (type === 'retreat' ? 7 : 12), said: false };
+    { let best = null, bd = 1e9; for (const h of G.heroes) if (h.team === me.team && !h.isPlayer) { const d = dist2(h.x, h.z, x, z); if (d < bd) { bd = d; best = h; } }
+      if (best) chat(best, !best.alive ? ['我还没重聚，等我'] : bd > reach ? ['太远了，过不去', '我这边走不开'] : best.hp / best.maxHp < 0.4 && type !== 'retreat' ? ['残血，去不了', '我血不够，你们先'] : { gather: ['收到，这就来', '来了', '马上到'], attack: ['收到，打', '上', '跟你打'], retreat: ['撤', '好，退', '走走走'] }[type], true); }
     return true;
   };
   G.ping = (x, z) => G.signal('gather', x, z);
@@ -1028,6 +1033,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (G.t >= G.nextWave) {
         G.nextWave += T.waveEvery; G.wave++;
         if (G.wave === 1) { ui.announce('两宗弟子已下山', ''); audio.play('horn'); }
+        if (G.wave === 1) { const sp = G.heroes.filter(h => h.team === G.player.team && !h.isPlayer); if (sp[0]) chat(sp[0], ['稳着打，别送', '都精神点', '这把好好打'], true); if (sp[1]) chat(sp[1], sp[1].ai.jungler ? ['我去巡山，有事喊我'] : ['我这边没问题', '好', '走'], true); }
         for (const team of [FROST, EMBER]) for (let lane = 0; lane < LANES.length; lane++) {
           const lost = !G.structs[1 - team].lanes[lane][1].alive; // the side that broke through gets a stronger wave down that lane
           const list = ['melee', 'melee', 'melee', 'ranged']; if (G.t > 300) list.push('ranged'); if (lost) list.unshift('melee');
