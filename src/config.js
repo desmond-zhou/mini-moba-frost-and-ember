@@ -93,7 +93,7 @@ export const MODES = {
       bossAt: 960,                                                     // 渊主残念 takes over the upper pit from here on
       surge: { puppet: [1.4, 55], abyss: [2.0, 90] },                 // how much stronger the side's disciples get, and for how long
     },
-    heroTune: { warden: { ad: 0.96 }, keeper: { ad: 1.1, hp: 1.06 }, bloodlord: { ad: 0.96, hp: 0.96 }, qingya: { ad: 0.97 }, ranger: { ad: 1.03 }, gunner: { ad: 0.94, hp: 0.98 }, cryo: { ap: 0.96 }, storm: { ap: 1.03, hp: 1.04 }, healer: { pow: 1.1, hp: 1.06 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 } },   // multipliers on base stats, this mode only
+    heroTune: { warden: { ad: 0.96 }, keeper: { ad: 1.1, hp: 1.06 }, bloodlord: { ad: 0.96, hp: 0.96 }, qingya: { ad: 0.97 }, ranger: { ad: 1.03 }, gunner: { ad: 0.94, hp: 0.98 }, cryo: { ap: 0.96 }, storm: { ap: 1.05, hp: 1.04 }, healer: { pow: 1.1, hp: 1.06 }, yanzhao: { ap: 0.96, hp: 0.97 }, yuanshan: { ap: 1.03, hp: 1.03 } },   // multipliers on base stats, this mode only
   },
 };
 
@@ -246,7 +246,7 @@ export const HEROES = {
   storm: {
     id: 'storm', size: 1.3, tall: 0.4, tint: [0.95, 0.9, 0.35], style: 'staff', name: '沈渊', short: '渊', title: '天刑台执法副使', role: '雷修 · 远程', blurb: '天刑台执法副使，掌印引雷。他办案不问缘由，只问有没有印。印落在谁身上，雷就认得谁。一道是警告，两道是判词。第三道落下，就不必再动了。',
     hp: 830, hpG: 92, mana: 420, manaG: 34, ad: 46, adG: 2.5, ap: 12, apG: 7.5, ms: 6.5, range: 9, period: 1.0, wind: 0.2, ranged: true, r: 0.95, h: 5.3,
-    build: ['xingluo', 'mingpan', 'zhaohun'],
+    build: ['mingpan', 'xingluo', 'zhaohun'],
     passive: { name: '雷印', icon: 'bolt2', desc: '招式命中会在敌人身上留一道雷印，叠满三道即引爆：按最大气血造成伤害并定身 0.5 秒，之后 3.8 秒内不再留印。' },
     skills: [
       S('Q', 'bolt', '刑雷', 'zone', { range: 14, radius: 3, delay: 0.45, cd: 4.0, mana: 35, b: 86, l: 18, ap: 0.68 }, '短暂延迟后在目标位置劈下一道闪电。'),
