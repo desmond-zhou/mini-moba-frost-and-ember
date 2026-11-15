@@ -4,6 +4,7 @@ import { clamp, dist, dist2, angLerp, lerp } from './util.js';
 import * as THREE from 'three';
 import { Graph, AStar, NavNode, NavEdge, Vector3 as YVec, Think, GoalEvaluator, MemorySystem } from 'yuka';
 import { createVfx } from './vfx.js';
+import { SKSND, SIG_GAIN } from './skillsound.js';
 import { BARKS, VOICE, voice } from './barks.js';
 
 const isStruct = e => e.kind === 'tower' || e.kind === 'core';
@@ -598,7 +599,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
           damage(p.src, e, p.dmg * (p.exec && e.kind === 'hero' ? 1 + (1 - e.hp / e.maxHp) * p.exec : 1), { ability: true }); applySlow(e, p.slow); applyStun(e, p.stun);
           if (p.pull === 'self' && e.alive && p.src.alive) { const c = p.src, qx = c.x - e.x, qz = c.z - e.z, qd = Math.hypot(qx, qz) || 1, gap = c.r + e.r + 0.4; c.knock = { sx: c.x, sz: c.z, tx: e.x + qx / qd * gap, tz: e.z + qz / qd * gap, t: 0, dur: Math.min(0.4, 0.1 + qd / 40) }; c.dash = null; applyStun(e, (p.stun || 0) + (T.selfPullStun || 0)); if (c.kind === 'hero' && !c.isPlayer) c.order = { type: 'attack', target: e }; }   // the line hauls its owner in
           else if (p.pull && e.alive && p.src.alive) { const c = p.src, qx = e.x - c.x, qz = e.z - c.z, qd = Math.hypot(qx, qz) || 1, gap = c.r + e.r + 0.5; e.knock = { sx: e.x, sz: e.z, tx: c.x + qx / qd * gap, tz: c.z + qz / qd * gap, t: 0, dur: 0.32 }; applyStun(e, 0.32 + (p.stun || 0)); e.dash = null; }
-          if (near(e)) V.projHit(p, e);
+          if (near(e)) { const ss = SKSND[p.skill]; if (ss && ss.hit) { for (const [n, gn] of ss.hit) audio.play(n, e.x, e.z, gn); p.quiet = true; } V.projHit(p, e); }
           if (!p.hit) {
             if (p.splash) { eachEnemy(p.team, p.x, p.z, p.splash, o => { if (o !== e) { damage(p.src, o, p.dmg * 0.6, { ability: true }); applyStun(o, p.stun); } }); if (near(p)) V.projBurst(p); }
             dead = true; break;
@@ -625,7 +626,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (z.t >= z.next) {
         if (z.heal) { for (const a of G.heroes) if (a.alive && a.team === z.team && dist2(a.x, a.z, z.x, z.z) <= z.r + a.r) { heal(a, z.dmg); if (near(a)) { V.healed(a, z.col); if (a.isPlayer || z.src.isPlayer) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(z.dmg), 'heal'); } } }
         else eachEnemy(z.team, z.x, z.z, z.r, e => { damage(z.src, e, z.dmg, { ability: true, drain: z.s.drain }); applySlow(e, z.s.slow); applyStun(e, z.s.stun); if (z.s.vuln && e.alive) { e.vulnK = z.s.vuln[0]; e.vulnT = G.t + z.s.vuln[1]; } });
-        if (vis) V.zoneFire(z, close(z));
+        if (vis) { const ss = SKSND[z.s && z.s.id]; if (ss && ss.land) { for (const [n, gn] of ss.land) audio.play(n, z.x, z.z, gn * (z.tick ? 0.7 : 1)); z.quiet = true; } V.zoneFire(z, close(z)); }
         if (z.tick && z.t < z.delay + z.dur - 0.01) z.next += z.tick; else G.zones.splice(i, 1);
       }
     }
@@ -682,11 +683,11 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         h.order = { type: 'attack', target: victim }; h.atkT = 0;
         break;
       }
-      case 'proj': shoot(h, h.x + dx, 1.8, h.z + dz, { dx, dz, speed: s.speed, range: s.range, width: s.width, dmg, pierce: s.pierce, splash: s.splash, slow: s.slow, stun: s.stun, pull: s.pull, exec: s.exec, heroOnly: s.heroOnly, back: s.back, color: col, size: s.big || (s.vfx === 'sunarrow' ? 0.75 : s.pierce ? 0.3 : 0.5), long: s.pierce || s.vfx === 'sunarrow' ? 4 : 1, bright: 3.6, sid: s.vfx }); break;
+      case 'proj': shoot(h, h.x + dx, 1.8, h.z + dz, { dx, dz, speed: s.speed, range: s.range, width: s.width, dmg, pierce: s.pierce, splash: s.splash, slow: s.slow, stun: s.stun, pull: s.pull, exec: s.exec, heroOnly: s.heroOnly, back: s.back, skill: s.id, color: col, size: s.big || (s.vfx === 'sunarrow' ? 0.75 : s.pierce ? 0.3 : 0.5), long: s.pierce || s.vfx === 'sunarrow' ? 4 : 1, bright: 3.6, sid: s.vfx }); break;
       case 'fan': for (let k = 0; k < s.n; k++) { const a = h.facing + (k - (s.n - 1) / 2) * s.spread; shoot(h, h.x + Math.cos(a), 1.8, h.z + Math.sin(a), { dx: Math.cos(a), dz: Math.sin(a), speed: s.speed, range: s.range, width: s.width, dmg, slow: s.slow, color: col, size: 0.24, long: 3, bright: 3.4, sid: 'fan' }); } break;
       case 'zone': addZone(h, tx, tz, s, dmg); break;
     }
-    if (near(h) || near({ x: tx, z: tz })) V.cast(h, s, A);
+    if (near(h) || near({ x: tx, z: tz })) { const ss = SKSND[s.id]; audio.play('sig_' + h.def.id, h.x, h.z, SIG_GAIN); if (ss && ss.cast) { for (const [n, gn] of ss.cast) audio.play(n, h.x, h.z, gn); A.quiet = true; } V.cast(h, s, A); }
     if (i === 3) { audio.play('ult', h.x, h.z, h.isPlayer ? 1 : 0.75, 'boom'); say(h, 'ult', h.isPlayer ? 1 : 0.6); if (h.isPlayer) { ui.buzz(35); fx.hitStop(0.09); fx.zoomIn(1); fx.punch(0.3); ui.ultName(s.name, RANK.ult.name[s.rank - 1]); } }
     return true;
   }

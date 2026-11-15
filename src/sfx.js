@@ -133,6 +133,27 @@ Object.assign(BANK, {
   // an ultimate: a short draw of breath, then the weight of it, and a low bell behind
   ult: [2.0, K => { const g = K.grit(0.35); K.burst(0, { c: 'pink', f0: 200, f1: 3000, q: 1, a: 0.12, d: 0.05, v: 0.7, sw: 0.15 }); K.thump(0.12, 50, 0.8, 1, 1, 0.05, g); K.burst(0.12, { c: 'brown', ft: 'lowpass', f0: 1500, f1: 60, a: 0.002, d: 0.9, v: 1, dest: g }); K.burst(0.12, { c: 'white', f0: 2600, f1: 900, a: 0.001, d: 0.08, v: 0.6 }); K.fm(0.13, 110, 1.6, 0.2, 1.4, 1.5); }],
 });
+// ---- each cultivator's signature: a short, quiet motif under every move of theirs, from who they are ----
+Object.assign(BANK, {
+  sig_warden: [0.6, K => { K.burst(0, { c: 'pink', f0: 520, q: 30, a: 0.06, d: 0.45, v: 0.5 }); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 400, a: 0.04, d: 0.25, v: 0.3 }); }],                 // a sealed sword-intent hums, muffled
+  sig_keeper: [0.7, K => { K.burst(0, { c: 'brown', f0: 180, q: 14, a: 0.02, d: 0.5, v: 0.6 }); for (let i = 0; i < 5; i++) K.burst(0.03 + i * 0.05, { c: 'pink', f0: R(380, 460), q: 20, a: 0.004, d: 0.04, v: 0.25 }); }],   // an old gate: iron and a creak
+  sig_peiji: [0.45, K => { K.thump(0, 900, 0.04, 0.8, 0.3, 0.005); K.burst(0, { c: 'white', f0: 1900, q: 7, a: 0.001, d: 0.03, v: 0.6 }); K.thump(0.16, 900, 0.04, 0.6, 0.3, 0.005); }],                // the gavel, twice
+  sig_bloodlord: [0.7, K => { K.thump(0, 55, 0.14, 0.8, 0.6, 0.02); K.thump(0.22, 50, 0.16, 0.6, 0.6, 0.02); K.burst(0.05, { c: 'brown', f0: 160, q: 9, a: 0.02, d: 0.3, v: 0.4 }); }],   // a slow pulse, thick
+  sig_berserker: [0.5, K => { const f1 = new Tone.Filter({ type: 'bandpass', frequency: 560, Q: 4 }); f1.connect(K.tone(2500)); K.voice(0, 'sawtooth', 120, 100, 0.18, 0.5, 0.02, f1); K.burst(0.05, { c: 'pink', f0: 400, f1: 1200, q: 0.7, a: 0.05, d: 0.3, v: 0.4 }); }],   // a grunt, the north wind
+  sig_qingya: [0.8, K => { K.burst(0, { c: 'white', f0: 2200, q: 60, a: 0.004, d: 0.7, v: 0.4 }); }],                                                    // one clean sword ring
+  sig_shade: [0.4, K => { K.burst(0, { c: 'pink', ft: 'highpass', f0: 3500, f1: 6000, a: 0.03, d: 0.18, v: 0.45 }); K.burst(0.05, { c: 'white', f0: 6200, q: 30, d: 0.15, v: 0.12 }); }],   // silk, a needle's glint
+  sig_wenren: [0.6, K => { const g = K.grit(0.6); K.fm(0, 140, 0.4, 0.3, 1.07, 4, 0.03, g); K.fm(0, 151, 0.4, 0.25, 1.07, 4, 0.03, g); K.burst(0, { c: 'pink', f0: 900, q: 2, a: 0.04, d: 0.3, v: 0.3, lfo: 9 }); }],   // two clashing tones, ragged breath
+  sig_archer: [0.5, K => { K.burst(0, { c: 'pink', f0: 300, f1: 1000, q: 0.8, a: 0.04, d: 0.3, v: 0.6, lfo: 15, depth: 0.4 }); K.grains(0.05, 5, 0.3, 2500, 6000, 3, 0.2); }],   // a breath of heart-fire
+  sig_linshuang: [0.9, K => { K.fm(0, 1568, 0.8, 0.18, 2.5, 0.6, 0.02); K.burst(0, { c: 'white', ft: 'highpass', f0: 5000, a: 0.05, d: 0.4, v: 0.15 }); }],   // a lone crystal note
+  sig_ranger: [0.7, K => { K.burst(0, { c: 'white', ft: 'highpass', f0: 4500, a: 0.15, d: 0.4, v: 0.25 }); K.burst(0.05, { c: 'white', f0: 4200, q: 40, a: 0.02, d: 0.4, v: 0.15 }); }],   // snow falling, a blade's whisper
+  sig_gunner: [0.5, K => { K.burst(0, { c: 'pink', f0: 1800, f1: 3500, q: 2, a: 0.003, d: 0.06, v: 0.5 }); K.burst(0.08, { c: 'white', ft: 'highpass', f0: 3500, a: 0.001, d: 0.03, v: 0.4 }); K.burst(0.09, { c: 'brown', ft: 'lowpass', f0: 300, d: 0.25, v: 0.3, lfo: 14 }); }],   // a talisman snapped, far thunder
+  sig_mage: [0.8, K => { const a = pick([0, 1, 2]); K.fm(0, PENTA[6 + a] * 2, 0.5, 0.18, 3, 0.8, 0.005); K.fm(0.09, PENTA[8 + a] * 2, 0.5, 0.14, 3, 0.8, 0.005); }],   // two star notes, reckoned
+  sig_cryo: [0.5, K => { K.burst(0, { c: 'white', ft: 'highpass', f0: 4000, f1: 2500, a: 0.04, d: 0.35, v: 0.35 }); K.grains(0.05, 5, 0.3, 3500, 7000, 25, 0.2); }],   // a cold hiss
+  sig_storm: [0.5, K => { K.burst(0, { c: 'brown', ft: 'lowpass', f0: 250, a: 0.03, d: 0.35, v: 0.4, lfo: 50, depth: 0.7 }); K.thump(0.12, 900, 0.04, 0.5, 0.3, 0.005); }],   // an electric hum, a seal pressed
+  sig_healer: [0.5, K => { K.thump(0, 620, 0.03, 0.6, 0.6, 0.004); K.burst(0, { c: 'white', f0: 1400, q: 6, a: 0.001, d: 0.03, v: 0.4 }); K.burst(0.06, { c: 'brown', f0: 500, q: 3, a: 0.02, d: 0.25, v: 0.3, lfo: 6 }); }],   // a gourd's cork, a slosh
+  sig_yanzhao: [0.6, K => { K.burst(0, { c: 'pink', ft: 'lowpass', f0: 1500, a: 0.08, d: 0.35, v: 0.4 }); K.fm(0.05, 392, 0.45, 0.07, 1.4, 0.8, 0.01); }],   // a hush, a lamp that does not light
+  sig_yuanshan: [0.6, K => { for (let i = 0; i < 7; i++) K.burst(i * 0.035 + R(0, 0.02), { c: 'white', f0: R(3800, 6800), q: 25, a: 0.001, d: R(0.04, 0.09), v: R(0.15, 0.3) }); K.thump(0.28, 700, 0.03, 0.4, 0.3, 0.005); }],   // coins shaken, a lot falls
+});
 export const names = Object.keys(BANK);
 
 // Rendering. Everything goes through renderGroups: many sounds laid end to end in ONE offline render, then sliced apart. Mobile
@@ -162,8 +183,8 @@ const toBuffer = (ctx, a, gain = 0.95, fadeS = 0.02) => { let pk = 0; for (let k
 const FIRST = ['hit', 'smack', 'thud', 'slash', 'bow', 'xbow', 'cast', 'arrow', 'sword', 'whoosh', 'tower', 'crit', 'heavy'];
 // the effects: `n` variations each (weapon sounds one fewer); on a phone one of each
 export async function renderBank(ctx, onSound, n0 = 3, maxSec = 20) {
-  const W = names.filter(k => /^[wh]_/.test(k)), order = [...FIRST, ...W, ...names.filter(k => !FIRST.includes(k) && !W.includes(k))];
-  const items = order.map(name => ({ name, dur: BANK[name][0], design: BANK[name][1], n: Math.max(1, /^[wh]_/.test(name) ? n0 - 1 : n0) }));
+  const W = names.filter(k => /^([wh]|sig)_/.test(k)), order = [...FIRST, ...W, ...names.filter(k => !FIRST.includes(k) && !W.includes(k))];
+  const items = order.map(name => ({ name, dur: BANK[name][0], design: BANK[name][1], n: Math.max(1, /^([wh]|sig)_/.test(name) ? n0 - 1 : n0) }));
   await renderGroups(ctx, items, maxSec, (it, parts) => { const bufs = parts.map(p => toBuffer(ctx, p)).filter(Boolean); if (bufs.length) onSound(it.name, bufs); });
 }
 renderBank.err = ''; export const stats = () => ({ contexts: renderGroups.contexts || 0, err: renderGroups.err || '' });

@@ -1,6 +1,6 @@
 # 霜烬之争 — 接手说明
 
-单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v2.0.3**。
+单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v2.0.4**。
 
 先读这份，再读 `docs/进度.md`（现状、下一步、踩过的坑）。其余文档按需：`docs/三路策划.md`、`docs/库选型.md`、`docs/打位演算.md`、`README.md`。
 
@@ -60,7 +60,7 @@ BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mod
 | `src/render.js` `src/mat.js` | 后处理链与画质档位 / 共用材质 |
 | `src/heroes.js` `src/models.js` | 人物外形（`OUTFIT`）与骨架 / 弟子、灵塔、阵眼 |
 | `src/vfx.js` `src/fx.js` | 招式观感 / 粒子、贴花、血条、顿帧、慢动作 |
-| `src/audio.js` | 全合成：配乐、分层音效、定位、环境声 |
+| `src/audio.js` `src/sfx.js` `src/skillsound.js` | 混音、定位、播放 / 用 Tone.js 设计和渲染全部音色 / 每招的声音和每人的签名声 |
 | `src/icons.js` `src/portraits.js` `src/barks.js` | 图标 / 头像 / 台词 |
 | `src/ui.js` `src/input.js` `src/main.js` | HUD 与各界面 / 键鼠触屏 / 启动、换模式、主循环 |
 | `batch.mjs` `analyze.mjs` `seats.mjs` `tune.mjs` | 批量对打 / 汇总 / 位置演算 / 按胜率算两张单人修正表（噪声内不动、守住两个模式的差距上限） |
