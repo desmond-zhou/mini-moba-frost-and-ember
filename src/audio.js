@@ -4,18 +4,20 @@
 // Effects: layered (body + air + a ring of inharmonic partials), placed around the listener with HRTF panning, duller and
 // wetter with distance, fed through early reflections and a long reverb, pitched a little differently every time, and
 // thinned out when many would sound at once. Abilities add a layer for their element. Ambience follows the camera.
-import { renderBank, renderMusic, renderAmbience } from './sfx.js';
+import { attach, renderBank, renderMusic, renderAmbience } from './sfx.js';
 export { renderBank };
 
 export function createAudio(lite) {
-  const A = { lite: !!lite, muted: false, listener: { x: 0, z: 0 }, intensity: 0, mood: 'calm' };   // mood: calm | trib | end (set from main.js)
+  const A = { lite: !!lite, simple: /[?&]sound=simple\b/.test(location.search), muted: false, listener: { x: 0, z: 0 }, intensity: 0, mood: 'calm' };   // mood: calm | trib | end (set from main.js)
   let ctx = null, master = null, musicBus = null, revIn = null, roomIn = null, sfx = null, noiseBuf = null, out = null, tune = 1; const last = {};
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
   A.init = () => {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    if (ctx) { if (ctx.state !== 'running') ctx.resume().catch(() => {}); return; }   // iOS can leave it 'suspended' or 'interrupted': every tap tries again
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* iOS 16.4+: play even with the silent switch on */ }
     try { ctx = new C(); } catch { return; }
+    try { ctx.resume().catch(() => {}); } catch { /* old Safari */ }
     master = ctx.createGain(); master.gain.value = A.muted ? 0 : 0.88;
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 5; master.connect(comp); comp.connect(ctx.destination);
     const meter = ctx.createAnalyser(); meter.fftSize = 2048; comp.connect(meter); const buf = new Float32Array(2048);
@@ -37,7 +39,17 @@ export function createAudio(lite) {
     sfx = ctx.createGain(); sfx.connect(master); out = sfx;
     A.setVolume(A.vol.music, A.vol.sfx);
     startAmbience(); startMusic();
-    renderMusic(ctx, (name, b) => { inst[name] = b; }).then(() => renderBank(ctx, (name, bufs) => { bank[name] = bufs; A.bankN = Object.keys(bank).length; })).then(() => renderAmbience(ctx, (name, b) => { beds[name] = bed(b); }));   // the instruments first (small), then the effects   // the designed sounds replace the quick ones as they come in
+    // designed sounds: Tone is attached to this context first (never a second live one), then everything renders in a few batches.
+    // A phone gets one variation of each sound in bigger batches and keeps the plain ambience; a failure anywhere leaves the quick sounds.
+    // Measured: one sound per offline render is fastest (bigger batches process every silent node for the whole batch), but mobile
+    // Safari copes badly with dozens of audio contexts — so a phone renders one variation each in ~4 s batches (about 20 renders).
+    if (A.simple) return;                                              // ?sound=simple: the quick sounds only
+    attach(ctx);
+    const lite = A.lite;
+    renderMusic(ctx, (name, b) => { inst[name] = b; }, lite ? 20 : 0)
+      .then(() => renderBank(ctx, (name, bufs) => { bank[name] = bufs; A.bankN = Object.keys(bank).length; }, lite ? 1 : 3, lite ? 4 : 0))
+      .then(() => lite ? null : renderAmbience(ctx, (name, b) => { beds[name] = bed(b); }, 8, 0))
+      .catch(e => { A.lastErr = 'render: ' + e; });   // the instruments first (small), then the effects   // the designed sounds replace the quick ones as they come in
   };
   A.vol = { music: 1, sfx: 1 };
   A.setVolume = (music, fxv) => { A.vol.music = music; A.vol.sfx = fxv; if (!ctx) return; const t = ctx.currentTime; musicBus.gain.setTargetAtTime(0.5 * music, t, 0.05); sfx.gain.setTargetAtTime(fxv, t, 0.05); roomIn.gain.setTargetAtTime(fxv, t, 0.05); };

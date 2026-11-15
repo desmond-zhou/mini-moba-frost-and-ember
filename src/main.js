@@ -41,7 +41,7 @@ function boot() {
   const toTitle = () => { state = 'title'; G = null; input.G = null; M.reset(); fx.reset(); ui.showTitle(start); };
   ui.onMenu = { restart: () => start(lastPick[0], lastPick[1], lastPick[2], lastPick[3]), quit: () => toTitle() };
   ui.showTitle(start);
-  addEventListener('pointerdown', () => audio.init(), { once: true, capture: true });   // the first tap anywhere: sounds render while the player is still choosing
+  addEventListener('pointerdown', () => audio.init(), { capture: true });   // the first tap starts the audio (sounds render while the player is still choosing); later taps wake it if the phone suspended it
   if (qs.get('auto')) { ui.el.title.hidden = true; start(qs.get('auto'), qs.get('diff') || 'normal', MODE.id, qs.has('seat') ? +qs.get('seat') : -1); }
 
   function frame(now) { tick(now); requestAnimationFrame(frame); }

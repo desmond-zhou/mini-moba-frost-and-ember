@@ -131,29 +131,38 @@ Object.assign(BANK, {
 });
 export const names = Object.keys(BANK);
 
-// render the whole bank, `n` variations each, handing each sound over as soon as it is ready. All variations of one sound share a
-// single offline render (laid end to end with a gap) — far cheaper than one render each. The sounds heard most come first.
-const FIRST = ['hit', 'smack', 'thud', 'slash', 'bow', 'xbow', 'cast', 'arrow', 'sword', 'whoosh', 'tower', 'crit', 'heavy'];
-export async function renderBank(ctx, onSound, n0 = 3) {
-  try { Tone.setContext(ctx); } catch { /* Tone keeps its own context; the offline renders do not need it */ }
-  const sr = ctx.sampleRate, W = names.filter(k => /^[wh]_/.test(k)), order = [...FIRST, ...W, ...names.filter(k => !FIRST.includes(k) && !W.includes(k))];
-  for (const name of order) {
-    const [dur, design] = BANK[name], slot = dur + 0.15, out = [], n = /^[wh]_/.test(name) ? 2 : n0;
+// Rendering. Everything goes through renderGroups: many sounds laid end to end in ONE offline render, then sliced apart. Mobile
+// Safari limits and leaks audio contexts; one context per sound (about ninety) froze phones. Now it is a handful.
+// attach() must run first, so Tone never opens a second live AudioContext of its own (on iOS that silences the game's).
+export function attach(ctx) { try { Tone.setContext(ctx); } catch { /* the offline renders do not need it */ } }
+async function renderGroups(ctx, items, maxSec, onItem) {
+  const sr = ctx.sampleRate, gap = 0.15;
+  for (let i = 0; i < items.length;) {
+    const group = []; let total = 0;
+    while (i < items.length && (group.length === 0 || total + (items[i].dur + gap) * items[i].n <= maxSec)) { const it = items[i++]; it.at = total; total += (it.dur + gap) * it.n; group.push(it); }
     try {
-      const tb = await Tone.Offline(() => { const o = new Tone.Gain(1).toDestination(); for (let i = 0; i < n; i++) design(kit(o, i * slot)); }, slot * n, 1, sr);
-      const all = tb.getChannelData(0), len = Math.floor(dur * sr), fade = Math.floor(sr * 0.02);
-      for (let i = 0; i < n; i++) {
-        const st = Math.floor(i * slot * sr); let pk = 0; for (let k = 0; k < len; k++) pk = Math.max(pk, Math.abs(all[st + k] || 0));
-        if (!(pk > 1e-5)) continue;
-        const b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0), s = 0.95 / pk;
-        for (let k = 0; k < len; k++) d[k] = (all[st + k] || 0) * s * (k > len - fade ? (len - k) / fade : 1);   // normalised, and no click at the end
-        out.push(b);
-      }
-    } catch (e) { renderBank.err = (renderBank.err || '') + name + ': ' + String(e).slice(0, 120) + '\n'; }
-    if (out.length) onSound(name, out);
+      // Tone builds the graph on an offline context, but the browser renders it natively: Tone.Offline would step its own JS clock
+      // tick by tick over every object, which made a batch of many sounds take seconds
+      const oc = new Tone.OfflineContext(1, total + 0.05, sr), prev = Tone.getContext(); Tone.setContext(oc);
+      try { const o = new Tone.Gain(1).toDestination(); for (const it of group) for (let v = 0; v < it.n; v++) { const K = kit(o, it.at + v * (it.dur + gap)); K.o = o; it.design(K); } }
+      finally { Tone.setContext(prev); }
+      renderGroups.contexts = (renderGroups.contexts || 0) + 1;
+      const all = (await oc.rawContext.startRendering()).getChannelData(0);
+      for (const it of group) { const parts = []; for (let v = 0; v < it.n; v++) { const st = Math.floor((it.at + v * (it.dur + gap)) * sr), len = Math.floor(it.dur * sr); parts.push(all.subarray(st, st + len)); } try { onItem(it, parts); } catch (e) { renderGroups.err = (renderGroups.err || '') + it.name + ': ' + String(e).slice(0, 100) + '\n'; } }
+    } catch (e) { renderGroups.err = (renderGroups.err || '') + group.map(g => g.name).join(',') + ': ' + String(e).slice(0, 120) + '\n'; }
     await idle();
   }
 }
+const toBuffer = (ctx, a, gain = 0.95, fadeS = 0.02) => { let pk = 0; for (let k = 0; k < a.length; k++) pk = Math.max(pk, Math.abs(a[k])); if (!(pk > 1e-5)) return null;
+  const b = ctx.createBuffer(1, a.length, ctx.sampleRate), d = b.getChannelData(0), s = gain / pk, fade = Math.min(a.length, Math.floor(ctx.sampleRate * fadeS)); for (let k = 0; k < a.length; k++) d[k] = a[k] * s * (k > a.length - fade ? (a.length - k) / fade : 1); return b; };
+const FIRST = ['hit', 'smack', 'thud', 'slash', 'bow', 'xbow', 'cast', 'arrow', 'sword', 'whoosh', 'tower', 'crit', 'heavy'];
+// the effects: `n` variations each (weapon sounds one fewer); on a phone one of each
+export async function renderBank(ctx, onSound, n0 = 3, maxSec = 20) {
+  const W = names.filter(k => /^[wh]_/.test(k)), order = [...FIRST, ...W, ...names.filter(k => !FIRST.includes(k) && !W.includes(k))];
+  const items = order.map(name => ({ name, dur: BANK[name][0], design: BANK[name][1], n: Math.max(1, /^[wh]_/.test(name) ? n0 - 1 : n0) }));
+  await renderGroups(ctx, items, maxSec, (it, parts) => { const bufs = parts.map(p => toBuffer(ctx, p)).filter(Boolean); if (bufs.length) onSound(it.name, bufs); });
+}
+renderBank.err = ''; export const stats = () => ({ contexts: renderGroups.contexts || 0, err: renderGroups.err || '' });
 
 // ---------------- the music's instruments ----------------
 // A few recorded-once notes per instrument; audio.js pitches them with playbackRate to the score's pentatonic notes.
@@ -168,58 +177,46 @@ function qinNote(f, len, sr) {
 }
 const MUSIC = {
   qin110: [3.2, K => { const sr = Tone.getContext().sampleRate, s = new Tone.ToneBufferSource(Tone.ToneAudioBuffer.fromArray(qinNote(110, 3.2, sr))), f = new Tone.Filter({ type: 'lowpass', frequency: 2400, Q: 0.6 }), body = new Tone.Filter({ type: 'peaking', frequency: 220, gain: 4, Q: 1 });
-    s.chain(body, f, K.o); new Tone.LFO(4.6, 0.996, 1.004).connect(s.playbackRate).start(0.5); s.start(0); K.thump(0, 70, 0.12, 0.15, 1); }],
+    s.chain(body, f, K.o); new Tone.LFO(4.6, 0.996, 1.004).connect(s.playbackRate).start(K.T0 + 0.5); s.start(K.T0); K.thump(0, 70, 0.12, 0.15, 1); }],
   qin220: [2.6, K => { const sr = Tone.getContext().sampleRate, s = new Tone.ToneBufferSource(Tone.ToneAudioBuffer.fromArray(qinNote(220, 2.6, sr))), f = new Tone.Filter({ type: 'lowpass', frequency: 3200, Q: 0.6 });
-    s.chain(f, K.o); new Tone.LFO(4.8, 0.996, 1.004).connect(s.playbackRate).start(0.45); s.start(0); }],
+    s.chain(f, K.o); new Tone.LFO(4.8, 0.996, 1.004).connect(s.playbackRate).start(K.T0 + 0.45); s.start(K.T0); }],
   qin440: [2.0, K => { const sr = Tone.getContext().sampleRate, s = new Tone.ToneBufferSource(Tone.ToneAudioBuffer.fromArray(qinNote(440, 2.0, sr))), f = new Tone.Filter({ type: 'lowpass', frequency: 4200, Q: 0.6 });
-    s.chain(f, K.o); new Tone.LFO(5, 0.997, 1.003).connect(s.playbackRate).start(0.4); s.start(0); }],
+    s.chain(f, K.o); new Tone.LFO(5, 0.997, 1.003).connect(s.playbackRate).start(K.T0 + 0.4); s.start(K.T0); }],
   xiao440: [3.4, K => { const v = new Tone.Vibrato({ frequency: 5.2, depth: 0.08 }), lp = new Tone.Filter({ type: 'lowpass', frequency: 2600 }); v.chain(lp, K.o);
-    const s = new Tone.FMSynth({ harmonicity: 1, modulationIndex: 0.6, oscillator: { type: 'sine' }, envelope: { attack: 0.28, decay: 0.2, sustain: 0.85, release: 0.6 }, volume: -4 }).connect(v); s.triggerAttackRelease(440, 2.6, 0);
+    const s = new Tone.FMSynth({ harmonicity: 1, modulationIndex: 0.6, oscillator: { type: 'sine' }, envelope: { attack: 0.28, decay: 0.2, sustain: 0.85, release: 0.6 }, volume: -4 }).connect(v); s.triggerAttackRelease(440, 2.6, K.T0);
     K.burst(0, { c: 'pink', f0: 880, q: 1.6, a: 0.25, d: 2.9, v: 0.12, sw: 2.9, dest: lp }); }],
   taiko: [1.0, K => { const g = K.grit(0.2); K.thump(0, 52, 0.7, 1, 2, 0.06, g); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 420, f1: 120, a: 0.002, d: 0.22, v: 0.8 }); K.burst(0, { c: 'pink', f0: 1500, f1: 600, q: 1, a: 0.001, d: 0.03, v: 0.35 }); }],
   tang: [0.5, K => { K.thump(0, 125, 0.25, 1, 1.5, 0.03); K.burst(0, { c: 'pink', f0: 1100, f1: 500, q: 1.2, a: 0.001, d: 0.06, v: 0.45 }); }],
-  drone: [6.0, K => { const s = new Tone.FMSynth({ harmonicity: 0.5, modulationIndex: 3, envelope: { attack: 1.2, decay: 0.5, sustain: 0.9, release: 1.5 }, modulationEnvelope: { attack: 2, decay: 1, sustain: 0.8, release: 1.5 }, volume: -6 }).connect(K.tone(500)); s.triggerAttackRelease(55, 4.3, 0);
+  drone: [6.0, K => { const s = new Tone.FMSynth({ harmonicity: 0.5, modulationIndex: 3, envelope: { attack: 1.2, decay: 0.5, sustain: 0.9, release: 1.5 }, modulationEnvelope: { attack: 2, decay: 1, sustain: 0.8, release: 1.5 }, volume: -6 }).connect(K.tone(500)); s.triggerAttackRelease(55, 4.3, K.T0);
     K.burst(0, { c: 'brown', ft: 'lowpass', f0: 160, a: 1.2, d: 4.6, v: 0.5, sw: 4.6, lfo: 0.7, depth: 0.5 }); }],
 };
-export async function renderMusic(ctx, onSound) {
-  const sr = ctx.sampleRate;
-  for (const [name, [dur, design]] of Object.entries(MUSIC)) {
-    try {
-      const tb = await Tone.Offline(() => { const o = new Tone.Gain(1).toDestination(); const K = kit(o); K.o = o; design(K); }, dur, 1, sr);
-      const src = tb.getChannelData(0); let pk = 0; for (let k = 0; k < src.length; k++) pk = Math.max(pk, Math.abs(src[k]));
-      if (!(pk > 1e-5)) continue; const b = ctx.createBuffer(1, src.length, sr), d = b.getChannelData(0), fade = Math.floor(sr * 0.05);
-      for (let k = 0; k < src.length; k++) d[k] = src[k] / pk * 0.95 * (k > src.length - fade ? (src.length - k) / fade : 1);
-      onSound(name, b);
-    } catch (e) { renderMusic.err = (renderMusic.err || '') + name + ': ' + String(e).slice(0, 120) + '\n'; }
-    await idle();
-  }
+export async function renderMusic(ctx, onSound, maxSec = 30) {
+  const items = Object.entries(MUSIC).map(([name, [dur, design]]) => ({ name, dur, design, n: 1 }));
+  await renderGroups(ctx, items, maxSec, (it, parts) => { const b = toBuffer(ctx, parts[0], 0.95, 0.05); if (b) onSound(it.name, b); });
 }
 
 // ---------------- places ----------------
 // Looping beds for where the camera is: snow wind, forest leaves, the river, the blood pool, the ember wastes. Each is rendered a
 // second longer than its loop and the overhang is cross-faded into the start, so the loop has no seam.
 const AMB = {
-  snow: K => { const bp = new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 3 }); bp.connect(K.o); const n = new Tone.Noise('pink').connect(bp).start(0); new Tone.LFO(0.13, 320, 980).connect(bp.frequency).start(0);
-    const wh = new Tone.Filter({ type: 'bandpass', frequency: 1450, Q: 14 }), wg = new Tone.Gain(0.2); n.connect(wh); wh.chain(wg, K.o); new Tone.LFO(0.21, 0, 0.45).connect(wg.gain).start(0);
+  snow: K => { const bp = new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 3 }); bp.connect(K.o); const n = new Tone.Noise('pink').connect(bp).start(K.T0).stop(K.T0 + 9.1); new Tone.LFO(0.13, 320, 980).connect(bp.frequency).start(K.T0).stop(K.T0 + 9.1);
+    const wh = new Tone.Filter({ type: 'bandpass', frequency: 1450, Q: 14 }), wg = new Tone.Gain(0.2); n.connect(wh); wh.chain(wg, K.o); new Tone.LFO(0.21, 0, 0.45).connect(wg.gain).start(K.T0).stop(K.T0 + 9.1);
     for (let t = 0.5; t < 8; t += R(0.6, 1.8)) K.grains(t, 3, 0.05, 4500, 8000, 25, 0.08); },
-  forest: K => { const hp = new Tone.Filter({ type: 'highpass', frequency: 1600 }), g = new Tone.Gain(0.5); hp.chain(g, K.o); new Tone.Noise('pink').connect(hp).start(0); new Tone.LFO(0.27, 0.15, 0.6).connect(g.gain).start(0);
+  forest: K => { const hp = new Tone.Filter({ type: 'highpass', frequency: 1600 }), g = new Tone.Gain(0.5); hp.chain(g, K.o); new Tone.Noise('pink').connect(hp).start(K.T0).stop(K.T0 + 9.1); new Tone.LFO(0.27, 0.15, 0.6).connect(g.gain).start(K.T0).stop(K.T0 + 9.1);
     for (let t = 0.2; t < 8; t += R(0.25, 0.9)) K.grains(t, 2, 0.04, 1500, 4000, 4, 0.12, 'pink'); },
-  river: K => { const bp = new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.7 }), g = new Tone.Gain(0.5); bp.chain(g, K.o); new Tone.Noise('brown').connect(bp).start(0); new Tone.LFO(0.4, 650, 1300).connect(bp.frequency).start(0);
+  river: K => { const bp = new Tone.Filter({ type: 'bandpass', frequency: 900, Q: 0.7 }), g = new Tone.Gain(0.5); bp.chain(g, K.o); new Tone.Noise('brown').connect(bp).start(K.T0).stop(K.T0 + 9.1); new Tone.LFO(0.4, 650, 1300).connect(bp.frequency).start(K.T0).stop(K.T0 + 9.1);
     for (let t = 0; t < 8; t += R(0.03, 0.12)) K.burst(t, { c: 'white', f0: R(300, 1300), q: 14, a: 0.003, d: R(0.03, 0.08), v: R(0.08, 0.2) }); },
-  blood: K => { const s = new Tone.FMSynth({ harmonicity: 0.5, modulationIndex: 1.5, envelope: { attack: 1, decay: 0.1, sustain: 1, release: 1 }, volume: -16 }).connect(K.tone(300)); s.triggerAttack(41, 0);
+  blood: K => { const s = new Tone.FMSynth({ harmonicity: 0.5, modulationIndex: 1.5, envelope: { attack: 1, decay: 0.1, sustain: 1, release: 1 }, volume: -16 }).connect(K.tone(300)); s.triggerAttackRelease(41, 9.0, K.T0);
     for (let t = 0; t < 8; t += R(0.15, 0.6)) K.burst(t, { c: 'brown', f0: R(70, 260), q: 10, a: 0.01, d: R(0.12, 0.3), v: R(0.25, 0.6) });
     K.burst(0, { c: 'brown', ft: 'lowpass', f0: 140, a: 0.5, d: 8.5, v: 0.25, sw: 8.5 }); },
   ash: K => { K.burst(0, { c: 'brown', ft: 'lowpass', f0: 160, a: 0.5, d: 8.5, v: 0.6, sw: 8.5, lfo: 0.3, depth: 0.4 }); for (let t = 0; t < 8; t += R(0.05, 0.3)) K.grains(t, 1, 0.01, 2000, 6500, 3, R(0.05, 0.18)); },
 };
-export async function renderAmbience(ctx, onBed, loop = 8) {
+export async function renderAmbience(ctx, onBed, loop = 8, maxSec = 30) {
   const sr = ctx.sampleRate, xf = Math.floor(sr * 1), L = Math.floor(sr * loop);
-  for (const [name, design] of Object.entries(AMB)) {
-    try {
-      const tb = await Tone.Offline(() => { const o = new Tone.Gain(1).toDestination(); const K = kit(o); K.o = o; design(K); }, loop + 1.05, 1, sr);
-      const a = tb.getChannelData(0), b = ctx.createBuffer(1, L, sr), d = b.getChannelData(0); let pk = 0;
-      for (let i = 0; i < L; i++) { const w = i < xf ? i / xf : 1; d[i] = a[i] * w + (i < xf ? (a[L + i] || 0) * (1 - w) : 0); pk = Math.max(pk, Math.abs(d[i])); }
-      if (pk > 1e-5) { for (let i = 0; i < L; i++) d[i] *= 0.9 / pk; onBed(name, b); }
-    } catch (e) { renderAmbience.err = (renderAmbience.err || '') + name + ': ' + String(e).slice(0, 120) + '\n'; }
-    await idle();
-  }
+  const items = Object.entries(AMB).map(([name, design]) => ({ name, dur: loop + 1.05, design, n: 1 }));
+  await renderGroups(ctx, items, maxSec, (it, [a]) => {
+    const b = ctx.createBuffer(1, L, sr), d = b.getChannelData(0); let pk = 0;
+    for (let i = 0; i < L; i++) { const w = i < xf ? i / xf : 1; d[i] = a[i] * w + (i < xf ? (a[L + i] || 0) * (1 - w) : 0); pk = Math.max(pk, Math.abs(d[i])); }
+    if (pk > 1e-5) { for (let i = 0; i < L; i++) d[i] *= 0.9 / pk; onBed(it.name, b); }
+  });
 }
