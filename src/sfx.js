@@ -29,10 +29,10 @@ function kit(o, T0 = 0) {                                            // T0: wher
   const fm = (t, f, d, v, h = 2, mi = 3, a = 0.004, dest = o) => { t += T0; const s = new Tone.FMSynth({ harmonicity: h, modulationIndex: mi, envelope: { attack: a, decay: d, sustain: 0, release: 0.1 }, modulationEnvelope: { attack: a, decay: d * 0.6, sustain: 0, release: 0.1 }, volume: db(v) }).connect(dest); s.triggerAttackRelease(f, d, t); };
   // a plucked string (Karplus–Strong), computed here rather than with Tone's PluckSynth, whose AudioWorklet will not load from a
   // blob URL inside a sandboxed page
-  const pluck = (t, f, v, damp = 3200, dest = o) => { t += T0;
-    const sr = Tone.getContext().sampleRate, len = Math.floor(sr * 0.7), N = Math.max(2, Math.round(sr / f)), a = new Float32Array(len), mix = Math.min(0.92, Math.max(0.2, damp / 7000));
+  const pluck = (t, f, v, damp = 3200, dest = o, secs = 0.7, loss = 0.996) => { t += T0;
+    const sr = Tone.getContext().sampleRate, len = Math.floor(sr * secs), N = Math.max(2, Math.round(sr / f)), a = new Float32Array(len), mix = Math.min(0.92, Math.max(0.2, damp / 7000));
     for (let i = 0; i < N; i++) a[i] = Math.random() * 2 - 1;
-    for (let i = N; i < len; i++) a[i] = (a[i - N] * mix + a[i - N - 1 < 0 ? 0 : i - N - 1] * (1 - mix)) * 0.996;
+    for (let i = N; i < len; i++) a[i] = (a[i - N] * mix + a[i - N - 1 < 0 ? 0 : i - N - 1] * (1 - mix)) * loss;
     for (let i = 0; i < len; i++) a[i] *= v * 0.6;
     new Tone.ToneBufferSource(Tone.ToneAudioBuffer.fromArray(a)).connect(dest).start(t); };
   const grit = (amt, dest = o) => new Tone.Distortion({ distortion: amt, wet: 0.7 }).connect(dest);
@@ -50,8 +50,8 @@ const BANK = {
   // --- swings and shots ---
   slash: [0.35, K => { K.burst(0, { c: 'pink', f0: R(450, 600), f1: R(4200, 5200), q: 1.3, a: 0.02, d: 0.16, v: 0.9 }); K.burst(0.05, { c: 'white', ft: 'highpass', f0: 6000, d: 0.05, v: 0.25 }); K.burst(0.03, { c: 'white', f0: R(2700, 3400), q: 26, d: 0.22, v: 0.22 }); }],
   heavy: [0.5, K => { K.burst(0, { c: 'brown', f0: 140, f1: 1300, q: 0.8, a: 0.05, d: 0.28, v: 1 }); K.thump(0.07, 68, 0.26, 0.8, 3); }],
-  bow: [0.5, K => { K.pluck(0, R(95, 115), 0.9, 2600); K.burst(0.01, { c: 'pink', ft: 'highpass', f0: 2600, f1: 6000, a: 0.01, d: 0.14, v: 0.35 }); }],
-  xbow: [0.4, K => { K.burst(0, { c: 'white', f0: 3600, f1: 1800, q: 2, a: 0.001, d: 0.025, v: 0.8 }); K.pluck(0.005, R(70, 82), 0.8, 1800); K.thump(0.005, 90, 0.1, 0.6, 2); K.burst(0.02, { c: 'pink', ft: 'highpass', f0: 3000, f1: 6500, d: 0.15, v: 0.25 }); }],
+  bow: [0.35, K => { K.pluck(0, R(150, 180), 0.45, 1400, K.o, 0.1, 0.982); K.burst(0, { c: 'pink', f0: R(200, 240), q: 5, a: 0.001, d: 0.05, v: 0.6 }); K.burst(0.008, { c: 'pink', ft: 'highpass', f0: 2500, f1: 6000, a: 0.01, d: 0.18, v: 0.45 }); }],   // a snap, the limb, the arrow — not a ringing string
+  xbow: [0.35, K => { K.burst(0, { c: 'white', f0: 3600, f1: 1800, q: 2, a: 0.001, d: 0.022, v: 0.7 }); K.pluck(0.004, R(90, 105), 0.4, 1000, K.o, 0.07, 0.975); K.thump(0.004, 90, 0.07, 0.55, 0.4, 0.01); K.burst(0.02, { c: 'pink', ft: 'highpass', f0: 3000, f1: 6500, d: 0.14, v: 0.25 }); }],
   cast: [0.45, K => { K.burst(0, { c: 'white', f0: 2400, f1: 5600, q: 6, a: 0.02, d: 0.22, v: 0.5 }); K.burst(0, { c: 'pink', ft: 'lowpass', f0: 600, f1: 1500, a: 0.05, d: 0.18, v: 0.45 }); K.grains(0.02, 8, 0.15, 3000, 8000, 12, 0.22); }],
   arrow: [0.3, K => { K.burst(0, { c: 'pink', ft: 'highpass', f0: R(2300, 2800), f1: R(5200, 6000), a: 0.01, d: 0.16, v: 0.8 }); }],
   whoosh: [0.55, K => { K.burst(0, { c: 'pink', f0: 280, f1: 2300, q: 0.8, a: 0.08, d: 0.3, v: 1 }); K.burst(0.15, { c: 'pink', f0: 900, f1: 300, q: 1, d: 0.22, v: 0.4 }); }],
@@ -108,11 +108,11 @@ Object.assign(BANK, {
   h_wenren: [0.3, K => { K.thump(0, 95, 0.09, 0.7, 0.8, 0.02); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 800, q: 3, d: 0.1, v: 0.8 }); K.burst(0, { c: 'white', f0: 2600, q: 2, a: 0.001, d: 0.02, v: 0.6 }); }],
   w_archer: [0.35, K => { K.burst(0, { c: 'pink', f0: 400, f1: 1600, q: 0.8, a: 0.01, d: 0.18, v: 0.9, lfo: 22, depth: 0.4 }); K.grains(0.02, 8, 0.15, 2500, 6000, 3, 0.25); }],
   h_archer: [0.4, K => { K.burst(0, { c: 'brown', ft: 'lowpass', f0: 1400, f1: 250, d: 0.2, v: 0.8 }); K.grains(0, 12, 0.2, 2500, 7000, 3, 0.3); K.thump(0, 80, 0.12, 0.5, 0.6, 0.02); }],
-  w_linshuang: [0.5, K => { K.pluck(0, 70, 0.9, 1200); K.burst(0, { c: 'white', f0: 1200, q: 3, a: 0.001, d: 0.02, v: 0.5 }); K.burst(0.02, { c: 'pink', ft: 'highpass', f0: 2000, f1: 5000, a: 0.01, d: 0.12, v: 0.3 }); }],
+  w_linshuang: [0.4, K => { K.pluck(0, 110, 0.45, 1000, K.o, 0.13, 0.978); K.burst(0, { c: 'pink', f0: 160, q: 4, a: 0.001, d: 0.07, v: 0.8 }); K.burst(0.01, { c: 'pink', ft: 'highpass', f0: 1800, f1: 4500, a: 0.01, d: 0.22, v: 0.5 }); }],   // the heavy bow: a deeper snap and a longer hiss
   h_linshuang: [0.3, K => { K.thump(0, 120, 0.08, 0.7, 0.5, 0.01); K.burst(0, { c: 'white', f0: 2200, q: 3, a: 0.001, d: 0.03, v: 0.6 }); K.grains(0, 6, 0.05, 3000, 7000, 18, 0.4); }],
   w_ranger: [0.3, K => { swish(K, 0, 1200, 6500, 1.2, 0.16, 0.9); K.burst(0.02, { c: 'white', f0: 4200, q: 25, d: 0.18, v: 0.15 }); }],
   h_ranger: [0.2, K => { K.burst(0, { c: 'white', ft: 'highpass', f0: 4000, a: 0.001, d: 0.035, v: 0.7 }); K.burst(0, { c: 'pink', f0: 2200, f1: 900, q: 1.2, d: 0.05, v: 0.5 }); }],
-  w_gunner: [0.35, K => { K.burst(0, { c: 'white', f0: 3800, q: 3, a: 0.001, d: 0.015, v: 0.8 }); K.pluck(0.005, 60, 0.8, 900); K.thump(0.005, 85, 0.06, 0.5, 0.4, 0.01); K.burst(0.02, { c: 'pink', ft: 'highpass', f0: 3000, f1: 6000, d: 0.12, v: 0.25 }); }],
+  w_gunner: [0.35, K => { K.burst(0, { c: 'white', f0: 3800, q: 3, a: 0.001, d: 0.015, v: 0.7 }); K.pluck(0.005, 85, 0.4, 900, K.o, 0.07, 0.975); K.thump(0.005, 85, 0.06, 0.5, 0.4, 0.01); K.burst(0.02, { c: 'pink', ft: 'highpass', f0: 3000, f1: 6000, d: 0.12, v: 0.25 }); }],
   h_gunner: [0.3, K => { K.thump(0, 110, 0.08, 0.7, 0.5, 0.01); K.burst(0, { c: 'white', f0: 1800, q: 2, a: 0.001, d: 0.03, v: 0.6 }); K.burst(0.005, { c: 'brown', ft: 'lowpass', f0: 1000, d: 0.1, v: 0.6 }); }],
   w_mage: [0.35, K => { K.burst(0, { c: 'white', f0: 5200, f1: 2600, q: 8, a: 0.01, d: 0.2, v: 0.5 }); K.fm(0, pick(PENTA.slice(3, 7)), 0.25, 0.15, 1.5, 0.8, 0.01); K.burst(0, { c: 'pink', ft: 'highpass', f0: 2000, d: 0.15, v: 0.25 }); }],
   h_mage: [0.3, K => { K.burst(0, { c: 'pink', f0: 3000, f1: 800, q: 2, d: 0.12, v: 0.7 }); K.grains(0, 10, 0.08, 4000, 9000, 15, 0.3); }],

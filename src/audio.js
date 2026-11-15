@@ -132,9 +132,9 @@ export function createAudio(lite) {
   const TRIM = { boom: 0.62, earth: 0.55, kill: 0.55, death: 0.62, blood: 0.7, arrive: 0.75, heart: 0.8, smack: 0.85, bow: 0.8, slash: 1.5, zap: 1.5, ice: 1.45, magic: 1.4, thunder: 1.35, sword: 1.3, star: 1.3, fire: 1.3, xbow: 1.3, crit: 1.25 };
   const recent = [], bank = {}, inst = {}, lv = n => LEVEL[n] ?? (n[0] === 'w' && n[1] === '_' ? 0.42 : n[0] === 'h' && n[1] === '_' ? 0.5 : 0.35);
   // loudness of each designed sound (the bank is normalised); the quick fallback keeps its own TRIM
-  const LEVEL = { hit: 0.2, smack: 0.48, thud: 0.38, crit: 0.55, slash: 0.3, heavy: 0.42, bow: 0.42, xbow: 0.36, cast: 0.26, arrow: 0.34, whoosh: 0.34, zap: 0.5, thunder: 0.6, ice: 0.42,
+  const LEVEL = { hit: 0.2, smack: 0.48, thud: 0.38, crit: 0.55, slash: 0.3, heavy: 0.42, bow: 0.28, xbow: 0.3, cast: 0.26, arrow: 0.34, whoosh: 0.34, zap: 0.5, thunder: 0.6, ice: 0.42,
     fire: 0.38, blood: 0.4, star: 0.34, sword: 0.4, wind: 0.38, heal: 0.3, earth: 0.62, shout: 0.34, magic: 0.28, charge: 0.28, shield: 0.28, tower: 0.42, boom: 0.72, kill: 0.5, death: 0.5,
-    horn: 0.42, warn: 0.32, ult: 0.75, coin: 0.36, buy: 0.32, level: 0.38, ping: 0.38, recall: 0.28, arrive: 0.42, heart: 0.5, click: 0.18 };
+    horn: 0.42, warn: 0.32, ult: 0.75, w_linshuang: 0.3, w_gunner: 0.3, coin: 0.36, buy: 0.32, level: 0.38, ping: 0.38, recall: 0.28, arrive: 0.42, heart: 0.5, click: 0.18 };
   // x, z = where it happens in the world. The listener stands at the camera's focus, facing up the screen: left and right
   // are true to the picture, things up-screen sound ahead and things down-screen behind (with headphones). Distance dulls
   // the sound and sends more of it to the room.
