@@ -41,14 +41,13 @@ export function createAudio(lite) {
     startAmbience(); startMusic();
     // designed sounds: Tone is attached to this context first (never a second live one), then everything renders in a few batches.
     // A phone gets one variation of each sound in bigger batches and keeps the plain ambience; a failure anywhere leaves the quick sounds.
-    // Measured: one sound per offline render is fastest (bigger batches process every silent node for the whole batch), but mobile
-    // Safari copes badly with dozens of audio contexts — so a phone renders one variation each in ~4 s batches (about 20 renders).
+    // One sound per offline render: measured fastest (bigger batches process every silent node for the whole batch). Phones get the
+    // same; the author's phone was fine with it. renderGroups can batch (maxSec) if a device ever needs fewer contexts.
     if (A.simple) return;                                              // ?sound=simple: the quick sounds only
     attach(ctx);
-    const lite = A.lite;
-    renderMusic(ctx, (name, b) => { inst[name] = b; }, lite ? 20 : 0)
-      .then(() => renderBank(ctx, (name, bufs) => { bank[name] = bufs; A.bankN = Object.keys(bank).length; }, lite ? 1 : 3, lite ? 4 : 0))
-      .then(() => lite ? null : renderAmbience(ctx, (name, b) => { beds[name] = bed(b); }, 8, 0))
+    renderMusic(ctx, (name, b) => { inst[name] = b; }, 0)
+      .then(() => renderBank(ctx, (name, bufs) => { bank[name] = bufs; A.bankN = Object.keys(bank).length; }, 3, 0))
+      .then(() => renderAmbience(ctx, (name, b) => { beds[name] = bed(b); }, 8, 0))
       .catch(e => { A.lastErr = 'render: ' + e; });   // the instruments first (small), then the effects   // the designed sounds replace the quick ones as they come in
   };
   A.vol = { music: 1, sfx: 1 };
