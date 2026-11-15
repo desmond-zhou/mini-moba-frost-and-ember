@@ -271,12 +271,12 @@ export const HEROES = {
     id: 'bloodlord', size: 1.46, tint: [1.0, 0.1, 0.12], style: 'dual', name: '血屠子', short: '屠', title: '血魂宗主', role: '血修 · 近战', blurb: '血魂宗宗主，走血道的魔修。别人修灵气，他炼精血：自己的，更多是别人的。他不急，也不躲，站在哪里，脚下就漫开一片血海。血锁缠上谁，他人就到了谁面前。伤口在他身上留不住，流出去的血总会从别人身上炼回来。',
     hp: 1290, hpG: 136, mana: 300, manaG: 24, ad: 66, adG: 4.1, ap: 0, apG: 0, ms: 6.7, range: 3.0, period: 1.0, wind: 0.24, ranged: false, r: 1.1, h: 5.3,
     build: ['tingxue', 'heichi', 'dunying'],
-    passive: { name: '血炼', icon: 'bloodsea', desc: '附近有敌方弟子或邪祟死去时回复 3.5% 气血，死的是修士则回复 14%。' },
+    passive: { name: '血炼', icon: 'bloodsea', desc: '附近有敌方弟子或邪祟死去时回复 4.5% 气血，死的是修士则回复 16%。' },
     skills: [
-      S('Q', 'bloodclaw', '血爪', 'cone', { range: 6.2, angle: 80, cd: 5.5, mana: 30, b: 68, l: 14, ad: 0.75, drain: 0.55, vfx: 'bloodclaw' }, '血爪撕开前方扇形，并把造成伤害的一部分吸为自身气血。'),
+      S('Q', 'bloodclaw', '血爪', 'cone', { range: 6.2, angle: 80, cd: 5.5, mana: 30, b: 68, l: 14, ad: 0.75, drain: 0.7, vfx: 'bloodclaw' }, '血爪撕开前方扇形，并把造成伤害的一部分吸为自身气血。'),
       S('W', 'hook', '血锁', 'proj', { range: 13, speed: 30, width: 1.0, cd: 11, mana: 50, b: 60, l: 13, ad: 0.55, stun: 0.9, pull: 'self' }, '甩出一道血锁，命中第一个敌人后把自己拽到对方身前，并将其定身。'),
-      S('E', 'bloodshield', '化血', 'shield', { cd: 12, mana: 45, b: 130, l: 32, hpR: 0.1, dur: 4, vfx: 'bulwark', icon: 'bulwark' }, '化血为甲，获得一层随自身气血上限提高的罡气。'),
-      S('R', 'bloodsea', '血海', 'zone', { range: 0, radius: 7, delay: 0.4, dur: 4, tick: 0.5, cd: 60, mana: 100, b: 48, l: 11, ad: 0.34, slow: [0.3, 0.8], drain: 0.7 }, '脚下漫开一片血海，持续伤害并减速范围内的敌人，同时为自己回血。'),
+      S('E', 'bloodshield', '化血', 'shield', { cd: 10, mana: 45, b: 130, l: 32, hpR: 0.15, dur: 4, vfx: 'bulwark', icon: 'bulwark' }, '化血为甲，获得一层随自身气血上限提高的罡气。'),
+      S('R', 'bloodsea', '血海', 'zone', { range: 0, radius: 7, delay: 0.4, dur: 4, tick: 0.5, cd: 60, mana: 100, b: 48, l: 11, ad: 0.34, slow: [0.3, 0.8], drain: 0.9, follow: true }, '脚下漫开一片血海，跟着他走，持续伤害并减速范围内的敌人，同时为自己回血。'),
     ],
   },
   archer: {

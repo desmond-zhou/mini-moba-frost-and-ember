@@ -495,7 +495,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const col = TEAM_COL[tgt.team].glow, killer = src && src.kind === 'hero' ? src : null;
     if (tgt.recallT > 0) stopRecall(tgt, true);
     if (!isStruct(tgt)) for (const b of G.heroes) if (b.alive && b.def.id === 'bloodlord' && b.team !== tgt.team && dist(b, tgt) < 11) {   // 血炼
-      heal(b, b.maxHp * (tgt.kind === 'hero' ? 0.14 : 0.035)); if (near(b)) fx.line(tgt.x, 1.4, tgt.z, b.x, 1.8, b.z, [1.6, 0.1, 0.12], 8, 0.4, 0.3);
+      heal(b, b.maxHp * (tgt.kind === 'hero' ? 0.16 : 0.045)); if (near(b)) fx.line(tgt.x, 1.4, tgt.z, b.x, 1.8, b.z, [1.6, 0.1, 0.12], 8, 0.4, 0.3);
     }
     if (tgt.kind === 'minion' || tgt.kind === 'neutral') {
       const s = tgt.stats; if (near(tgt)) { fx.dust(tgt.x, tgt.z, DUST, { n: tgt.kind === 'neutral' ? 12 : 5, speed: 3, size: tgt.kind === 'neutral' ? 2.4 : 1.5, life: 0.9 }); fx.burst(tgt.x, 1, tgt.z, col, { n: 5, speed: 5, life: 0.45, size: 0.26 }); }
@@ -616,12 +616,14 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     }
   }
   function addZone(h, x, z, s, dmg) {
-    V.telegraph(x, z, s.radius, s.delay || 0.01, (s.dur || 0) + 0.05, h.team === G.player.team, s.kind === 'heal');
-    G.zones.push({ src: h, team: h.team, x, z, r: s.radius, t: 0, delay: s.delay || 0, dur: s.dur || 0, tick: s.tick || 0, next: s.delay || 0, s, dmg, sid: s.vfx, heal: s.kind === 'heal', col: h.fxCol });
+    const mark = V.telegraph(x, z, s.radius, s.delay || 0.01, (s.dur || 0) + 0.05, h.team === G.player.team, s.kind === 'heal');
+    G.zones.push({ mark, src: h, team: h.team, x, z, r: s.radius, t: 0, delay: s.delay || 0, dur: s.dur || 0, tick: s.tick || 0, next: s.delay || 0, s, dmg, sid: s.vfx, heal: s.kind === 'heal', col: h.fxCol });
   }
   function updateZones(dt) {
     for (let i = G.zones.length - 1; i >= 0; i--) {
-      const z = G.zones[i]; z.t += dt; const vis = near(z);
+      const z = G.zones[i]; z.t += dt;
+      if (z.s.follow && z.src.alive) { z.x = z.src.x; z.z = z.src.z; if (z.mark && z.mark.m) { z.mark.m.position.x = z.x; z.mark.m.position.z = z.z; } }   // a pool that goes where its caster goes (血海)
+      const vis = near(z);
       if (vis) V.zoneTick(z, dt);
       if (z.t >= z.next) {
         if (z.heal) { for (const a of G.heroes) if (a.alive && a.team === z.team && dist2(a.x, a.z, z.x, z.z) <= z.r + a.r) { heal(a, z.dmg); if (near(a)) { V.healed(a, z.col); if (a.isPlayer || z.src.isPlayer) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(z.dmg), 'heal'); } } }
@@ -824,7 +826,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const dTw = dist(h, etw), diveOK = etw.kind !== 'tower' || (alliesAtTw >= 1 && etw.target !== h && (h.heat || 0) < 2);
     const danger = u => etw.kind === 'tower' && dist(u, etw) < twR + 1.2;
     const wasBack = ai.state === 'retreat';
-    if (ai.state === 'retreat') { if (hpF > 0.8) ai.state = 'lane'; } else if (hpF < (h.def.id === 'shade' || h.def.id === 'qingya' || h.def.id === 'wenren' ? 0.36 : 0.27) || (hpF < 0.45 && nEH > nAH + 1)) ai.state = 'retreat';
+    if (ai.state === 'retreat') { if (hpF > 0.8) ai.state = 'lane'; } else if (hpF < (h.def.id === 'shade' || h.def.id === 'qingya' || h.def.id === 'wenren' ? 0.36 : h.def.id === 'bloodlord' ? 0.33 : 0.27) || (hpF < 0.45 && nEH > nAH + 1)) ai.state = 'retreat';
     const retreat = ai.state === 'retreat', outnum = nEH > nAH + 1, ownS = frontStruct(team, ai.lane);
     if (retreat && !wasBack) chat(h, eh ? 'retreat' : 'rest'); else if (outnum && eh && ehD < 12 && G.t - (G.helpAt || -99) > 25) { G.helpAt = G.t; chat(h, `${LANES[ai.lane].name || '这边'}对面人多，来个人`); }
     // the last enemy hero we had eyes on: if they slip into the grass, the bolder bots go in after them
