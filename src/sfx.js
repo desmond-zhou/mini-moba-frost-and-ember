@@ -44,11 +44,11 @@ function kit(o, T0 = 0) {                                            // T0: wher
 const BANK = {
   // --- blows landing ---
   hit: [0.18, K => { K.thump(0, R(110, 140), 0.06, 0.45, 0.8, 0.02); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 1100, f1: 250, d: 0.06, v: 0.8 }); K.burst(0, { c: 'white', f0: R(1200, 1800), q: 3, a: 0.001, d: 0.02, v: 0.25 }); }],
-  smack: [0.4, K => { const g = K.grit(0.35); K.thump(0, R(85, 105), 0.18, 1, 1.2, 0.03, g); K.burst(0, { c: 'white', f0: R(2200, 2900), f1: 700, q: 0.9, a: 0.001, d: 0.05, v: 0.7 }); K.burst(0.004, { c: 'brown', ft: 'lowpass', f0: 900, f1: 140, d: 0.17, v: 0.9, dest: g }); K.grains(0, 6, 0.03, 600, 1800, 2, 0.35, 'pink'); }],
+  smack: [0.3, K => { const g = K.grit(0.35); K.thump(0, R(85, 105), 0.12, 1, 1.2, 0.03, g); K.burst(0, { c: 'white', f0: R(2200, 2900), f1: 700, q: 0.9, a: 0.001, d: 0.04, v: 0.7 }); K.burst(0.004, { c: 'brown', ft: 'lowpass', f0: 900, f1: 140, d: 0.11, v: 0.9, dest: g }); K.grains(0, 5, 0.025, 600, 1800, 2, 0.3, 'pink'); }],
   thud: [0.3, K => { K.thump(0, R(70, 85), 0.14, 0.9, 1, 0.03); K.burst(0, { c: 'pink', ft: 'lowpass', f0: 1400, f1: 300, d: 0.08, v: 0.6 }); }],
   crit: [0.6, K => { const g = K.grit(0.45); K.thump(0, 62, 0.32, 1, 4, 0.06, g); K.burst(0, { c: 'white', f0: 3000, f1: 9000, q: 1.5, a: 0.001, d: 0.1, v: 0.6 }); K.burst(0.01, { c: 'brown', ft: 'lowpass', f0: 1200, f1: 120, d: 0.3, v: 1, dest: g }); K.burst(0.02, { c: 'white', f0: R(2600, 3200), q: 28, d: 0.35, v: 0.25 }); }],
   // --- swings and shots ---
-  slash: [0.35, K => { K.burst(0, { c: 'pink', f0: R(450, 600), f1: R(4200, 5200), q: 1.3, a: 0.02, d: 0.16, v: 0.9 }); K.burst(0.05, { c: 'white', ft: 'highpass', f0: 6000, d: 0.05, v: 0.25 }); K.burst(0.03, { c: 'white', f0: R(2700, 3400), q: 26, d: 0.22, v: 0.22 }); }],
+  slash: [0.25, K => { K.burst(0, { c: 'pink', f0: R(450, 600), f1: R(4200, 5200), q: 1.3, a: 0.015, d: 0.12, v: 0.9 }); K.burst(0.04, { c: 'white', ft: 'highpass', f0: 6000, d: 0.04, v: 0.22 }); K.burst(0.02, { c: 'white', f0: R(2700, 3400), q: 26, d: 0.12, v: 0.18 }); }],
   heavy: [0.5, K => { K.burst(0, { c: 'brown', f0: 140, f1: 1300, q: 0.8, a: 0.05, d: 0.28, v: 1 }); K.thump(0.07, 68, 0.26, 0.8, 3); }],
   bow: [0.35, K => { K.pluck(0, R(150, 180), 0.45, 1400, K.o, 0.1, 0.982); K.burst(0, { c: 'pink', f0: R(200, 240), q: 5, a: 0.001, d: 0.05, v: 0.6 }); K.burst(0.008, { c: 'pink', ft: 'highpass', f0: 2500, f1: 6000, a: 0.01, d: 0.18, v: 0.45 }); }],   // a snap, the limb, the arrow — not a ringing string
   xbow: [0.35, K => { K.burst(0, { c: 'white', f0: 3600, f1: 1800, q: 2, a: 0.001, d: 0.022, v: 0.7 }); K.pluck(0.004, R(90, 105), 0.4, 1000, K.o, 0.07, 0.975); K.thump(0.004, 90, 0.07, 0.55, 0.4, 0.01); K.burst(0.02, { c: 'pink', ft: 'highpass', f0: 3000, f1: 6500, d: 0.14, v: 0.25 }); }],
@@ -126,6 +126,10 @@ Object.assign(BANK, {
   h_yanzhao: [0.2, K => { K.burst(0, { c: 'brown', ft: 'lowpass', f0: 600, d: 0.08, v: 0.8 }); K.thump(0, 120, 0.05, 0.4, 0.4, 0.01); }],
   w_yuanshan: [0.3, K => { K.burst(0, { c: 'white', f0: 5200, q: 20, a: 0.002, d: 0.12, v: 0.3 }); K.burst(0.02, { c: 'white', f0: 7400, q: 25, d: 0.08, v: 0.2 }); K.burst(0, { c: 'pink', ft: 'highpass', f0: 2500, d: 0.1, v: 0.35 }); }],
   h_yuanshan: [0.25, K => { K.thump(0, 150, 0.04, 0.5, 0.3, 0.01); K.burst(0, { c: 'white', f0: 3800, q: 14, a: 0.001, d: 0.07, v: 0.4 }); K.burst(0, { c: 'pink', f0: 1500, q: 2, d: 0.04, v: 0.35 }); }],
+  // mid-weight landings, so the real explosion ('boom') is kept for ultimates and structures
+  blast: [0.6, K => { const g = K.grit(0.4); K.thump(0, 68, 0.28, 0.9, 0.7, 0.03, g); K.burst(0, { c: 'white', f0: 2600, f1: 700, a: 0.001, d: 0.05, v: 0.7 }); K.burst(0.005, { c: 'brown', ft: 'lowpass', f0: 1300, f1: 120, d: 0.38, v: 0.9, dest: g }); K.grains(0.03, 12, 0.3, 900, 3500, 2, 0.25, 'pink'); }],
+  zapcrack: [0.45, K => { K.burst(0, { c: 'white', ft: 'highpass', f0: 3500, a: 0.001, d: 0.03, v: 1 }); K.grains(0, 16, 0.08, 1800, 8000, 3, 0.5); K.thump(0.004, 75, 0.16, 0.7, 0.6, 0.02); K.burst(0.01, { c: 'brown', ft: 'lowpass', f0: 600, f1: 90, d: 0.3, v: 0.5, lfo: 18 }); }],
+  slam: [0.8, K => { const g = K.grit(0.5); K.thump(0, 55, 0.45, 1, 0.7, 0.04, g); K.burst(0, { c: 'brown', ft: 'lowpass', f0: 900, f1: 80, a: 0.002, d: 0.5, v: 1, dest: g }); K.burst(0, { c: 'white', f0: 1600, f1: 500, a: 0.001, d: 0.04, v: 0.5 }); K.grains(0.02, 22, 0.3, 600, 2200, 2, 0.4, 'pink'); }],
   // an ultimate: a short draw of breath, then the weight of it, and a low bell behind
   ult: [2.0, K => { const g = K.grit(0.35); K.burst(0, { c: 'pink', f0: 200, f1: 3000, q: 1, a: 0.12, d: 0.05, v: 0.7, sw: 0.15 }); K.thump(0.12, 50, 0.8, 1, 1, 0.05, g); K.burst(0.12, { c: 'brown', ft: 'lowpass', f0: 1500, f1: 60, a: 0.002, d: 0.9, v: 1, dest: g }); K.burst(0.12, { c: 'white', f0: 2600, f1: 900, a: 0.001, d: 0.08, v: 0.6 }); K.fm(0.13, 110, 1.6, 0.2, 1.4, 1.5); }],
 });

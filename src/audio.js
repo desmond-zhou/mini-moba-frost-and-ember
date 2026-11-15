@@ -9,7 +9,7 @@ export { renderBank };
 
 export function createAudio(lite) {
   const A = { lite: !!lite, simple: /[?&]sound=simple\b/.test(location.search), muted: false, listener: { x: 0, z: 0 }, intensity: 0, mood: 'calm' };   // mood: calm | trib | end (set from main.js)
-  let ctx = null, master = null, musicBus = null, revIn = null, roomIn = null, sfx = null, noiseBuf = null, out = null, tune = 1; const last = {};
+  let small = null, mduck = null, ctx = null, master = null, musicBus = null, revIn = null, roomIn = null, sfx = null, noiseBuf = null, out = null, tune = 1; const last = {};
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
   A.init = () => {
@@ -35,8 +35,9 @@ export function createAudio(lite) {
       const d = ctx.createDelay(0.1), f = ctx.createBiquadFilter(), g = ctx.createGain(); d.delayTime.value = dl; f.type = 'lowpass'; f.frequency.value = 3600; g.gain.value = gn;
       roomIn.connect(d); d.connect(f); f.connect(g); if (ctx.createStereoPanner) { const sp = ctx.createStereoPanner(); sp.pan.value = pn; g.connect(sp); sp.connect(master); } else g.connect(master);
     }
-    musicBus = ctx.createGain(); musicBus.gain.value = 0.5; musicBus.connect(master); const ms = ctx.createGain(); ms.gain.value = 0.55; musicBus.connect(ms); ms.connect(revIn);
+    musicBus = ctx.createGain(); musicBus.gain.value = 0.5; mduck = ctx.createGain(); musicBus.connect(mduck); mduck.connect(master); const ms = ctx.createGain(); ms.gain.value = 0.55; musicBus.connect(ms); ms.connect(revIn);
     sfx = ctx.createGain(); sfx.connect(master); out = sfx;
+    small = ctx.createGain(); small.connect(sfx);                          // everyday sounds go through here, so a big moment can duck them
     A.setVolume(A.vol.music, A.vol.sfx);
     startAmbience(); startMusic();
     // designed sounds: Tone is attached to this context first (never a second live one), then everything renders in a few batches.
@@ -130,11 +131,12 @@ export function createAudio(lite) {
   const GAP = { ult: 0.3, hit: 0.11, thud: 0.07, smack: 0.06, slash: 0.06, heavy: 0.06, bow: 0.05, xbow: 0.05, cast: 0.05, boom: 0.09, ice: 0.12, fire: 0.12, thunder: 0.14, zap: 0.08, blood: 0.12, star: 0.1, sword: 0.1, heal: 0.15, earth: 0.1, wind: 0.15, kill: 0.2, tower: 0.08 };
   const SOFT = { hit: 1, thud: 1, tower: 1 }, WET = { boom: 0.3, thunder: 0.35, kill: 0.4, horn: 0.4, death: 0.4, earth: 0.25, ice: 0.25, star: 0.3, heal: 0.3, magic: 0.25, shield: 0.25, sword: 0.22, level: 0.3, ping: 0.35, arrive: 0.35, recall: 0.3, crit: 0.2 };
   const TRIM = { boom: 0.62, earth: 0.55, kill: 0.55, death: 0.62, blood: 0.7, arrive: 0.75, heart: 0.8, smack: 0.85, bow: 0.8, slash: 1.5, zap: 1.5, ice: 1.45, magic: 1.4, thunder: 1.35, sword: 1.3, star: 1.3, fire: 1.3, xbow: 1.3, crit: 1.25 };
-  const recent = [], bank = {}, inst = {}, lv = n => LEVEL[n] ?? (n[0] === 'w' && n[1] === '_' ? 0.42 : n[0] === 'h' && n[1] === '_' ? 0.5 : 0.35);
+  const BIG = new Set(['ult', 'boom', 'kill', 'death', 'horn']);   // rare and large: louder, and everything else ducks under them
+  const recent = [], bank = {}, inst = {}, lv = n => LEVEL[n] ?? (n[0] === 'w' && n[1] === '_' ? 0.32 : n[0] === 'h' && n[1] === '_' ? 0.38 : 0.35);   // basic attacks sit low: they are constant
   // loudness of each designed sound (the bank is normalised); the quick fallback keeps its own TRIM
-  const LEVEL = { hit: 0.2, smack: 0.48, thud: 0.38, crit: 0.55, slash: 0.3, heavy: 0.42, bow: 0.28, xbow: 0.3, cast: 0.26, arrow: 0.34, whoosh: 0.34, zap: 0.5, thunder: 0.6, ice: 0.42,
-    fire: 0.38, blood: 0.4, star: 0.34, sword: 0.4, wind: 0.38, heal: 0.3, earth: 0.62, shout: 0.34, magic: 0.28, charge: 0.28, shield: 0.28, tower: 0.42, boom: 0.72, kill: 0.5, death: 0.5,
-    horn: 0.42, warn: 0.32, ult: 0.75, w_linshuang: 0.3, w_gunner: 0.3, coin: 0.36, buy: 0.32, level: 0.38, ping: 0.38, recall: 0.28, arrive: 0.42, heart: 0.5, click: 0.18 };
+  const LEVEL = { hit: 0.14, smack: 0.36, thud: 0.3, crit: 0.55, slash: 0.24, heavy: 0.42, bow: 0.24, xbow: 0.26, cast: 0.26, arrow: 0.34, whoosh: 0.34, zap: 0.5, thunder: 0.6, ice: 0.42,
+    fire: 0.38, blood: 0.4, star: 0.34, sword: 0.4, wind: 0.38, heal: 0.3, earth: 0.62, shout: 0.34, magic: 0.28, charge: 0.28, shield: 0.28, tower: 0.42, boom: 0.78, kill: 0.62, death: 0.5,
+    horn: 0.55, warn: 0.32, ult: 0.85, blast: 0.5, zapcrack: 0.42, slam: 0.62, w_linshuang: 0.3, w_gunner: 0.3, coin: 0.36, buy: 0.32, level: 0.38, ping: 0.38, recall: 0.28, arrive: 0.42, heart: 0.5, click: 0.18 };
   // x, z = where it happens in the world. The listener stands at the camera's focus, facing up the screen: left and right
   // are true to the picture, things up-screen sound ahead and things down-screen behind (with headphones). Distance dulls
   // the sound and sends more of it to the room.
@@ -147,15 +149,17 @@ export function createAudio(lite) {
     while (recent.length && now - recent[0] > 0.09) recent.shift();
     if (recent.length >= (SOFT[name] ? 3 : 9)) return;                 // busy: small sounds step aside first
     last[name] = now; recent.push(now);
+    const big = BIG.has(name) || (name === 'thunder' && gain >= 0.9), dest = big ? sfx : small;
+    if (big) for (const [g, lo, back] of [[small.gain, 0.42, 0.45], [mduck.gain, 0.5, 0.8]]) { g.cancelScheduledValues(now); g.setTargetAtTime(lo, now, 0.015); g.setTargetAtTime(1, now + 0.3, back); }   // the rest steps back for a moment
     try {
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 17000 - far * 12800;
       const send = ctx.createGain(); send.gain.value = (WET[name] || 0.1) + far * 0.4; lp.connect(send); send.connect(roomIn);
-      if (x === undefined) lp.connect(sfx);
-      else if (A.lite || !ctx.createPanner) { if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = clamp(dx / 20, -1, 1) * 0.85; lp.connect(p); p.connect(sfx); } else lp.connect(sfx); }
+      if (x === undefined) lp.connect(dest);
+      else if (A.lite || !ctx.createPanner) { if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = clamp(dx / 20, -1, 1) * 0.85; lp.connect(p); p.connect(dest); } else lp.connect(dest); }
       else {
         const p = ctx.createPanner(); p.panningModel = 'HRTF'; p.distanceModel = 'linear'; p.rolloffFactor = 0; const k = 0.3;
         if (p.positionX) { p.positionX.value = dx * k; p.positionY.value = -1.2; p.positionZ.value = dz * k - 1.4; } else p.setPosition(dx * k, -1.2, dz * k - 1.4);
-        const mk = ctx.createGain(); mk.gain.value = 1.5; lp.connect(p); p.connect(mk); mk.connect(sfx);                                       // HRTF costs some level; give it back
+        const mk = ctx.createGain(); mk.gain.value = 1.5; lp.connect(p); p.connect(mk); mk.connect(dest);                                       // HRTF costs some level; give it back
       }
       out = lp; tune = 0.94 + Math.random() * 0.12;
       const bs = bank[name];

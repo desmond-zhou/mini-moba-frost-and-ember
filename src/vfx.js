@@ -57,7 +57,7 @@ export function createVfx(fx, audio) {
       case 'taunt':
         fx.dome(x, z, 1, s.radius, m(c, 0.8), 0.42); fx.ringWave(x, z, s.radius * 2.2, c, 0.45); fx.ringWave(x, z, s.radius * 1.4, m(W, 0.6), 0.3); fx.pillar(x, z, 2, 9, m(c, 0.8), 0.5);
         fx.decal({ mode: 5, x, z, size: s.radius * 2.08, color: m(c, 0.6), dur: 0.3, hold: 1.2, seed: R() }); spiral(x, z, c, 22, 2, 6); fx.flare(x, 3, z, m(c, 2), 8, 0.25);
-        fx.flash(x, 2.5, z, c, 260, 0.4); fx.punch(0.2); fx.shake(0.3); audio.play('horn', x, z); audio.play('shield', x, z); break;
+        fx.flash(x, 2.5, z, c, 260, 0.4); fx.punch(0.2); fx.shake(0.3); audio.play('shout', x, z); audio.play('shield', x, z); break;
       case 'hook': fx.flare(x + dx * 1.3, 2, z + dz * 1.3, m(c, 1.8), 4.5, 0.16); fx.ringWave(x, z, 5, c, 0.25); audio.play('whoosh', x, z); break;
       case 'bloodsea':
         fx.decal({ mode: 0, x, z, size: s.radius * 2.5, color: [c[0] * 0.8, c[1] * 0.5, c[2] * 0.5], dur: 0.4, hold: s.dur, alpha: 0.85 }); fx.pillar(x, z, 2.2, 10, c, 0.6); fx.dome(x, z, 1, s.radius, c, 0.5);
@@ -72,7 +72,7 @@ export function createVfx(fx, audio) {
         for (let k = 0; k < 36; k++) { const an = f + (R() * 2 - 1) * half, sp = s.range * (2.6 + R() * 2); fx.spark(x + Math.cos(an) * 1.2, 1.2 + R(), z + Math.sin(an) * 1.2, Math.cos(an) * sp, R() * 2, Math.sin(an) * sp, k % 2 ? m(c, 1.5) : W, 0.36, 0.26, 0, 2.5); }
         for (let k = 1; k <= 3; k++) slash(x, z, f, s.range * (0.7 + k * 0.45), half, m(W, 0.5 + 0.2 * k), 1.6, 0.16 + k * 0.06);
         fx.flare(x + dx * 1.5, 1.8, z + dz * 1.5, [2.4, 2.2, 1.8], 9, 0.18); fx.flash(x + dx * 2, 2, z + dz * 2, [1, 0.95, 0.8], 380, 0.25);
-        cloud(x + dx * 2, 1, z + dz * 2, [0.3, 0.28, 0.25], 6, 1.5, 2.2, 0.8, 0.3); fx.punch(0.3); fx.shake(0.3); audio.play('boom', x, z); break;
+        cloud(x + dx * 2, 1, z + dz * 2, [0.3, 0.28, 0.25], 6, 1.5, 2.2, 0.8, 0.3); fx.punch(0.3); fx.shake(0.3); audio.play('blast', x, z); break;
       }
       case 'whirl': case 'frostnova': {
         const ice = s.vfx === 'frostnova', r = s.radius;
@@ -113,15 +113,15 @@ export function createVfx(fx, audio) {
         embers(tx, tz, m(c, 1.4), 26, s.radius); fx.ringWave(tx, tz, s.radius * 2.2, c, 0.5); fx.flare(tx, 2, tz, m(c, 1.5), 6, 0.3);
         for (const al of a.healed || []) V.healed(al, c);
         fx.flash(tx, 2, tz, c, 200, 0.4); audio.play('shield', x, z); break;
-      case 'bloom': fx.pillar(x, z, 2, 12, c, 0.7); fx.dome(x, z, 0.8, s.radius, c, 0.6); embers(x, z, m(c, 1.4), 30, s.radius); fx.flare(x, 3, z, m(c, 1.6), 7, 0.3); audio.play('level', x, z); break;
+      case 'bloom': fx.pillar(x, z, 2, 12, c, 0.7); fx.dome(x, z, 0.8, s.radius, c, 0.6); embers(x, z, m(c, 1.4), 30, s.radius); fx.flare(x, 3, z, m(c, 1.6), 7, 0.3); audio.play('heal', x, z); break;
       case 'swallow':                                                  // 回燕: a crescent thrown flat
         slash(x + dx * 1.5, z + dz * 1.5, f, 6, 1.5, m(c, 1.5), 1.6, 0.28); fx.flare(x + dx * 1.4, 1.8, z + dz * 1.4, m(c, 2), 4.5, 0.16); audio.play('sword', x, z); audio.play('whoosh', x, z, 0.6); break;
       case 'greatwave':                                                // 万剑听雪: the whole field in one stroke
         for (let k = 0; k < 3; k++) slash(x + dx * (2 + k * 2.2), z + dz * (2 + k * 2.2), f, 9 + k * 3, 1.2, m(c, 1.7 - k * 0.3), 1.8, 0.4 + k * 0.08);
-        fx.line(x, 1.6, z, x + dx * 30, 1.6, z + dz * 30, m(c, 1.6), 40, 0.7, 0.4); fx.flash(x, 3, z, c, 420, 0.4); fx.shake(0.4); fx.punch(0.3); audio.play('sword', x, z); audio.play('pierce', x, z); break;
+        fx.line(x, 1.6, z, x + dx * 30, 1.6, z + dz * 30, m(c, 1.6), 40, 0.7, 0.4); fx.flash(x, 3, z, c, 420, 0.4); fx.shake(0.4); fx.punch(0.3); audio.play('sword', x, z); audio.play('whoosh', x, z, 0.9); break;
       case 'snipe':                                                    // 冰封三百年: a line of sight, then the shot
         fx.line(x, 1.9, z, x + dx * 29, 1.9, z + dz * 29, m(c, 2.2), 46, 0.34, 0.5); fx.flare(x + dx * 1.6, 2, z + dz * 1.6, [2.6, 2.8, 3], 8, 0.25); fx.ringWave(x, z, 9, c, 0.35);
-        fx.dust(x - dx, z - dz, SNOW, { n: 12, speed: 7, size: 2 }); fx.flash(x, 2.5, z, c, 380, 0.35); fx.shake(0.35); fx.punch(0.25); audio.play('icelance', x, z); audio.play('heavy', x, z, 0.8); break;
+        fx.dust(x - dx, z - dz, SNOW, { n: 12, speed: 7, size: 2 }); fx.flash(x, 2.5, z, c, 380, 0.35); fx.shake(0.35); fx.punch(0.25); audio.play('ice', x, z); audio.play('heavy', x, z, 0.8); break;
       case 'emplace':                                                  // 镇岳: feet planted
         fx.decal({ mode: 5, x, z, size: 7.5, color: m(c, 0.9), dur: 0.4, hold: s.dur, seed: R() }); fx.dome(x, z, 0.4, 2.4, c, 0.3); chunks(x, z, 8, 5, 5, 0.3); fx.dust(x, z, DUST, { n: 10, speed: 5, size: 1.8 }); fx.shake(0.2); audio.play('thud', x, z); audio.play('tower', x, z, 0.5); break;
       case 'stride':                                                   // 踏星: a wall that runs
@@ -131,14 +131,14 @@ export function createVfx(fx, audio) {
         fx.decal({ mode: 1, x, z, size: 2.5, size0: s.radius * 2.1, color: m(c, 0.9), dur: 0.34 }); fx.pillar(x, z, 1.8, 14, c, 0.5); fx.flash(x, 3, z, c, 420, 0.45); fx.shake(0.5); fx.punch(0.3); chunks(x, z, 14, 4, 9, 0.3); audio.play('earth', x, z); audio.play('heavy', x, z); break;
       case 'verdict':                                                  // 一剑清正: one straight line
         fx.line(x, 1.7, z, x + dx * 13, 1.7, z + dz * 13, [2.6, 2.6, 2.4], 30, 0.6, 0.38); for (let k = 0; k < 4; k++) slash(x + dx * (2 + k * 3), z + dz * (2 + k * 3), f, 5, 0.9, m(c, 1.6), 1.7, 0.3 + k * 0.05);
-        fx.flash(x, 2.5, z, c, 360, 0.35); fx.punch(0.3); audio.play('sword', x, z); audio.play('pierce', x, z, 0.8); break;
+        fx.flash(x, 2.5, z, c, 360, 0.35); fx.punch(0.3); audio.play('sword', x, z); audio.play('slash', x, z, 0.8); break;
       case 'flashstep':                                                // 雷行: he is the bolt
         { let px = x, pz = z; for (let k = 1; k <= 6; k++) { const t = k / 6 * 8.5, nx = x + dx * t + (R() - 0.5) * 1.4, nz = z + dz * t + (R() - 0.5) * 1.4; fx.line(px, 1.6 + R(), pz, nx, 1.2 + R() * 1.4, nz, m(c, 2.4), 8, 0.6, 0.22); px = nx; pz = nz; } }
         fx.flare(x, 2, z, m(c, 2.4), 6, 0.18); fx.flash(x, 2.5, z, c, 320, 0.25); audio.play('zap', x, z); audio.play('thunder', x, z, 0.5); break;
       case 'teamveil':                                                 // 藏形幕: a curtain let down over everyone near
         fx.dome(x, z, 1, s.aoe, [c[0] * 0.5, c[1] * 0.5, c[2] * 0.6], 0.7); fx.decal({ mode: 1, x, z, size: 3, size0: s.aoe * 2, color: m(c, 0.7), dur: 0.5 }); cloud(x, 0.5, z, [0.05, 0.06, 0.09], 30, s.aoe * 0.8, 3.4, 1.6, 0.6); spiral(x, z, c, 20, 2, 5); audio.play('wind', x, z); audio.play('shield', x, z, 0.6); break;
       case 'pill':                                                     // 行气丹: one flicked to each
-        fx.ringWave(x, z, s.aoe * 2, c, 0.5); for (let k = 0; k < 8; k++) { const a = k * 0.785; fx.spark(x, 2.2, z, Math.cos(a) * 14, 6, Math.sin(a) * 14, m(c, 1.8), 0.4, 0.4, 14, 0.5, 0.05); } embers(x, z, m(c, 1.4), 22, s.aoe * 0.7); fx.flare(x, 2.4, z, m(c, 1.6), 4.5, 0.22); audio.play('mend', x, z); audio.play('gale', x, z, 0.6); break;
+        fx.ringWave(x, z, s.aoe * 2, c, 0.5); for (let k = 0; k < 8; k++) { const a = k * 0.785; fx.spark(x, 2.2, z, Math.cos(a) * 14, 6, Math.sin(a) * 14, m(c, 1.8), 0.4, 0.4, 14, 0.5, 0.05); } embers(x, z, m(c, 1.4), 22, s.aoe * 0.7); fx.flare(x, 2.4, z, m(c, 1.6), 4.5, 0.22); audio.play('heal', x, z); audio.play('wind', x, z, 0.6); break;
       case 'meteor': case 'blizzard': case 'tempest': case 'barrage': case 'bolt': case 'shell': case 'stasis':
         fx.flare(x, 4.2, z, m(c, 2), 6, 0.3); fx.pillar(x, z, 1.2, 12, c, 0.5); spiral(x, z, c, 14, 1.4, 6); audio.play(s.vfx === 'shell' || s.vfx === 'barrage' ? 'whoosh' : 'charge', x, z); break;
       case 'pierce': case 'icelance': case 'firearrow':
@@ -278,26 +278,26 @@ export function createVfx(fx, audio) {
       fx.flash(x, 2, zz, c, 300, 0.4); fx.punch(0.25); fx.shake(0.3); audio.play('magic', x, zz);
     } else if (id === 'shell') {
       fx.explosion(x, zz, 1.0, FLAME); fx.ringWave(x, zz, r * 2.6, [3, 1.4, 0.4], 0.4); fx.dome(x, zz, 0.6, r * 1.1, [1.5, 0.7, 0.2], 0.3); chunks(x, zz, 12, 10, 10); fx.flare(x, 1.5, zz, [2.6, 1.8, 0.9], 9, 0.2);
-      fx.punch(0.3); fx.shake(0.45); audio.play('boom', x, zz);
+      fx.punch(0.3); fx.shake(0.45); audio.play('blast', x, zz);
     } else if (id === 'bolt') {
-      lightning(x, zz, c); fx.ringWave(x, zz, r * 2.4, c, 0.3); fx.dome(x, zz, 0.4, r, m(c, 1.2), 0.25); fx.punch(0.35); if (close) fx.hitStop(0.03); fx.shake(0.4); audio.play('zap', x, zz); audio.play('boom', x, zz);
+      lightning(x, zz, c); fx.ringWave(x, zz, r * 2.4, c, 0.3); fx.dome(x, zz, 0.4, r, m(c, 1.2), 0.25); fx.punch(0.35); if (close) fx.hitStop(0.03); fx.shake(0.4); audio.play('zapcrack', x, zz);
     } else if (id === 'trib') {
       lightning(x, zz, [1.6, 1.5, 0.9], 26); for (let j = 0; j < 6; j++) { const a = j * 1.047 + R(), d = r * (0.45 + R() * 0.5); lightning(x + Math.cos(a) * d, zz + Math.sin(a) * d, c, 18); }
       fx.ringWave(x, zz, r * 2.3, c, 0.45); fx.dome(x, zz, 0.5, r, m(c, 1.3), 0.4); fx.scorch(x, zz, r * 1.2, 8); fx.flash(x, 3, zz, c, 420, 0.5); fx.punch(0.5); if (close) fx.hitStop(0.05); fx.shake(0.7);
       audio.play('thunder', x, zz); audio.play('boom', x, zz);
     } else if (id === 'tempest') {
       for (let j = 0; j < 2; j++) { const a = R() * 6.28, d = r * Math.sqrt(R()) * 0.85; lightning(x + Math.cos(a) * d, zz + Math.sin(a) * d, c, 15); }
-      fx.ringWave(x, zz, r * 2.1, m(c, 0.6), 0.3); fx.punch(0.22); fx.shake(0.3); audio.play('zap', x, zz); audio.play('boom', x, zz);
+      fx.ringWave(x, zz, r * 2.1, m(c, 0.6), 0.3); fx.punch(0.22); fx.shake(0.3); audio.play('zapcrack', x, zz, 0.8);
     } else if (id === 'barrage') {
       for (let j = 0; j < 2; j++) { const a = R() * 6.28, d = r * Math.sqrt(R()) * 0.85, px = x + Math.cos(a) * d, pz = zz + Math.sin(a) * d; fx.explosion(px, pz, 0.75, FLAME); fx.ringWave(px, pz, 7, [3, 1.4, 0.4], 0.35); chunks(px, pz, 6, 9, 9); }
-      fx.punch(0.28); fx.shake(0.5); audio.play('boom', x, zz);
+      fx.punch(0.28); fx.shake(0.5); audio.play('blast', x, zz, 0.85);
     } else if (id === 'blizzard') {
       for (let j = 0; j < 4; j++) { const a = R() * 6.28, d = r * Math.sqrt(R()), px = x + Math.cos(a) * d, pz = zz + Math.sin(a) * d; fx.flare(px, 0.5, pz, [1.4, 1.7, 2], 2.6, 0.16); fx.burst(px, 0.3, pz, [1.2, 1.5, 1.8], { n: 4, speed: 4, up: 4, life: 0.4, size: 0.2 }); }
       cloud(x, 0.4, zz, SNOW, 4, r * 0.8, 3, 1, 0.3); fx.ringWave(x, zz, r * 2.1, m(c, 0.5), 0.35); audio.play('whoosh', x, zz);
     } else if (id === 'stasis') {                  // time stops inside the circle: a dome that holds, motes hanging still in the air
       fx.dome(x, zz, r, r * 1.03, m(c, 0.3), z.s.stun + 0.1); fx.decal({ mode: 5, x, z: zz, size: r * 2.08, color: m(c, 0.7), dur: 0.2, hold: z.s.stun, seed: R() }); fx.pillar(x, zz, r * 0.5, 12, m(c, 0.7), 0.5);
       for (let j = 0; j < 46; j++) { const a = R() * 6.28, d = r * Math.sqrt(R()); fx.spark(x + Math.cos(a) * d, 0.3 + R() * 5, zz + Math.sin(a) * d, 0, 0, 0, m(c, 1.2 + R()), 0.24 + R() * 0.2, z.s.stun * (0.8 + R() * 0.3), 0, 0, 0); }
-      fx.ringWave(x, zz, r * 2.3, c, 0.5); fx.flare(x, 3, zz, m(c, 1.6), 8, 0.25); fx.flash(x, 3, zz, c, 300, 0.5); fx.punch(0.3); if (close) fx.hitStop(0.05); fx.shake(0.4); audio.play('magic', x, zz); audio.play('horn', x, zz);
+      fx.ringWave(x, zz, r * 2.3, c, 0.5); fx.flare(x, 3, zz, m(c, 1.6), 8, 0.25); fx.flash(x, 3, zz, c, 300, 0.5); fx.punch(0.3); if (close) fx.hitStop(0.05); fx.shake(0.4); audio.play('magic', x, zz); audio.play('thud', x, zz, 0.8);
     } else if (id === 'bloodsea') {
       fx.ringWave(x, zz, r * 2.1, m(c, 0.6), 0.4); fx.burst(x, 0.4, zz, m(c, 1.3), { n: 10, speed: 5, up: 7, life: 0.5, size: 0.24, spread: r, grav: 9 });
     } else if (id === 'bloom') {
@@ -316,7 +316,7 @@ export function createVfx(fx, audio) {
     D.trail = (D.trail || 0) + step;
     if (D.trail > 1.3) { D.trail = 0; fx.decal({ mode: 0, x: h.x, z: h.z, size: D.hit ? 4.2 : 3.2, color: c, dur: id === 'iceslide' ? 1.6 : 0.7, alpha: 0.75, fade: true }); if (id === 'charge') chunks(h.x, h.z, 2, 4, 5, 0.26); }
   };
-  V.dashHit = (e, c) => { fx.flare(e.x, 1.8, e.z, [1.8, 1.7, 1.5], 4.5, 0.16); fx.burst(e.x, 1.4, e.z, W, { n: 14, speed: 9, life: 0.32, size: 0.26, grav: 14 }); fx.ringWave(e.x, e.z, 5, c, 0.25); fx.punch(0.12); fx.shake(0.22); audio.play('hit', e.x, e.z); };
+  V.dashHit = (e, c) => { fx.flare(e.x, 1.8, e.z, [1.8, 1.7, 1.5], 4.5, 0.16); fx.burst(e.x, 1.4, e.z, W, { n: 14, speed: 9, life: 0.32, size: 0.26, grav: 14 }); fx.ringWave(e.x, e.z, 5, c, 0.25); fx.punch(0.12); fx.shake(0.22); audio.play('thud', e.x, e.z, 0.8); };
   V.leapTick = (h, c) => { for (let k = 0; k < 2; k++) fx.spark(h.x + (R() - 0.5), h.y + 1 + R() * 2, h.z + (R() - 0.5), (R() - 0.5) * 2, -2, (R() - 0.5) * 2, c, 0.4, 0.4, 0, 0, 0.05); fx.fire(h.x, h.y + 1.5, h.z, 0, -1, 0, c, 1.8, 0.3, 0.3); };
   V.leapLand = (h, s, c, close) => {
     const x = h.x, z = h.z, r = s.radius;
@@ -325,7 +325,7 @@ export function createVfx(fx, audio) {
     fx.ringWave(x, z, r * 2.8, c, 0.5); fx.ringWave(x, z, r * 1.7, W, 0.3); fx.flare(x, 1.5, z, m(c, 2), 10, 0.25);
     fx.dust(x, z, DUST, { n: 26, speed: 12, size: 3, life: 1.2, r: 1.5 }); chunks(x, z, 22, 12, 12, 0.42);
     fx.burst(x, 0.5, z, [2.2, 1.7, 1.0], { n: 28, speed: 14, up: 9, life: 0.6, size: 0.26, grav: 22 }); embers(x, z, c, 14, r * 0.8);
-    fx.scorch(x, z, r * 1.5, 10); fx.flash(x, 2, z, c, 300, 0.45); fx.punch(0.5); if (close) fx.hitStop(0.06); fx.shake(0.8); audio.play('boom', x, z);
+    fx.scorch(x, z, r * 1.5, 10); fx.flash(x, 2, z, c, 300, 0.45); fx.punch(0.5); if (close) fx.hitStop(0.06); fx.shake(0.8); audio.play('slam', x, z);
   };
 
   // ---- things that stay on a hero: the shield bubble, speed buffs ----
