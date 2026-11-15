@@ -135,7 +135,7 @@ export function createAudio(lite) {
   const recent = [], bank = {}, inst = {}, lv = n => LEVEL[n] ?? (n[0] === 'w' && n[1] === '_' ? 0.32 : n[0] === 'h' && n[1] === '_' ? 0.38 : 0.35);   // basic attacks sit low: they are constant
   // loudness of each designed sound (the bank is normalised); the quick fallback keeps its own TRIM
   const LEVEL = { hit: 0.14, smack: 0.36, thud: 0.3, crit: 0.55, slash: 0.24, heavy: 0.42, bow: 0.24, xbow: 0.26, cast: 0.26, arrow: 0.34, whoosh: 0.34, zap: 0.5, thunder: 0.6, ice: 0.42,
-    fire: 0.38, blood: 0.4, star: 0.34, sword: 0.4, wind: 0.38, heal: 0.3, earth: 0.62, shout: 0.34, magic: 0.28, charge: 0.28, shield: 0.28, tower: 0.42, boom: 0.78, kill: 0.62, death: 0.5,
+    fire: 0.38, blood: 0.4, star: 0.34, sword: 0.4, wind: 0.38, heal: 0.3, earth: 0.45, shout: 0.34, magic: 0.28, charge: 0.28, shield: 0.28, tower: 0.42, boom: 0.72, kill: 0.62, death: 0.5,
     horn: 0.55, warn: 0.32, ult: 0.85, blast: 0.5, zapcrack: 0.42, slam: 0.62, w_linshuang: 0.3, w_gunner: 0.3, coin: 0.36, buy: 0.32, level: 0.38, ping: 0.38, recall: 0.28, arrive: 0.42, heart: 0.5, click: 0.18 };
   // x, z = where it happens in the world. The listener stands at the camera's focus, facing up the screen: left and right
   // are true to the picture, things up-screen sound ahead and things down-screen behind (with headphones). Distance dulls
@@ -170,7 +170,7 @@ export function createAudio(lite) {
   // an extra layer by what the ability is made of, so ice, thunder, flame, blood, starlight and steel each have a voice
   const ELEMENT = {
     icelance: 'ice', frostnova: 'ice', iceslide: 'ice', blizzard: 'ice', stasis: 'ice',
-    bolt: 'thunder', orb: 'zap', tempest: 'thunder', concuss: 'thunder',
+    bolt: 'zap', orb: 'zap', tempest: 'zap', concuss: 'zap',   // the long thunder roll is kept for the tribulation
     firearrow: 'fire', firestep: 'fire', sunarrow: 'fire', shell: 'fire', barrage: 'fire', meteor: 'fire',
     bloodclaw: 'blood', hook: 'blood', bloodsea: 'blood', reap: 'blood', veil: 'blood',
     starbolt: 'star', well: 'star', phase: 'star',

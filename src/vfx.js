@@ -79,7 +79,7 @@ export function createVfx(fx, audio) {
         slash(x, z, f + Math.PI, r * 2.2, Math.PI, m(c, 1.15), 1.7, 0.34); slash(x, z, f, r * 2.3, Math.PI, m(c, 0.6), 0.14, 0.42);
         fx.dome(x, z, 0.6, r * 1.05, m(c, 1.2), 0.36); fx.ringWave(x, z, r * 2.4, c, 0.4); fx.flare(x, 1.8, z, m(c, 2), 7, 0.22);
         for (let k = 0; k < 34; k++) { const an = R() * 6.283, sp = r * (2 + R() * 1.6); fx.spark(x + Math.cos(an) * 1.2, 0.5 + R() * 2, z + Math.sin(an) * 1.2, Math.cos(an) * sp - Math.sin(an) * 5, 1 + R() * 2, Math.sin(an) * sp + Math.cos(an) * 5, k % 3 ? c : W, 0.42, 0.32, 3, 2.4); }
-        if (ice) { fx.decal({ mode: 6, x, z, size: r * 2.5, color: c, dur: 2.2, seed: R() }); cloud(x, 0.5, z, SNOW, 12, r * 0.8, 2.6, 1.2, 0.4); chunks(x, z, 14, 9, 7, 0.3, 0, 6.283, [0.5, 0.62, 0.72]); audio.play('magic', x, z); }
+        if (ice) { fx.decal({ mode: 6, x, z, size: r * 2.5, color: c, dur: 2.2, seed: R() }); cloud(x, 0.5, z, SNOW, 12, r * 0.8, 2.6, 1.2, 0.4); chunks(x, z, 14, 9, 7, 0.3, 0, 6.283, [0.5, 0.62, 0.72]); audio.play(s.vfx === 'whirl' ? 'heavy' : 'magic', x, z); }
         else { chunks(x, z, 10, 9, 7); fx.dust(x, z, DUST, { n: 12, speed: 8, size: 2.2, r: 1.5 }); audio.play('slash', x, z); }
         fx.flash(x, 2, z, c, 240, 0.32); fx.punch(0.2); fx.shake(0.25); break;
       }
@@ -92,7 +92,7 @@ export function createVfx(fx, audio) {
       case 'skyfall':
         fx.dust(x, z, DUST, { n: 16, speed: 8, size: 2.6 }); fx.ringWave(x, z, 9, c, 0.35); chunks(x, z, 8, 7, 9); fx.pillar(x, z, 1.3, 8, c, 0.3); audio.play('whoosh', x, z); break;
       case 'starbolt': case 'orb': case 'vine': case 'axe':
-        fx.flare(x + dx * 1.4, 2.4, z + dz * 1.4, m(c, 2), 5, 0.2); fx.ringWave(x + dx, z + dz, 4.5, c, 0.25); spiral(x + dx, z + dz, c, 8, 0.8, 2); audio.play(s.vfx === 'axe' ? 'whoosh' : 'zap', x, z); break;
+        fx.flare(x + dx * 1.4, 2.4, z + dz * 1.4, m(c, 2), 5, 0.2); fx.ringWave(x + dx, z + dz, 4.5, c, 0.25); spiral(x + dx, z + dz, c, 8, 0.8, 2); audio.play(s.vfx === 'axe' || s.vfx === 'vine' ? 'whoosh' : s.vfx === 'starbolt' ? 'cast' : 'zap', x, z, s.vfx === 'vine' ? 0.7 : 1); break;
       case 'fan':
         fx.flare(x + dx * 1.3, 2, z + dz * 1.3, m(c, 2), 4.5, 0.16); slash(x, z, f, 5.5, 0.5, m(c, 1.2), 1.7, 0.18); audio.play('arrow', x, z); break;
       case 'well': fx.flare(x, 3.6, z, m(c, 1.6), 4.5, 0.25); spiral(x, z, c, 10, 1.2, 4); audio.play('charge', x, z); break;
