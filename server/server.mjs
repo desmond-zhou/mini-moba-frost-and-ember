@@ -11,18 +11,19 @@
 //
 // A player who drops keeps their seat: their cultivator plays itself (a "bot" command) until they come back, and coming back
 // replays the match so far from the turn log in a few seconds. Rooms with nobody left in them close after two minutes.
-import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
+import http from 'node:http'; import os from 'node:os'; import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { HEROES, HERO_ORDER, MODES, SEATS, SEAT_FIT, T } from '../src/config.js';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// the page it hands out: FROSTEMBER_HTML when set (the server app carries its own copy), else this checkout's build
+const HTML_PATH = process.env.FROSTEMBER_HTML || path.join(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), 'dist/frostember.html');
 const PORT = +process.env.PORT || 8790, TURN_MS = 50, TPT = 3, HASH_EVERY = 40;
 const log = (...a) => console.log(new Date().toISOString().slice(5, 19), ...a);
 
 // ---------------- the page ----------------
 let page = null, pageAt = 0;
-const html = () => { const f = path.join(ROOT, 'dist/frostember.html'); try { const m = fs.statSync(f).mtimeMs; if (m !== pageAt) { page = fs.readFileSync(f); pageAt = m; } } catch { page = null; } return page; };
+const html = () => { const f = HTML_PATH; try { const m = fs.statSync(f).mtimeMs; if (m !== pageAt) { page = fs.readFileSync(f); pageAt = m; } } catch { page = null; } return page; };
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   if (u.pathname === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end(`ok ${rooms.size} rooms`); return; }
@@ -215,4 +216,12 @@ setInterval(() => {                                                      // dead
     if (anyone) r.emptyAt = 0; else if (!r.emptyAt) r.emptyAt = now; else if (now - r.emptyAt > 120000) { if (r.game) clearInterval(r.game.timer); rooms.delete(r.code); for (const m of r.members.keys()) { const c = byCid.get(m); if (c && c.room === r) { c.room = null; if (!c.ws) byCid.delete(m); } } log('closed', r.code); }
   }
 }, 15000);
-server.listen(PORT, () => log(`霜烬之争 server on :${PORT}`));
+server.listen(PORT, () => {
+  log(`霜烬之争 server on :${PORT}`);
+  const ips = Object.values(os.networkInterfaces()).flat().filter(a => a && a.family === 'IPv4' && !a.internal).map(a => a.address);
+  console.log('\n  用浏览器打开（手机、电脑都行），点「联机对战」：');
+  console.log(`    本机        http://localhost:${PORT}/`);
+  console.log(`    这台机器    http://${os.hostname().replace(/\.local$/, '')}:${PORT}/`);
+  for (const ip of ips) console.log(`    ${ip.startsWith('100.') ? 'Tailscale ' : '局域网    '}  http://${ip}:${PORT}/`);
+  console.log('\n  关掉这个窗口，服务器就停了。\n');
+});

@@ -1,6 +1,6 @@
 # 霜烬之争 — 接手说明
 
-单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v3.0.0-alpha.1**（V3：联机对战，单机照旧）。V2 单机最终版存档在标签 `v2-single-final` / 分支 `v2-single`。
+单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v3.0.0-alpha.2**（V3：联机对战，单机照旧）。V2 单机最终版存档在标签 `v2-single-final` / 分支 `v2-single`。
 
 先读这份，再读 `docs/进度.md`（现状、下一步、踩过的坑）。其余文档按需：`docs/三路策划.md`、`docs/库选型.md`、`docs/打位演算.md`、`README.md`。
 
@@ -103,7 +103,7 @@ node nettest.mjs tri 45 runs/net              # 两个无头玩家走一遍房�
 node uishot.mjs <目录>                         # 标题和联机框在手机竖屏、横屏、电脑上的截图
 ```
 
-这台 Mac mini 上服务器由 launchd 常驻（`~/Library/LaunchAgents/com.desmond.frostember.plist`，日志 `~/Library/Logs/frostember-server.log`）。作者的设备都在 Tailscale 里，用 `http://des-mac-mini:8790/` 打开即可联机。对公网开放（`tailscale funnel`）要作者同意。
+**服务器不自动启动**（作者 2026-11-16 的要求）：`serverapp.mjs`（`npm run app` 会一起做）生成 `dist/霜烬之争服务器.app`，作者双击才启动，终端窗口显示地址和日志，关窗口即停。它自带打包好的服务器和一份游戏页面，任何装了 Node.js 的 Mac 都能跑。不要加 launchd 之类的常驻。作者的设备都在 Tailscale 里，服务器开着时用 `http://des-mac-mini:8790/` 打开即可联机。对公网开放（`tailscale funnel`）要作者同意。
 
 ## 用语表
 
