@@ -1,6 +1,7 @@
 // world.js — the arena. Still no asset files: a procedural ground shader (frost → meadow → ember, cobbled lane, river, puddles),
 // a procedural dusk sky baked into image-based lighting, trees made of bark trunks + alpha-tested leaf cards whose textures
 // are painted on a canvas at load, displaced boulders, undergrowth, grass, drifting motes.
+import { DMath as Math } from './dmath.js';                  // same numbers on every machine (online play)
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { MAP, LANES, RIVER, TOWERS, CAMPS, POS, FROST, EMBER, BRUSH, brushAt, biomeX, biomeGLSL, MODE, RIDGES } from './config.js';

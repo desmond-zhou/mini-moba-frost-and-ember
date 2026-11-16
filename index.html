@@ -136,6 +136,45 @@ body.touch #sig { top: calc(var(--mh, 126px) + 64px + var(--sat)); } body.touch 
 #modeSel button { min-width: 230px; padding: 9px 16px; text-align: left; color: var(--bone); background: var(--panel); border: 1px solid var(--line-soft); }
 #modeSel button b { display: block; font: 900 17px var(--f-display); letter-spacing: .08em; } #modeSel button span { font-size: 11.5px; color: var(--dim); }
 #modeSel button.on { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass) inset; } #modeSel button.on b { color: var(--brass); }
+/* online: the room (the title screen doubles as it), the box for joining, chat */
+.go2 { padding: 12px 22px; font: 900 16px var(--f-display); letter-spacing: .2em; color: var(--brass); background: var(--panel); border: 1px solid var(--line); margin-right: 10px; }
+.go.dim { filter: grayscale(.7) brightness(.7); }
+#room { width: min(980px, 100%); margin: -2px auto 12px; display: grid; gap: 8px; } #room[hidden] { display: none; }
+#room .rhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 13px; color: var(--dim); }
+#room .rhead b { font: 900 22px var(--f-display); letter-spacing: .25em; color: var(--brass); margin-left: 4px; }
+#room .rhead button { padding: 4px 10px; font-size: 12px; color: var(--bone); background: var(--panel); border: 1px solid var(--line); } #room .rhead .ping { font-style: normal; font-size: 11px; opacity: .7; }
+#room .sides { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#room .side { display: grid; grid-template-columns: 1fr auto; gap: 4px; align-content: start; } #room .side h4 { grid-column: 1 / -1; margin: 0; font: 900 14px var(--f-display); letter-spacing: .3em; }
+#room .tf h4 { color: var(--frost); } #room .te h4 { color: var(--ember); text-align: right; }
+#room .seat { grid-column: 1; display: grid; grid-template-columns: 34px 30px 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 4px 8px; text-align: left; background: var(--panel); border: 1px solid var(--line-soft); min-height: 40px; }
+#room .seat:not(:has(+ .kick)) { grid-column: 1 / -1; }
+#room .seat .pos { grid-row: 1 / 3; font-size: 11px; color: var(--dim); } #room .seat .pt { grid-row: 1 / 3; width: 30px; height: 30px; background: #0a0f18 center / cover; border: 1px solid var(--line-soft); }
+#room .seat b { font-size: 13.5px; } #room .seat em { grid-column: 3; font-style: normal; font-size: 11px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#room .seat s { grid-row: 1 / 3; grid-column: 4; text-decoration: none; font-size: 11px; color: var(--dim); } #room .seat s.ok { color: #7fe39a; }
+#room .seat.empty { border-style: dashed; opacity: .8; } #room .seat.empty b { color: var(--dim); font-weight: 400; }
+#room .seat.mine { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass) inset; }
+#room .te .seat { border-right-width: 2px; } #room .tf .seat { border-left-width: 2px; } #room .tf .seat:not(.empty) { border-left-color: var(--frost); } #room .te .seat:not(.empty) { border-right-color: var(--ember); }
+#room .kick { grid-column: 2; padding: 0 9px; color: var(--dim); background: var(--panel); border: 1px solid var(--line-soft); }
+#room .rchat { display: grid; grid-template-columns: 1fr; gap: 4px; } #room .rchat .log { max-height: 84px; overflow-y: auto; font-size: 12.5px; } #room .rchat .log:empty { display: none; }
+#room .rchat .log b { color: var(--brass); margin-right: 6px; }
+#room .rchat input, #netPane input, #chatIn { font: inherit; font-size: 13px; padding: 7px 10px; color: var(--bone); background: rgba(3, 5, 9, .85); border: 1px solid var(--line); outline: none; min-width: 0; }
+#title.inroom #seatSel, #title.inroom #rec { display: none; }
+#modeSel.locked button:not(.on), #diff.locked button:not(.on) { opacity: .45; }
+.card.taken { opacity: .32; filter: grayscale(.8); }
+#netPane { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(4, 6, 10, .7); z-index: 10; } #netPane[hidden] { display: none; }
+#netPane .pane { width: min(380px, calc(100% - 24px)); display: flex; flex-direction: column; gap: 10px; padding: 20px; background: var(--panel-solid); border: 1px solid var(--line); }
+#netPane h2 { margin: 0 0 4px; text-align: center; font: 400 36px/1 var(--f-brush); letter-spacing: .3em; margin-right: -.3em; color: var(--brass); }
+#netPane label { display: grid; grid-template-columns: 4em 1fr; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); } #netPane label[hidden] { display: none; }
+#netPane .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#netPane button { padding: 10px 12px; font-size: 14px; font-weight: 700; color: var(--bone); background: var(--panel); border: 1px solid var(--line); } #netPane button small { margin-left: 6px; font-weight: 400; color: var(--dim); }
+#netPane #nCreate1, #netPane #nCreate3 { color: #1a1408; background: linear-gradient(#ffe7a8, #d6a441); border-color: #ffe7a8; } #netPane #nCreate1 small, #netPane #nCreate3 small { color: #5a4718; }
+#netPane #nCode { text-transform: uppercase; letter-spacing: .3em; text-align: center; font-size: 16px; }
+#netPane p { margin: 0; min-height: 1.2em; font-size: 12.5px; color: #ffb27a; text-align: center; } #netPane .back { color: var(--dim); }
+#chatIn { position: absolute; left: var(--gl); bottom: calc(190px + var(--sab)); width: min(360px, 60vw); pointer-events: auto; z-index: 4; } #chatIn[hidden] { display: none; }
+body.touch #chatIn { top: calc(var(--sat) + 64px); bottom: auto; left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 32px)); font-size: 16px; }
+#chat div.me { border-left-color: var(--brass); }
+#netInfo { position: absolute; right: var(--gl); top: calc(var(--mh, 126px) + 18px + var(--sat)); font-size: 11px; color: var(--dim); pointer-events: none; text-align: right; }
+@media (max-width: 720px) { #room .sides { grid-template-columns: 1fr; } #room .te h4 { text-align: left; } .go2 { padding: 10px 12px; font-size: 14px; letter-spacing: .1em; } #room .rchat .log { max-height: 60px; } }
 #seatSel { display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; margin: -4px 0 12px; font-size: 12.5px; color: var(--dim); } #seatSel[hidden] { display: none; }
 #seatSel button { padding: 5px 11px; font-size: 13px; color: var(--bone); background: var(--panel); border: 1px solid var(--line-soft); } #seatSel button.on { border-color: var(--brass); color: var(--brass); box-shadow: 0 0 0 1px var(--brass) inset; }
 #seatSel button.fit::after { content: ' ★'; color: #e9c46a; font-size: 11px; } #seatSel em { flex-basis: 100%; text-align: center; font-style: normal; font-size: 11.5px; }
@@ -375,13 +414,14 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
         <div id="items"></div>
       </div>
     </div>
-    <div id="chat"></div>
-    <div id="sig"><button type="button" data-s="gather">集合<small>Z</small></button><button type="button" data-s="attack">进攻<small>X</small></button><button type="button" data-s="retreat">撤退<small>C</small></button><button type="button" data-s="rally">开团<small>V</small></button></div>
+    <div id="chat"></div><div id="netInfo"></div><input id="chatIn" maxlength="120" enterkeyhint="send" placeholder="对同门说（回车发送，Esc 取消）" hidden>
+    <div id="sig"><button type="button" data-s="gather">集合<small>Z</small></button><button type="button" data-s="attack">进攻<small>X</small></button><button type="button" data-s="retreat">撤退<small>C</small></button><button type="button" data-s="rally">开团<small>V</small></button><button type="button" data-s="chat" hidden>说<small>↵</small></button></div>
     <div id="sys"><button id="menuBtn" type="button">菜单<small>Esc</small></button></div>
     <div id="ult"><b></b><small></small></div>
     <div id="menu" hidden><div class="pane">
       <h2>暂歇</h2>
       <button id="mResume" type="button" class="big">继续<small>Esc</small></button>
+      <button id="mBot" type="button" hidden>托管</button>
       <button id="mRestart" type="button">重开此局</button>
       <button id="mQuit" type="button">回山门 · 重新选人</button>
       <ul id="mSkills"></ul>
@@ -397,19 +437,29 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     <h1 class="mark">霜烬之争</h1>
     <div class="sub" id="sub">十八位修士 · 3V3 · 摧毁敌方阵眼</div>
     <div id="modeSel"></div>
-    <div id="seatSel" hidden></div><div class="ver">v2.0.5</div>
+    <div id="room" hidden></div>
+    <div id="seatSel" hidden></div><div class="ver">v3.0.0-alpha.1</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div id="rec"></div>
-    <div class="row"><div class="seg" id="diff"></div><button class="go" id="goBtn" type="button">出战</button></div>
+    <div class="row"><div class="seg" id="diff"></div><button class="go2" id="netBtn" type="button">联机对战</button><button class="go" id="goBtn" type="button">出战</button></div>
     <p class="help" id="help"></p>
     <div class="credit">制作 · Desmond Zhou 周易　微信 desmondzhou　© 2026 版权所有</div>
+    <div id="netPane" hidden><div class="pane">
+      <h2>联机对战</h2>
+      <label>道号<input id="nName" maxlength="12" placeholder="你的名字" autocomplete="nickname"></label>
+      <label id="nSrvRow" hidden>服务器<input id="nSrv" placeholder="例：192.168.1.20:8787" autocapitalize="off" spellcheck="false"></label>
+      <div class="two"><button id="nCreate1" type="button">开一路房间<small>3v3</small></button><button id="nCreate3" type="button">开三路房间<small>5v5</small></button></div>
+      <div class="two"><input id="nCode" maxlength="4" placeholder="房间号" autocapitalize="characters" spellcheck="false"><button id="nJoin" type="button">加入</button></div>
+      <p id="nStatus"></p>
+      <button id="nClose" type="button" class="back">返回</button>
+    </div></div>
   </div>
   <div id="end" class="screen" hidden>
     <h1 class="mark" id="endMark"></h1>
     <div class="sub" id="endSub"></div>
     <table id="endTable"></table>
-    <div class="row" style="margin-bottom:auto"><button class="go" id="againBtn" type="button">再战</button></div>
+    <div class="row" style="margin-bottom:auto"><button class="go" id="againBtn" type="button">再战</button><button class="go" id="endRoom" type="button" hidden>回到房间</button></div>
   </div>
   <div id="boot">霜烬之争</div>
   <div id="fatal"></div>

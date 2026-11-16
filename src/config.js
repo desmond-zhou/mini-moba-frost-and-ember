@@ -1,4 +1,5 @@
 // config.js — map layout, hero kits, items, tuning. Everything the game needs to know that is not code.
+import { DMath as Math } from './dmath.js';                  // same numbers on every machine (online play)
 export const FROST = 0, EMBER = 1, NEUTRAL = 2;
 export const sideSign = team => (team === FROST ? -1 : 1);
 

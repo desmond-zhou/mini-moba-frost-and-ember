@@ -1,6 +1,6 @@
 # 霜烬之争 — 接手说明
 
-单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v2.0.5**。
+单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v3.0.0-alpha.1**（V3：联机对战，单机照旧）。V2 单机最终版存档在标签 `v2-single-final` / 分支 `v2-single`。
 
 先读这份，再读 `docs/进度.md`（现状、下一步、踩过的坑）。其余文档按需：`docs/三路策划.md`、`docs/库选型.md`、`docs/打位演算.md`、`README.md`。
 
@@ -22,7 +22,7 @@
 - 适合用库的地方用库；文件大小不是硬约束，流畅才是。
 - 文案用修仙用语（见下表），人物和世界观取材自《天衍》。作者提过另一套"有寂静帝的"设定，一直没找到，等他提供。
 - 不要把每个决定同步到记忆、日历或别的助理，除非他要求。
-- 提交信息末尾加 `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`。提交用的是 GitHub 免打扰邮箱，不要写入作者的真实邮箱。
+- 提交信息末尾加 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`（以当前对话系统提示给的署名为准）。提交用的是 GitHub 免打扰邮箱，不要写入作者的真实邮箱。
 - 标题界面有作者署名和微信号，是他要求加的，别删。
 
 ## 每次改完的流程
@@ -79,6 +79,31 @@ BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mod
 - **一路也有的三路功能**（v1.2.0-alpha.4）：第二个目标镇渊傀、11 分钟后的渊主残念、宗门石栏和山门柱是实体并走寻路图（`MODE.solid`）、"某某不见了" 和 "对面人多" 的喊话。迷雾、位置、打野位、分路集结仍只在三路。**一路没有归宗**（`noRecall`，作者要求）：只有出山前和陨落时能买东西。
 - **招式是 `kind` 加参数**，区分度主要靠参数：`proj` 有 `pierce`（贯穿）、`splash`、`pull: true`（拽人）/ `'self'`（拽自己过去）、`back`（飞到头折返）、`exec`（斩杀加成）、`heroOnly`（穿过弟子只打修士）、`big`；`haste` 有 `rng` / `adK`（架势：加射程和攻击）、`dr`、`aoe`（分给附近同门）、`veil`（隐身，靠 `e.veilT` 和 `e.hid`）、`b`（附带回复）；`nova` 有 `pull`（把周围的人拘到身前）、`hpR`（给自己罡气）；`strike` 有 `exec` / `stun`；`dash` 有 `exec` / `reset`；`zone` 有 `vuln`（易伤）。电脑怎么用每种招式在 `botThink` 末尾的 `switch (s.kind)`。
 - **新增修士要动的地方**：`HEROES`、`HERO_ORDER`、`SEAT_FIT`（config）；`OUTFIT`（heroes.js）；`SPEC`（portraits.js）；`BARKS`；被动若有新机制在 `game.js` 的 `strike` / `damage` / `kill` / `recalc` 里按 id 加；`batch.mjs` 和 `seats.mjs` 里的名单。招式尽量复用现有的 `kind`、`vfx`、`icon`。
+
+## 联机（V3）
+
+做法是**帧同步**（王者荣耀那种）：每台机器都跑整局，服务器只转发操作。研究文档推荐的是服务器权威，V3 改用帧同步的理由：画面、声音、界面一行不用重写，单机和联机走同一套代码，服务器只是个很小的转发器；代价是要保证每台机器算出完全相同的结果，以及迷雾对改客户端的人不设防（朋友之间玩够用，公开运营再换服务器权威）。研究文档：https://claude.ai/artifact/AuhGvDd3REp4KSwtDo7nwh
+
+- **服务器** `server/server.mjs`（Node + `ws`，端口 8790）：发页面（`dist/frostember.html`）、开房、选人、开战时补电脑、发种子和阵容，然后每 50 毫秒发一个 "turn"（这段时间所有人的操作）。断线的人由电脑接管（`bot` 指令），回来时把整局的操作记录发给他，几秒追上。每 2 秒各机器报一次对局指纹（`G.hash()`），不一致写日志 `DESYNC`。
+- **客户端** `src/net.js`：连服务器、按到达的节奏一回合一回合地走（每回合 3 步，每步 1/60 秒），手里留两回合防抖，落后了就加速追。房间界面就是标题界面（`ui.showRoom`），入口是「联机对战」按钮。
+- **对局的步子** `G.step(dt)`（固定 1/60 秒）和**画面** `G.draw(dt, time, alpha)` 分开了；单机也一样，主循环按固定步长走、画面在两步之间插值。
+- **玩家的一切操作都是指令** `{c: …}`（move / amove / atk / dir / stop / recall / sig / rally / cast / buy / learn / ins / bot），由 `G.exec(h, q)` 执行；单机当场执行，联机发给服务器、随回合回来再执行。单位用 id 传。
+- `h.isPlayer` 现在的意思是「真人在操控」（联机时可能有好几个，托管时为 false）；「这台机器自己的人」是 `G.player`，判断用 `me(h)`。
+
+**写 `G.step` 里会走到的代码时必须守的规矩**（否则各机器结果不同，对局会分叉）：
+1. 决定事情的模块（game、config、util、world）用 `import { DMath as Math } from './dmath.js'`：sin / cos / atan2 / hypot 是用加减乘除重写的，`Math.random` 是这局的种子。不要用 `**`（各浏览器取整不同），用乘法或 `sq()`。
+2. 只为了好看的随机（火花、台词挑哪句）用 `vis()`，不要用 `Math.random`。
+3. 不要在会改对局的代码里读这台机器才有的东西：`G.player`、`me()`、`near()`、`G.focus`、`canSee(G.player, …)`、画质、`G.autoPlay` 以外的网址参数。这些只能用来决定"这台机器看见、听见什么"。
+4. 改完跑 `node dettest.mjs tri 1500` 和 `node dettest.mjs single 1200`：两台视角、画质、相机都不同的机器，各跑一整局，每 30 秒的指纹必须一致。再跑 `node nettest.mjs tri 45 runs/net`（要先起服务器）：真走一遍房间、开战、断线重连。
+
+```bash
+node server/server.mjs                        # 本机服务器 :8790（开发时 http://localhost:5179 的页面会自动连它）
+node dettest.mjs tri 1500                     # 确定性：两台视角不同的机器结果是否一致
+node nettest.mjs tri 45 runs/net              # 两个无头玩家走一遍房间、对局、断线重连；TOEND=1 打到结束再回房间
+node uishot.mjs <目录>                         # 标题和联机框在手机竖屏、横屏、电脑上的截图
+```
+
+这台 Mac mini 上服务器由 launchd 常驻（`~/Library/LaunchAgents/com.desmond.frostember.plist`，日志 `~/Library/Logs/frostember-server.log`）。作者的设备都在 Tailscale 里，用 `http://des-mac-mini:8790/` 打开即可联机。对公网开放（`tailscale funnel`）要作者同意。
 
 ## 用语表
 

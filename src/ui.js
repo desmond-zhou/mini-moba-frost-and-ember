@@ -21,7 +21,7 @@ const store = { get(k, d) { try { return localStorage.getItem('frostember.' + k)
 
 export function createUI(isTouch, audio) {
   const ui = { shopOpen: false, onCast: null, onBuy: null };
-  const el = {}; for (const id of ['ins', 'rec', 'hud', 'title', 'end', 'cards', 'detail', 'diff', 'portrait', 'rosF', 'rosE', 'goBtn', 'help', 'kF', 'kE', 'clock', 'pipF', 'pipE', 'buff', 'feed', 'announce', 'toast', 'dead', 'deadT', 'tip', 'touch', 'pName', 'pLvl', 'skills', 'hpFill', 'hpTxt', 'mpFill', 'mpTxt', 'xpFill', 'gold', 'kda', 'items', 'shop', 'shopGrid', 'shopBtn', 'shopX', 'mini', 'endMark', 'endSub', 'endTable', 'againBtn', 'muteBtn', 'qBtn', 'pas', 'chan', 'chanFill', 'score', 'recallBtn', 'top', 'shopNote', 'menu', 'menuBtn', 'mResume', 'mRestart', 'mQuit', 'vMusic', 'vSfx', 'ult', 'modeSel', 'sub', 'sig', 'seatSel', 'chat']) el[id] = $(id);
+  const el = {}; for (const id of ['ins', 'rec', 'hud', 'title', 'end', 'cards', 'detail', 'diff', 'portrait', 'rosF', 'rosE', 'goBtn', 'help', 'kF', 'kE', 'clock', 'pipF', 'pipE', 'buff', 'feed', 'announce', 'toast', 'dead', 'deadT', 'tip', 'touch', 'pName', 'pLvl', 'skills', 'hpFill', 'hpTxt', 'mpFill', 'mpTxt', 'xpFill', 'gold', 'kda', 'items', 'shop', 'shopGrid', 'shopBtn', 'shopX', 'mini', 'endMark', 'endSub', 'endTable', 'againBtn', 'muteBtn', 'qBtn', 'pas', 'chan', 'chanFill', 'score', 'recallBtn', 'top', 'shopNote', 'menu', 'menuBtn', 'mResume', 'mRestart', 'mQuit', 'vMusic', 'vSfx', 'ult', 'modeSel', 'sub', 'sig', 'seatSel', 'chat', 'room', 'netBtn', 'netPane', 'nName', 'nSrv', 'nSrvRow', 'nCode', 'nJoin', 'nCreate1', 'nCreate3', 'nStatus', 'nClose', 'chatIn', 'endRoom']) el[id] = $(id);
   document.body.classList.toggle('touch', isTouch);
   let goldShown = 0, kWas = [0, 0];
   el.touch.hidden = !isTouch;
@@ -30,6 +30,7 @@ export function createUI(isTouch, audio) {
   const sx = (e, v) => { v = Math.round(v * 500) / 500; if (cache.get(e) !== v) { cache.set(e, v); e.style.transform = `scaleX(${v})`; } };
 
   // ---------- title ----------
+  const showDetail = hero => { el.rec.innerHTML = ui.recHtml(hero); const h = HEROES[hero]; el.detail.innerHTML = `<i class="big" style="background-image:url(${face(h)})"></i><h3>${h.name}<small>${h.title}</small></h3><p>${h.blurb}</p><ul><li class="pv"><i style="background-image:url(${pasIcon(h)})"></i><div><b>被动 · ${h.passive.name}</b><span>${h.passive.desc}</span></div></li>${h.skills.map(sk => `<li><i style="background-image:url(${icon(h, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}</b><span>${sk.desc}</span></div></li>`).join('')}</ul>`; };
   ui.showTitle = onStart => {
     let hero = store.get('hero', 'mage'), diffK = store.get('diff', 'normal'), mode = store.get('mode', MODE.id);
     if (!HEROES[hero]) hero = 'mage'; if (!T.difficulty[diffK]) diffK = 'normal'; if (!MODES[mode]) mode = 'single';
@@ -38,7 +39,7 @@ export function createUI(isTouch, audio) {
     el.seatSel.onclick = e => { const c = e.target.closest('button'); if (c) { seat = +c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.modeSel.onclick = e => { const c = e.target.closest('button'); if (c) { mode = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.cards.innerHTML = HERO_ORDER.map(k => { const h = HEROES[k]; return `<button type="button" class="card" data-k="${k}"><i class="pt" style="background-image:url(${face(h)})"></i><h3>${h.name}</h3><div class="role">${h.role}</div><div class="ics">${h.skills.map(sk => `<i style="background-image:url(${icon(h, sk)})"></i>`).join('')}</div></button>`; }).join('');
-    const detail = () => { el.rec.innerHTML = ui.recHtml(hero); const h = HEROES[hero]; el.detail.innerHTML = `<i class="big" style="background-image:url(${face(h)})"></i><h3>${h.name}<small>${h.title}</small></h3><p>${h.blurb}</p><ul><li class="pv"><i style="background-image:url(${pasIcon(h)})"></i><div><b>被动 · ${h.passive.name}</b><span>${h.passive.desc}</span></div></li>${h.skills.map(sk => `<li><i style="background-image:url(${icon(h, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}</b><span>${sk.desc}</span></div></li>`).join('')}</ul>`; };
+    const detail = () => showDetail(hero);
     el.diff.innerHTML = Object.entries(T.difficulty).map(([k, d]) => `<button type="button" data-k="${k}">${d.name}</button>`).join('');
     const paint = () => { for (const c of el.cards.children) c.classList.toggle('on', c.dataset.k === hero); for (const c of el.diff.children) c.classList.toggle('on', c.dataset.k === diffK); for (const c of el.modeSel.children) c.classList.toggle('on', c.dataset.k === mode); el.sub.textContent = `${HERO_ORDER.length === 18 ? '十八' : HERO_ORDER.length}位修士 · ${MODES[mode].team}V${MODES[mode].team} · 摧毁敌方阵眼`;
       // 三路: pick your seat. ★ marks the ones this cultivator suits; 自动 takes the first of them. The others fill the rest.
@@ -46,13 +47,84 @@ export function createUI(isTouch, audio) {
       if (five) el.seatSel.innerHTML = `位置 <button type="button" data-k="-1" class="${seat < 0 ? 'on' : ''}">自动</button>` + SEATS.map((q, i) => `<button type="button" data-k="${i}" class="${seat === i ? 'on ' : ''}${fit.includes(i) ? 'fit' : ''}">${q.pos}</button>`).join('') + `<em>${SEATS[at].pos}：${SEATS[at].note}${fit.includes(at) ? '' : ' · 这个位置不是 ' + HEROES[hero].name + ' 的长项'}</em>`;
       detail(); };
     el.cards.onclick = e => { const c = e.target.closest('.card'); if (c) { hero = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
+    el.netBtn.onclick = () => { audio.init(); audio.play('click'); if (ui.onNet) ui.onNet(); };
     el.diff.onclick = e => { const c = e.target.closest('button'); if (c) { diffK = c.dataset.k; paint(); audio.init(); audio.play('click'); } };
     el.goBtn.onclick = () => { store.set('hero', hero); store.set('diff', diffK); store.set('mode', mode); store.set('seat', String(seat)); el.title.hidden = true; onStart(hero, diffK, mode, MODES[mode].team === 5 ? seat : -1); };
     el.help.innerHTML = isTouch
       ? '摇杆移动，松手自动打附近的敌人 · 招式点一下自动瞄，按住拖动自己瞄 · 小地图下：集合 / 进攻 / 撤退 / 开团 · 招式说明在菜单里'
       : '<kbd>右键</kbd>移动 / 攻击 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd>招式 <kbd>A</kbd>攻击移动 <kbd>B</kbd>归宗 <kbd>P</kbd>万宝阁 <kbd>Tab</kbd>计分板 · 信号 <kbd>Z</kbd>集合 <kbd>X</kbd>进攻 <kbd>C</kbd>撤退 <kbd>V</kbd>开团 · <kbd>Esc</kbd>菜单里有招式说明';
     paint(); el.hud.hidden = true; el.end.hidden = true; el.title.hidden = false;
+    roomBuilt = false; el.room.hidden = true; el.title.classList.remove('inroom'); el.netBtn.textContent = '联机对战'; el.goBtn.textContent = '出战'; el.goBtn.classList.remove('dim');
+    el.diff.title = ''; for (const c of el.cards.children) c.classList.remove('taken'); el.modeSel.classList.remove('locked'); el.diff.classList.remove('locked');
   };
+
+  // ---------- online: the room ----------
+  // The title screen doubles as the room. Above the cards, the two sides and who sits where (click an empty seat to move);
+  // the cards pick your own cultivator; the host's mode buttons pick the map and the difficulty buttons how well the bots play.
+  // Empty seats are filled by bots when the host starts.
+  let roomBuilt = false;
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  ui.esc = esc;
+  ui.showRoom = (N, act) => {
+    const r = N.room; if (!r) return;
+    const me = N.cid, host = r.host === me, mode = r.mode, five = MODES[mode].team === 5;
+    let mt = -1, mi = -1; r.seats.forEach((side, t) => side.forEach((q, i) => { if (q.cid === me) { mt = t; mi = i; } }));
+    const mine = mt >= 0 ? r.seats[mt][mi] : null, hero = mine && mine.hero;
+    const takenBy = k => r.seats.some((side, t) => (mode === 'single' || t === mt) && side.some(q => q !== mine && q.hero === k));
+    el.title.hidden = false; el.title.classList.add('inroom'); el.hud.hidden = true; el.end.hidden = true; el.netPane.hidden = true;
+    el.seatSel.hidden = true; el.room.hidden = false; el.netBtn.textContent = '离开房间';
+    if (!roomBuilt) {
+      roomBuilt = true;
+      el.room.innerHTML = '<div class="rhead"></div><div class="sides"></div><div class="rchat"><div class="log"></div><input maxlength="120" enterkeyhint="send" placeholder="说点什么，回车发送"></div>';
+      const inp = el.room.querySelector('input');
+      inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter' && inp.value.trim()) { act.send({ t: 'chat', text: inp.value.trim() }); inp.value = ''; } };
+      el.room.onclick = e => {
+        const b = e.target.closest('button'); if (!b) return; audio.init();
+        if (b.dataset.a === 'copy') { const link = act.invite(); try { navigator.clipboard.writeText(link); ui.toast('邀请已复制：' + link); } catch { ui.toast(link); } return; }
+        if (b.dataset.kick) { act.send({ t: 'kick', cid: b.dataset.kick }); return; }
+        if (b.classList.contains('seat') && b.classList.contains('empty')) { act.send({ t: 'seat', team: +b.dataset.t, slot: +b.dataset.i }); audio.play('click'); }
+      };
+    }
+    el.room.querySelector('.rhead').innerHTML = `房间 <b>${r.code}</b><span>${MODES[mode].name} · 空位由电脑补上</span><button type="button" data-a="copy">复制邀请</button><em class="ping">${N.ping ? '延迟 ' + N.ping + ' ms' : ''}</em>`;
+    el.room.querySelector('.sides').innerHTML = r.seats.map((side, t) => `<div class="side ${t ? 'te' : 'tf'}"><h4>${t ? '烬方' : '霜方'}</h4>` + side.map((q, i) => {
+      const h = q.hero && HEROES[q.hero], pos = five ? SEATS[i].pos : ['一', '二', '三'][i];
+      const who = q.cid ? esc(q.name) + (q.cid === r.host ? ' · 房主' : '') : '空位 · 点一下坐过来';
+      const tag = !q.cid ? '' : q.cid === r.host ? '' : `<s class="${q.ready ? 'ok' : ''}">${q.ready ? '已准备' : '未准备'}</s>`;
+      const kick = host && q.cid && q.cid !== me ? `<button type="button" class="kick" data-kick="${q.cid}" title="请出房间">×</button>` : '';
+      return `<button type="button" class="seat${q.cid === me ? ' mine' : ''}${q.cid ? '' : ' empty'}" data-t="${t}" data-i="${i}"><span class="pos">${pos}</span><i class="pt" style="${h ? `background-image:url(${face(h)})` : ''}"></i><b>${h ? h.name : q.cid ? '选人中…' : '电脑'}</b><em>${who}</em>${tag}</button>${kick}`;
+    }).join('') + '</div>').join('');
+    for (const c of el.modeSel.children) c.classList.toggle('on', c.dataset.k === mode);
+    el.modeSel.classList.toggle('locked', !host); el.diff.classList.toggle('locked', !host); el.diff.title = '电脑补位的强度';
+    for (const c of el.diff.children) c.classList.toggle('on', c.dataset.k === r.diff);
+    for (const c of el.cards.children) { c.classList.toggle('on', c.dataset.k === hero); c.classList.toggle('taken', takenBy(c.dataset.k)); }
+    el.sub.textContent = `联机 · ${MODES[mode].team}V${MODES[mode].team} · 选好修士后准备，房主开战`;
+    if (hero) showDetail(hero);
+    const people = r.seats.flat().filter(q => q.cid), allSet = people.every(q => q.cid === me || (q.ready && q.hero));
+    el.goBtn.textContent = host ? '开战' : mine && mine.ready ? '取消准备' : '准备';
+    el.goBtn.classList.toggle('dim', !hero || (host && !allSet));
+    el.cards.onclick = e => { const c = e.target.closest('.card'); if (!c || !mine) return; audio.init(); audio.play('click'); if (c.classList.contains('taken')) { ui.toast('这位修士已经有人选了'); return; } act.send({ t: 'hero', id: c.dataset.k }); };
+    el.modeSel.onclick = e => { const c = e.target.closest('button'); if (!c) return; if (!host) { ui.toast('只有房主能换模式'); return; } act.send({ t: 'mode', mode: c.dataset.k }); };
+    el.diff.onclick = e => { const c = e.target.closest('button'); if (!c) return; if (!host) { ui.toast('只有房主能定电脑强度'); return; } act.send({ t: 'diff', diff: c.dataset.k }); };
+    el.goBtn.onclick = () => { audio.init(); if (!mine) { ui.toast('先点一个空位坐下'); return; } if (!hero) { ui.toast('先选一位修士'); return; } if (host) act.send({ t: 'start' }); else act.send({ t: 'ready', on: !mine.ready }); };
+    el.netBtn.onclick = () => act.leave();
+  };
+  ui.roomChat = (from, text) => {
+    const log = el.room.querySelector('.log'); if (!log) return;
+    const d = document.createElement('div'); d.innerHTML = `<b>${esc(from)}</b>${esc(text)}`; log.append(d); while (log.children.length > 30) log.firstChild.remove(); log.scrollTop = 1e6;
+  };
+  // the box for joining or opening a room
+  ui.netPane = (N, act) => {
+    el.netPane.hidden = false; el.nName.value = N.name || ''; el.nSrv.value = N.url ? N.url.replace(/^wss?:\/\//, '').replace(/\/ws$/, '') : '';
+    el.nSrvRow.hidden = !act.askServer; el.nStatus.textContent = act.status || '';
+    const go = f => () => { audio.init(); audio.play('click'); const n = el.nName.value.trim(); if (!n) { el.nStatus.textContent = '先起个道号'; el.nName.focus(); return; } N.setName(n); f(); };
+    el.nCreate1.onclick = go(() => act.create('single')); el.nCreate3.onclick = go(() => act.create('tri'));
+    el.nJoin.onclick = go(() => { const c = el.nCode.value.trim().toUpperCase(); if (c.length !== 4) { el.nStatus.textContent = '房间号是四个字'; return; } act.join(c); });
+    el.nCode.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') el.nJoin.click(); };
+    el.nName.onkeydown = e => e.stopPropagation(); el.nSrv.onkeydown = e => e.stopPropagation();
+    el.nSrv.onchange = () => act.server(el.nSrv.value.trim());
+    el.nClose.onclick = () => { el.netPane.hidden = true; act.close(); };
+  };
+  ui.netStatus = t => { el.nStatus.textContent = t; };
 
   // ---------- match HUD ----------
   let fogCv = null, fogImg = null;
@@ -62,7 +134,7 @@ export function createUI(isTouch, audio) {
     el.mini.classList.toggle('sq', MAP.mini[0] === MAP.mini[1]); el.mini.width = MAP.mini[0] * 2; el.mini.height = MAP.mini[1] * 2;
     requestAnimationFrame(() => { const r = el.mini.getBoundingClientRect(); el.hud.style.setProperty('--mh', Math.round(r.height) + 'px'); el.hud.style.setProperty('--mw', Math.round(r.width) + 'px'); });   // things stacked under the minimap follow its height
     for (const [pe, t] of [[el.pipF, FROST], [el.pipE, EMBER]]) { pe.innerHTML = '<i></i>'.repeat(G.structs[t].list.length + 1); pe.classList.toggle('many', G.structs[t].list.length > 3); }
-    el.pName.textContent = ''; el.portrait.style.backgroundImage = `url(${faceOf(p)})`;
+    el.pName.textContent = ''; el.portrait.style.backgroundImage = `url(${faceOf(p)})`; el.sig.querySelector('[data-s=chat]').hidden = !G.net;
     el.skills.innerHTML = d.skills.map((s, i) => `<div class="sk" data-i="${i}"><button type="button" class="up" hidden aria-label="提升">＋</button><button type="button" class="skill${i === 3 ? ' ult' : ''}" data-i="${i}" style="background-image:url(${icon(d, s)})"><span class="key">${s.key}</span><span class="nm">${s.name}</span><span class="cost">${s.mana}</span><span class="pips">${'<i></i>'.repeat(3)}</span><i class="cd"></i><b class="cdn"></b></button></div>`).join('');
     skillEls = [...el.skills.querySelectorAll('.skill')].map(b => ({ b, cd: b.querySelector('.cd'), cdn: b.querySelector('.cdn'), up: b.parentElement.querySelector('.up'), pips: [...b.querySelectorAll('.pips i')], was: 0 }));
     skillEls.forEach(({ b, up }, i) => {
@@ -81,18 +153,18 @@ export function createUI(isTouch, audio) {
     const showInfo = () => { if (!sel) { info.innerHTML = '<span class="hint">点一下法器看说明，再点一下购买</span>'; return; } const it = ITEMS[sel], t = shopTiles.find(q => q.k === sel); info.innerHTML = `<i style="background-image:url(${itemIcon(it)})"></i><div><b>${it.name}<em>${t ? t.em.textContent : it.cost + ' 灵石'}</em></b><span>${it.tip}${it.parts ? '　· ' + it.parts.map(q => ITEMS[q].name).join(' + ') : ''}</span></div><button type="button">买</button>`; info.querySelector('button').onclick = () => { G.buy(sel); setTimeout(showInfo, 30); }; };
     showInfo();
     el.shopGrid.onclick = e => { const c = e.target.closest('.item'); if (!c) return; if (!isTouch || sel === c.dataset.k) { G.buy(c.dataset.k); if (isTouch) setTimeout(showInfo, 30); return; } sel = c.dataset.k; for (const t of shopTiles) t.b.classList.toggle('sel', t.k === sel); showInfo(); };
-    const ros = (box, team) => { const hs = G.heroes.filter(h => h.team === team); box.innerHTML = hs.map(h => `<i style="background-image:url(${faceOf(h)})"${h.isPlayer ? ' class="me"' : ''}><b></b><u></u></i>`).join(''); return hs.map((h, i) => ({ h, e: box.children[i], lv: box.children[i].querySelector('b'), dead: box.children[i].querySelector('u') })); };
+    const ros = (box, team) => { const hs = G.heroes.filter(h => h.team === team); box.innerHTML = hs.map(h => `<i style="background-image:url(${faceOf(h)})"${h === G.player ? ' class="me"' : ''}${h.pname ? ` title="${esc(h.pname)}"` : ''}><b></b><u></u></i>`).join(''); return hs.map((h, i) => ({ h, e: box.children[i], lv: box.children[i].querySelector('b'), dead: box.children[i].querySelector('u') })); };
     roster = [...ros(el.rosF, FROST), ...ros(el.rosE, EMBER)];
     el.shopBtn.onclick = () => ui.toggleShop(); el.shopX.onclick = () => ui.toggleShop(false);
     el.recallBtn.onclick = () => { audio.init(); G.recall(); };
-    el.sig.onpointerdown = e => { const c = e.target.closest('button'); if (c) { e.preventDefault(); e.stopPropagation(); audio.init(); if (c.dataset.s === 'rally') G.setRally(); else actions.signal(c.dataset.s, false); c.animate([{ transform: 'scale(.88)' }, { transform: 'scale(1)' }], { duration: 180 }); } };
+    el.sig.onpointerdown = e => { const c = e.target.closest('button'); if (c) { e.preventDefault(); e.stopPropagation(); audio.init(); if (c.dataset.s === 'chat') { if (ui.onChat) ui.onChat(); } else if (c.dataset.s === 'rally') G.setRally(); else actions.signal(c.dataset.s, false); c.animate([{ transform: 'scale(.88)' }, { transform: 'scale(1)' }], { duration: 180 }); } };
     // the passive: a round tile beside the portrait; hover or tap to read it
     el.pas.style.backgroundImage = `url(${pasIcon(d)})`;
     const pasTip = () => { el.tip.innerHTML = `<i style="background-image:url(${pasIcon(d)});border-radius:50%"></i><div><b>被动 · ${d.passive.name}</b><br>${d.passive.desc}</div>`; el.tip.hidden = false; };
     if (isTouch) el.pas.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); pasTip(); tipT = 3.5; };
     else { el.pas.onpointerenter = pasTip; el.pas.onpointerleave = () => { el.tip.hidden = true; }; }
     // the scoreboard (hold Tab; tap the score on touch)
-    el.score.innerHTML = [FROST, EMBER].map(t => `<section class="${t === FROST ? 'frost' : 'ember'}"><h3>${t === FROST ? '霜' : '烬'}<b></b></h3>${G.heroes.filter(h => h.team === t).map(h => `<div class="row${h.isPlayer ? ' me' : ''}"><i class="fp" style="background-image:url(${faceOf(h)})"></i><span class="nm">${h.name}${h.isPlayer ? '（你）' : ''}<small>${h.seat ? h.seat + ' · ' : ''}${h.def.role}</small></span><span class="st"></span><span class="lv"></span><span class="kda"></span><span class="its"></span><span class="dmg"></span></div>`).join('')}</section>`).join('') + `<p>${isTouch ? '再点一下顶部比分收起' : '按住 Tab 查看'} · 镇压 / 陨落 / 合力 · 伤害指对修士造成的伤害</p>`;
+    el.score.innerHTML = [FROST, EMBER].map(t => `<section class="${t === FROST ? 'frost' : 'ember'}"><h3>${t === FROST ? '霜' : '烬'}<b></b></h3>${G.heroes.filter(h => h.team === t).map(h => `<div class="row${h === G.player ? ' me' : ''}"><i class="fp" style="background-image:url(${faceOf(h)})"></i><span class="nm">${h.pname && h !== G.player ? esc(h.pname) + ' · ' : ''}${h.name}${h === G.player ? '（你）' : ''}<small>${h.seat ? h.seat + ' · ' : ''}${h.def.role}</small></span><span class="st"></span><span class="lv"></span><span class="kda"></span><span class="its"></span><span class="dmg"></span></div>`).join('')}</section>`).join('') + `<p>${isTouch ? '再点一下顶部比分收起' : '按住 Tab 查看'} · 镇压 / 陨落 / 合力 · 伤害指对修士造成的伤害</p>`;
     scoreHead = [...el.score.querySelectorAll('h3 b')];
     const rows = [...el.score.querySelectorAll('.row')], order = [...G.heroes.filter(h => h.team === FROST), ...G.heroes.filter(h => h.team === EMBER)];
     scoreRows = order.map((h, i) => ({ h, e: rows[i], lv: rows[i].querySelector('.lv'), kda: rows[i].querySelector('.kda'), its: rows[i].querySelector('.its'), st: rows[i].querySelector('.st'), dmg: rows[i].querySelector('.dmg'), sig: null }));
@@ -108,6 +180,7 @@ export function createUI(isTouch, audio) {
     ui.menuOpen = on === undefined ? !ui.menuOpen : on; el.menu.hidden = !ui.menuOpen;
     if (ui.menuOpen) {
       ui.toggleShop(false); ui.showScore(false); el.tip.hidden = true;
+      if (G) { el.mRestart.hidden = !!G.net; $('mBot').hidden = !G.net; $('mBot').textContent = G.player.isPlayer ? '托管 · 让电脑代打' : '取消托管 · 自己打'; el.mQuit.textContent = G.net ? '离开这局 · 电脑接着打' : '回山门 · 重新选人'; }
       if (G) { const p = G.player, d = p.def;                          // every ability spelled out: the one place to read them on a phone
         $('mSkills').innerHTML = `<li><i style="background-image:url(${pasIcon(d)});border-radius:50%"></i><div><b>被动 · ${d.passive.name}</b><span>${d.passive.desc}</span></div></li>` + d.skills.map((sk, i) => { const R = i === 3 ? RANK.ult : RANK.basic, r = p.ranks[i], e = G.skill(i), word = sk.kind === 'shield' ? '罡气' : sk.kind === 'heal' ? '治疗' : '伤害';
           return `<li><i style="background-image:url(${icon(d, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}<u>${r ? R.name[r - 1] : '未学'}</u></b><span>${e.desc || sk.desc}</span><span class="n">灵力 ${sk.mana} · 调息 ${(e.cd * (1 - p.cdr)).toFixed(1)} 秒${sk.b !== undefined ? ` · ${word} ${Math.round(G.skillDmg(i, Math.max(1, r)))}` : ''}${scaleTxt(sk) ? ` · 随 ${scaleTxt(sk)}` : ''}</span></div></li>`; }).join(''); }
@@ -115,6 +188,7 @@ export function createUI(isTouch, audio) {
   };
   el.menuBtn.onclick = () => { audio.init(); ui.toggleMenu(); }; el.mResume.onclick = () => ui.toggleMenu(false);
   el.mRestart.onclick = () => { ui.toggleMenu(false); if (ui.onMenu.restart) ui.onMenu.restart(); }; el.mQuit.onclick = () => { ui.toggleMenu(false); if (ui.onMenu.quit) ui.onMenu.quit(); };
+  $('mBot').onclick = () => { ui.toggleMenu(false); if (ui.onMenu.bot) ui.onMenu.bot(); };
   el.menu.onpointerdown = e => { if (e.target === el.menu) ui.toggleMenu(false); };
   el.vMusic.value = store.get('vm', '100'); el.vSfx.value = store.get('vs', '100');
   const vol = () => { audio.setVolume(el.vMusic.value / 100, el.vSfx.value / 100); store.set('vm', el.vMusic.value); store.set('vs', el.vSfx.value); };
@@ -133,7 +207,7 @@ export function createUI(isTouch, audio) {
     el.tip.innerHTML = `<i style="background-image:url(${icon(p.def, s)})"></i><div><b>${s.key} · ${s.name}</b> <span class="rk">${r ? R.name[r - 1] : '未学'}</span>${scaleTag(s)}<br>${s.desc}<em>${nums}</em>${sc}${next}</div>`; el.tip.hidden = false;
   }
   // what your side's bots say to each other: a face, a name, a few words; three lines at most, each gone in a few seconds
-  ui.chat = (h, text, foe, hold) => { const d = document.createElement('div'); if (foe) d.className = 'foe'; d.innerHTML = `<i class="fp" style="background-image:url(${faceOf(h)})"></i><b>${h.name}</b>${text}`; el.chat.append(d); while (el.chat.children.length > 3) el.chat.firstChild.remove(); setTimeout(() => d.remove(), hold || 5200); };
+  ui.chat = (h, text, foe, hold) => { const d = document.createElement('div'); if (foe) d.className = 'foe'; d.innerHTML = `<i class="fp" style="background-image:url(${faceOf(h)})"></i><b>${h.pname ? esc(h.pname) + ' · ' + h.name : h.name}</b>${text}`; el.chat.append(d); while (el.chat.children.length > 3) el.chat.firstChild.remove(); setTimeout(() => d.remove(), hold || 5200); };
   const ACH = [
     ['kill', '开锋', '镇压一名修士'], ['multi3', '三花聚顶', '十息之内连镇三人'], ['streak7', '一人镇一宗', '不陨落连镇七人'], ['clean', '不染尘', '一次不陨落地赢下一局'],
     ['turn', '逆天改命', '镇压数落后的情况下取胜'], ['fast', '速战', '一路十分钟内取胜'], ['both', '两路通吃', '一路和三路各赢一局'], ['ten', '守山人', '累计赢十局'],
@@ -156,7 +230,7 @@ export function createUI(isTouch, audio) {
   ui.rally = on => { const b = el.sig.querySelector('[data-s=rally]'); if (b) b.classList.toggle('on', on); ui.toast(on ? '开团' : '解散'); };
   ui.announce = (text, cls) => { el.announce.textContent = text; el.announce.className = cls || ''; el.announce.animate([{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.12 }, { opacity: 1, offset: 0.8 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 2600, easing: 'ease-out' }); };
   ui.toast = text => { if (!text) return; el.toast.textContent = text; el.toast.animate([{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: 1300 }); };
-  const who = u => (u.kind === 'hero' ? `<i class="fp" style="background-image:url(${faceOf(u)})"></i><span class="${u.team === FROST ? 'frost' : 'ember'}">${u.name}</span>` : u.name || (u.kind === 'minion' ? '弟子' : '护山大阵'));
+  const who = u => (u.kind === 'hero' ? `<i class="fp" style="background-image:url(${faceOf(u)})"></i><span class="${u.team === FROST ? 'frost' : 'ember'}">${u.pname ? esc(u.pname) + '·' : ''}${u.name}</span>` : u.name || (u.kind === 'minion' ? '弟子' : '护山大阵'));
   ui.feed = (k, tgt, src) => {
     const d = document.createElement('div');
     d.innerHTML = k ? `${who(k)} 镇压了 ${who(tgt)}` : `${who(tgt)} 被${src ? who(src) : '护山大阵'}镇杀`;
@@ -186,7 +260,7 @@ export function createUI(isTouch, audio) {
       if (u.kind === 'tower' || u.kind === 'core') { const s = u.kind === 'core' ? 15 : 10; g.fillStyle = col(u.team); g.fillRect(x - s / 2, z - s / 2, s, s); g.strokeStyle = '#000'; g.lineWidth = 1.5; g.strokeRect(x - s / 2, z - s / 2, s, s); }
       else if (u.kind === 'minion') { g.fillStyle = col(u.team); g.fillRect(x - 2, z - 2, 4, 4); }
     }
-    for (const u of G.heroes) { if (!u.alive || (u.hid && u.team !== me)) continue; g.beginPath(); g.arc(X(u.x), Z(u.z), u.isPlayer ? 8.5 : 7, 0, 6.3); g.fillStyle = col(u.team); g.fill(); g.lineWidth = u.isPlayer ? 3 : 1.5; g.strokeStyle = u.isPlayer ? '#fff' : '#000'; g.stroke(); }
+    for (const u of G.heroes) { if (!u.alive || (u.hid && u.team !== me)) continue; g.beginPath(); g.arc(X(u.x), Z(u.z), u === G.player ? 8.5 : 7, 0, 6.3); g.fillStyle = col(u.team); g.fill(); g.lineWidth = u.isPlayer ? 3 : 1.5; g.strokeStyle = u.isPlayer ? '#fff' : '#000'; g.stroke(); }
     g.lineWidth = 1.5; g.strokeStyle = 'rgba(255,255,255,.6)'; g.strokeRect(X(G.focus.x - 27), Z(G.focus.z - 19), 54 * kx, 33 * kz);      // what the camera sees
     for (const pg of G.pings) { const a = G.t - pg.t, r = 5 + (a * 26) % 24; g.lineWidth = 3; g.strokeStyle = `rgba(${pg.type === 'attack' ? '255,110,80' : pg.type === 'retreat' ? '255,220,90' : '140,255,200'},${Math.max(0, 1 - a / 4)})`; g.beginPath(); g.arc(X(pg.x), Z(pg.z), r, 0, 6.3); g.stroke(); g.fillStyle = g.strokeStyle; g.beginPath(); g.arc(X(pg.x), Z(pg.z), 4, 0, 6.3); g.fill(); }
   }
@@ -251,12 +325,13 @@ export function createUI(isTouch, audio) {
     miniT -= dt; if (miniT <= 0 || G.peek) { miniT = 0.12; drawMini(); }
   };
 
-  ui.showEnd = onAgain => {
+  ui.showEnd = (onAgain, onRoom) => {   // onRoom: online, back to the room instead of another match alone
     const win = G.winner === G.player.team;
-    el.endMark.textContent = win ? '宗门大捷' : '山门失守'; { const got = ui.record(G, store.get('diff', 'normal')); el.endSub.textContent = `用时 ${fmt(G.t)} · 镇压 ${G.kills[FROST]} : ${G.kills[EMBER]}` + (got.length ? ` · 新成就：${got.join('、')}` : ''); }
+    el.endMark.textContent = win ? '宗门大捷' : '山门失守'; { const got = G.net ? [] : ui.record(G, store.get('diff', 'normal')); el.endSub.textContent = `用时 ${fmt(G.t)} · 镇压 ${G.kills[FROST]} : ${G.kills[EMBER]}` + (got.length ? ` · 新成就：${got.join('、')}` : ''); }
     const score = h => h.kills * 3 + h.assists * 1.5 - h.deaths * 1.2 + h.dealt / 1500 + (h.team === G.winner ? 2 : 0), best = G.heroes.reduce((a, h) => (score(h) > score(a) ? h : a)), top = Math.max(...G.heroes.map(h => h.dealt));
-    el.endTable.innerHTML = '<tr><th class="c-team">阵营</th><th></th><th>修士</th><th>境界</th><th>镇压</th><th>陨落</th><th>合力</th><th>伤害</th><th class="c-gold">灵石</th></tr>' + G.heroes.map(h => `<tr class="${h === best ? 'best ' : ''}${h.team === FROST ? 'tf' : 'te'}"><td class="c-team ${h.team === FROST ? 'frost' : 'ember'}">${h.team === FROST ? '霜' : '烬'}</td><td><i class="fp" style="background-image:url(${faceOf(h)})"></i></td><td>${h.isPlayer ? '<u>' + h.name + '</u>' : h.name}${h === best ? '<span class="tag">最佳</span>' : ''}</td><td><span class="rl">${REALM[h.level - 1]}</span><span class="rn">${h.level}</span></td><td>${h.kills}</td><td>${h.deaths}</td><td>${h.assists}</td><td>${h.dealt === top ? '<b>' + kfmt(h.dealt) + '</b>' : kfmt(h.dealt)}</td><td class="c-gold">${kfmt(h.earned)}</td></tr>`).join('');
+    el.endTable.innerHTML = '<tr><th class="c-team">阵营</th><th></th><th>修士</th><th>境界</th><th>镇压</th><th>陨落</th><th>合力</th><th>伤害</th><th class="c-gold">灵石</th></tr>' + G.heroes.map(h => `<tr class="${h === best ? 'best ' : ''}${h.team === FROST ? 'tf' : 'te'}"><td class="c-team ${h.team === FROST ? 'frost' : 'ember'}">${h.team === FROST ? '霜' : '烬'}</td><td><i class="fp" style="background-image:url(${faceOf(h)})"></i></td><td>${h.pname && h !== G.player ? esc(h.pname) + ' · ' : ''}${h === G.player ? '<u>' + h.name + '</u>' : h.name}${h === best ? '<span class="tag">最佳</span>' : ''}</td><td><span class="rl">${REALM[h.level - 1]}</span><span class="rn">${h.level}</span></td><td>${h.kills}</td><td>${h.deaths}</td><td>${h.assists}</td><td>${h.dealt === top ? '<b>' + kfmt(h.dealt) + '</b>' : kfmt(h.dealt)}</td><td class="c-gold">${kfmt(h.earned)}</td></tr>`).join('');
     ui.toggleMenu(false); el.hud.hidden = true; el.end.hidden = false; el.againBtn.onclick = () => { el.end.hidden = true; onAgain(); };
+    el.againBtn.hidden = !!onRoom; el.endRoom.hidden = !onRoom; el.endRoom.onclick = () => { el.end.hidden = true; onRoom(); };
   };
   // true fullscreen where the browser allows it (not inside a frame that forbids it, not on iPhone Safari): hidden otherwise
   { const d = document, root = d.documentElement, req = root.requestFullscreen || root.webkitRequestFullscreen, can = !!req && (d.fullscreenEnabled || d.webkitFullscreenEnabled);

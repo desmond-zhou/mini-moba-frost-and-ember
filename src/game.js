@@ -1,20 +1,25 @@
 // game.js — rules of the match: units, combat, abilities, minion waves, towers, jungle camps, economy, bot AI.
 import { MAP, MODE, LANES, TOWERS, FROST, EMBER, NEUTRAL, sideOf, nearestLane, RIVER, RIDGE_ENDS, POS, SEATS, SEAT_FIT, SEAT_BIAS, SUPPORTS, INSIGHT, INSIGHT_LVL, CAMPS, TEAM_COL, HEROES, HERO_ORDER, ITEMS, ITEM_TIERS, RANK, realmOf, T, BRUSH, brushAt } from './config.js';
 import { clamp, dist, dist2, angLerp, lerp } from './util.js';
+import { DMath as Math, seedSim, vis } from './dmath.js';              // same numbers on every machine; vis() is for show only
 import * as THREE from 'three';
 import { Graph, AStar, NavNode, NavEdge, Vector3 as YVec, Think, GoalEvaluator, MemorySystem } from 'yuka';
 import { createVfx } from './vfx.js';
 import { SKSND, SIG_GAIN } from './skillsound.js';
 import { BARKS, VOICE, voice } from './barks.js';
 
+const sq = v => v * v;                                               // not ** : its rounding is up to the browser
 const isStruct = e => e.kind === 'tower' || e.kind === 'core';
 const HOT = [3.2, 1.3, 0.3], WHITE = [1.6, 1.6, 1.6], GOLD = [2.2, 1.6, 0.4], DUST = [0.24, 0.21, 0.17], FLAME = [1.0, 0.36, 0.07];
 
 export function createGame(R, W, M, fx, audio, ui, opts) {
+  const seed = opts.seed ?? (vis() * 4294967296) >>> 0; seedSim(seed);   // the match's dice: online, every machine starts from the same seed
+  const net = !!opts.net;                                              // online: people on both sides, so the bots play by the same numbers on both
   const mirror = opts.difficulty === 'mirror';                         // test mode: both sides play by exactly the same numbers
   const diff = mirror ? { enemy: 0.96, react: 1, aim: 1.4 } : T.difficulty[opts.difficulty] || T.difficulty.normal;
-  const G = { t: 0, over: false, winner: -1, overT: 0, units: [], heroes: [], proj: [], zones: [], kills: [0, 0], player: null, firstBlood: false, structs: [null, null], camps: [], spawnQ: [], nextWave: T.waveFirst, wave: 0, buffT: [0, 0], avgLvl: [1, 1], focus: { x: 0, z: 0 } };
-  let uid = 0;
+  const G = { seed, net, tick: 0, t: 0, over: false, winner: -1, overT: 0, units: [], heroes: [], proj: [], zones: [], kills: [0, 0], player: null, firstBlood: false, structs: [null, null], camps: [], spawnQ: [], nextWave: T.waveFirst, wave: 0, buffT: [0, 0], avgLvl: [1, 1], focus: { x: 0, z: 0 } };
+  let uid = 0; G.byId = new Map();
+  const me = h => h === G.player;                                      // this machine's own cultivator: what only its player sees, hears and feels
   const V = createVfx(fx, audio);
   const close = e => dist2(e.x, e.z, G.focus.x, G.focus.z) < 26;
 
@@ -111,12 +116,12 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   ];
   let jeerAt = -99; const FOE_SAYS = { kill: 'eKill', die: 'eDie', ahead: 'eAhead', behind: 'eBehind', eStart: 'eStart', focus: 'focus' };
   function chat(h, text, force, vars) {                                // text: a literal, a list to pick from, or an event key spoken in the speaker's own manner
-    if (h.isPlayer || G.over) return; const foe = h.team !== G.player.team; let hold = 0;
+    if (h.isPlayer || h.pname || G.over) return; const foe = h.team !== G.player.team; let hold = 0;   // a person's seat never speaks for them, even when the bot is playing it
     if (foe && !Array.isArray(text)) { text = FOE_SAYS[text]; if (!text) return; }   // the other side never reports to its own in your hearing: it only talks at you
     if (text === 'ins') hold = 11000;
-    if (Array.isArray(text)) text = text[Math.floor(Math.random() * text.length)]; else if (VOICE.base[text]) text = voice(h.def.id, text, vars);
+    if (Array.isArray(text)) text = text[Math.floor(vis() * text.length)]; else if (VOICE.base[text]) text = voice(h.def.id, text, vars);
     if (!text) return;
-    if (foe) { if (!force && (G.t - jeerAt < 22 || G.t - (h.chatT || -99) < 60 || Math.random() < 0.45)) return; jeerAt = G.t; }   // the other side: seldom, for company
+    if (foe) { if (!force && (G.t - jeerAt < 22 || G.t - (h.chatT || -99) < 60 || vis() < 0.45)) return; jeerAt = G.t; }   // the other side: seldom, for company
     else if (!force && (G.t - (h.chatT || -9) < 4 || G.t - chatAt < 1.2)) return; else chatAt = G.t;
     h.chatT = G.t; ui.chat(h, text, foe, hold);
   }
@@ -124,8 +129,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   let sayAt = -9; const sayQ = [];
   function say(h, kind, chance = 1) {
     const set = BARKS[h.def.id] && BARKS[h.def.id][kind]; if (!set || G.over && kind !== 'die') return;
-    if (G.t - (h.sayT || -9) < 4 || G.t - sayAt < 1.1 || Math.random() > chance || !near(h) || !canSee(G.player, h)) return;
-    h.sayT = sayAt = G.t; fx.say(h.x, h.h + 1.6, h.z, set[Math.floor(Math.random() * set.length)], h.team === G.player.team);
+    if (G.t - (h.sayT || -9) < 4 || G.t - sayAt < 1.1 || vis() > chance || !near(h) || !canSee(G.player, h)) return;
+    h.sayT = sayAt = G.t; fx.say(h.x, h.h + 1.6, h.z, set[Math.floor(vis() * set.length)], h.team === G.player.team);
   }
   // ---------------- units ----------------
   const faceOf = team => (team === EMBER ? Math.PI : 0) + Math.atan2(MAP.az, MAP.ax);      // looking at the other base
@@ -135,7 +140,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       id: ++uid, kind, team, x, z, y: 0, px: x, pz: z, vx: 0, vz: 0, r: s.r, h: s.h, hp: s.hp, maxHp: s.hp, alive: true, ad: s.ad || 0, ap: 0, range: s.range || 0, period: s.period || 1, wind: s.wind || 0.3, ms: s.ms || 0, ranged: !!s.ranged,
       facing: faceOf(team), target: null, atkT: 0, windT: -1, slowT: 0, slowPct: 0, stunT: 0, shield: 0, shieldT: 0, hasteT: 0, hasteMs: 0, hasteAs: 0, moving: false, curSpeed: 0, flash: 0, tauntT: 0, taunter: null, knock: null, hitK: 0, hitX: 0, hitZ: 0, barShown: 1, barLag: 1, lagT: 0, healT: 0, cutK: 0, animAtk: 0, animCast: 0, combatT: 9, brush: -1, hid: false, revealT: 0, view: null, think: Math.random() * 0.3, goneT: 0,
     };
-    G.units.push(e); return e;
+    G.units.push(e); G.byId.set(e.id, e); return e;
   }
   const hostile = (team, e) => e.team !== team;
   // a tower can be hit once the one in front of it in its lane is down; the core once any lane's last tower is down
@@ -174,14 +179,14 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   function planBuy(id, pool) { const it = ITEMS[id]; let cost = it.cost; if (it.parts) for (const pid of it.parts) { const k = pool.indexOf(pid); if (k >= 0) pool.splice(k, 1); else cost += planBuy(pid, pool); } return cost; }
   const priceOf = (h, id) => planBuy(id, h.items.map(x => x.id));
   const canShop = h => !h.alive || h.atHome;                         // fallen, or home and not yet stepped out: walking back in does not count, only 归宗 does   // 万宝阁 only trades at home, or with the fallen
-  function buyItem(h, id) {   // returns '' on success, else the reason
+  function buyItem(h, id, dry) {   // returns '' on success, else the reason; dry = only ask
     const it = ITEMS[id]; if (!it) return '没有这件物品';
     if (!canShop(h)) return MODE.noRecall ? '出过山门就不能买了 · 一路只有出山前和陨落时能买' : '出过山门就不能买了，走回来也不算 · 归宗（B）或陨落时再来';
     if (it.tier === 3 && h.items.some(x => x.id === id)) return '同一件法宝只能持有一件';
     const pool = h.items.map(x => x.id), cost = planBuy(id, pool);
     if (pool.length + 1 > 6) return '储物戒已满';
     if (h.gold < cost) return '灵石不足';
-    h.gold -= cost; h.items = [...pool.map(k => ITEMS[k]), it]; recalc(h); return '';
+    if (dry) return ''; h.gold -= cost; h.items = [...pool.map(k => ITEMS[k]), it]; recalc(h); return '';
   }
   // 出装. The first 法宝 is the cultivator's own core (`build[0]`, chosen from builds.mjs runs). Every later one is picked on the spot:
   // what the item gives this cultivator (offence in the stat they scale with, defence, movement), weighted by their seat, then bent
@@ -226,7 +231,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   const canLearn = (h, i) => { const R = rankOf(h, i), r = h.ranks[i]; return h.sp > 0 && r < R.max && h.level >= R.lvl[r]; };
   function learn(h, i) {
     if (!canLearn(h, i)) return false; h.ranks[i]++; h.sp--;
-    if (near(h)) { fx.ringWave(h.x, h.z, 6, h.fxCol, 0.45); fx.pillar(h.x, h.z, 1.2, 7, h.fxCol, 0.45); } if (h.isPlayer) audio.play('level');
+    if (near(h)) { fx.ringWave(h.x, h.z, 6, h.fxCol, 0.45); fx.pillar(h.x, h.z, 1.2, 7, h.fxCol, 0.45); } if (me(h)) audio.play('level');
     return true;
   }
   // the ability as it currently stands for this hero: cooldown and durations follow its rank
@@ -241,39 +246,50 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     return e;
   }
   const N = MODE.team, slotZ = slot => (slot - (N - 1) / 2) * 2.8;
-  function makeHero(defId, team, isPlayer, slot, lane = 0, laneOff = slotZ(slot)) {
+  function makeHero(defId, team, isPlayer, slot, lane = 0, laneOff = slotZ(slot), mine = isPlayer) {
     const d = HEROES[defId], sp = spawnAt(team, slotZ(slot));
     const h = unit('hero', team, sp.x, sp.z, { r: 0.95 + (d.size - 1.3) * 0.38, h: d.size * 3.55 + 0.35 + (d.tall || 0), hp: d.hp, ad: d.ad, range: d.range, period: d.period, wind: d.wind, ms: d.ms, ranged: d.ranged });
-    Object.assign(h, { def: d, name: d.name, isPlayer, level: 1, xp: 0, gold: T.startGold, mana: d.mana, maxMana: d.mana, items: [], ranks: [0, 0, 0, 0], ins: [], insPend: [], sp: 1, cds: [0, 0, 0, 0], kills: 0, deaths: 0, assists: 0, respawnT: 0, order: null, dash: null, dmgLog: new Map(), ls: 0, cdr: 0, multi: 0, multiT: -99, pStack: 0, pT: 0, pCd: 0, pTgt: null, atHome: true, dealt: 0, earned: T.startGold, recallT: 0, recallFx: null, slot, ai: { state: 'lane', lane, castLock: 1.5 + Math.random() * 2, laneOff, ambushAt: 28 + Math.random() * 30, jungleAt: 45 + Math.random() * 30, shopAt: 0, sly: team === FROST || Math.random() < (diff.react > 1.5 ? 0.4 : 1), nose: team === FROST ? 0.7 : diff.react > 1.5 ? 0.35 : diff.react > 1 ? 0.7 : 1 } });
+    Object.assign(h, { def: d, name: d.name, isPlayer, level: 1, xp: 0, gold: T.startGold, mana: d.mana, maxMana: d.mana, items: [], ranks: [0, 0, 0, 0], ins: [], insPend: [], sp: 1, cds: [0, 0, 0, 0], kills: 0, deaths: 0, assists: 0, respawnT: 0, order: null, dash: null, dmgLog: new Map(), ls: 0, cdr: 0, multi: 0, multiT: -99, pStack: 0, pT: 0, pCd: 0, pTgt: null, atHome: true, dealt: 0, earned: T.startGold, recallT: 0, recallFx: null, slot, ai: { state: 'lane', lane, castLock: 1.5 + Math.random() * 2, laneOff, ambushAt: 28 + Math.random() * 30, jungleAt: 45 + Math.random() * 30, shopAt: 0, sly: (!net && team === FROST) || Math.random() < (diff.react > 1.5 ? 0.4 : 1), nose: team === FROST ? 0.7 : diff.react > 1.5 ? 0.35 : diff.react > 1 ? 0.7 : 1 } });
     const tg = TEAM_COL[team].glow, mix = [tg[0] * 0.38 + d.tint[0] * 0.62, tg[1] * 0.38 + d.tint[1] * 0.62, tg[2] * 0.38 + d.tint[2] * 0.62], mx = Math.max(mix[0], mix[1], mix[2]);
     h.fxCol = [mix[0] / mx, mix[1] / mx, mix[2] / mx]; h.lsBuff = 0;
-    h.view = M.hero(d, team, isPlayer); recalc(h); h.hp = h.maxHp; h.mana = h.maxMana; G.heroes.push(h); return h;
+    h.view = M.hero(d, team, mine); recalc(h); h.hp = h.maxHp; h.mana = h.maxMana; G.heroes.push(h); return h;
   }
-  const mine = opts.hero && HEROES[opts.hero] ? opts.hero : 'mage';
+  // Who plays. Online the room hands over the lineup (who sits where, who is a person); alone, the sides are drawn here.
+  // Either way the cultivators are made in lineup order, so every machine gives every unit the same id.
   const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
-  if (N === 3) {                                                     // 一路: three a side from the other eleven, nobody twice
-    const rest = shuffle(HERO_ORDER.filter(k => k !== mine));
-    const pickSide = (pool, n) => { // one front-liner per side when possible, then whoever is left
-      const out = [], melee = pool.findIndex(k => !HEROES[k].ranged); if (melee >= 0) out.push(pool.splice(melee, 1)[0]);
-      while (out.length < n) out.push(pool.shift()); return out;
-    };
-    const foes = pickSide(rest, 3), allies = HEROES[mine].ranged ? pickSide(rest, 2) : [rest.shift(), rest.shift()];
-    [mine, ...allies].forEach((k, i) => { const h = makeHero(k, FROST, i === 0, i === 0 ? 1 : i === 1 ? 0 : 2); if (i === 0) G.player = h; });
-    foes.forEach((k, i) => makeHero(k, EMBER, false, i));
-  } else {                                                           // 三路: five positions a side; the two sides may field the same cultivator
-    // Seats come from config. Whoever is fixed (the player, with or without a chosen seat) is placed first; the rest of the side
-    // is filled seat by seat with someone who suits it and is not already on the team.
-    const fits = i => HERO_ORDER.filter(k => SEAT_FIT[k].includes(i)).sort((x, y) => SEAT_FIT[x].indexOf(i) - SEAT_FIT[y].indexOf(i));
-    const draft = (fixed, seat) => {
-      const seats = SEATS.map(() => null), used = new Set();
-      if (fixed) { const k = seat >= 0 && seat < SEATS.length ? seat : SEAT_FIT[fixed][0]; seats[k] = fixed; used.add(fixed); }
-      SEATS.forEach((q, i) => { if (seats[i]) return; const pool = fits(i).filter(k => !used.has(k)), best = pool.filter(k => SEAT_FIT[k][0] === i); const c = shuffle(best.length ? best : pool)[0] || shuffle(HERO_ORDER.filter(k => !used.has(k)))[0]; seats[i] = c; used.add(c); });
-      return seats;
-    };
-    const seatUp = (k, i, team, me) => { const h = makeHero(k, team, me, i, SEATS[i].lane, SEATS[i].off); h.seat = SEATS[i].pos; h.ai.home = SEATS[i].lane; h.ai.jungler = !!SEATS[i].jungle; h.ai.thinkAt = 6 + Math.random() * 2; h.ai.brain = makeBrain(h, SEAT_BIAS[SEATS[i].pos]); return h; };
-    draft(mine, opts.seat ?? -1).forEach((k, i) => { const h = seatUp(k, i, FROST, k === mine); if (k === mine) G.player = h; });
-    draft(null, -1).forEach((k, i) => seatUp(k, i, EMBER, false));
+  const seatUp = (k, i, team, human, mine) => { const h = makeHero(k, team, human, i, SEATS[i].lane, SEATS[i].off, mine); h.seat = SEATS[i].pos; h.ai.home = SEATS[i].lane; h.ai.jungler = !!SEATS[i].jungle; h.ai.thinkAt = 6 + Math.random() * 2; h.ai.brain = makeBrain(h, SEAT_BIAS[SEATS[i].pos]); return h; };
+  let lineup = opts.lineup, meAt = opts.me ?? 0;
+  if (!lineup) {
+    const mine = opts.hero && HEROES[opts.hero] ? opts.hero : 'mage';
+    lineup = [];
+    if (N === 3) {                                                   // 一路: three a side from the other eleven, nobody twice
+      const rest = shuffle(HERO_ORDER.filter(k => k !== mine));
+      const pickSide = (pool, n) => { // one front-liner per side when possible, then whoever is left
+        const out = [], melee = pool.findIndex(k => !HEROES[k].ranged); if (melee >= 0) out.push(pool.splice(melee, 1)[0]);
+        while (out.length < n) out.push(pool.shift()); return out;
+      };
+      const foes = pickSide(rest, 3), allies = HEROES[mine].ranged ? pickSide(rest, 2) : [rest.shift(), rest.shift()];
+      [mine, ...allies].forEach((k, i) => lineup.push({ team: FROST, hero: k, slot: i === 0 ? 1 : i === 1 ? 0 : 2, human: i === 0 }));
+      foes.forEach((k, i) => lineup.push({ team: EMBER, hero: k, slot: i, human: false }));
+    } else {                                                         // 三路: five positions a side; the two sides may field the same cultivator
+      // Seats come from config. Whoever is fixed (the player, with or without a chosen seat) is placed first; the rest of the side
+      // is filled seat by seat with someone who suits it and is not already on the team.
+      const fits = i => HERO_ORDER.filter(k => SEAT_FIT[k].includes(i)).sort((x, y) => SEAT_FIT[x].indexOf(i) - SEAT_FIT[y].indexOf(i));
+      const draft = (fixed, seat) => {
+        const seats = SEATS.map(() => null), used = new Set();
+        if (fixed) { const k = seat >= 0 && seat < SEATS.length ? seat : SEAT_FIT[fixed][0]; seats[k] = fixed; used.add(fixed); }
+        SEATS.forEach((q, i) => { if (seats[i]) return; const pool = fits(i).filter(k => !used.has(k)), best = pool.filter(k => SEAT_FIT[k][0] === i); const c = shuffle(best.length ? best : pool)[0] || shuffle(HERO_ORDER.filter(k => !used.has(k)))[0]; seats[i] = c; used.add(c); });
+        return seats;
+      };
+      draft(mine, opts.seat ?? -1).forEach((k, i) => { if (k === mine) meAt = lineup.length; lineup.push({ team: FROST, hero: k, slot: i, human: k === mine }); });
+      draft(null, -1).forEach((k, i) => lineup.push({ team: EMBER, hero: k, slot: i, human: false }));
+    }
   }
+  G.lineup = lineup; G.byLi = [];
+  lineup.forEach((q, i) => {
+    const h = N === 3 ? makeHero(q.hero, q.team, !!q.human, q.slot, 0, slotZ(q.slot), i === meAt) : seatUp(q.hero, q.slot, q.team, !!q.human, i === meAt);
+    h.li = i; h.pname = q.name || ''; G.byLi[i] = h; if (i === meAt) G.player = h;
+  });
   G.focus.x = G.player.x; G.focus.z = G.player.z;
 
   // ---------------- movement ----------------
@@ -305,10 +321,10 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const pts = [...RIDGE_ENDS.map(p => ({ ...p })), ...CAMPS.map(c => ({ x: c.x, z: c.z })), ...BRUSH.map(b => ({ x: b.x, z: b.z })), POS.fountain(FROST), POS.fountain(EMBER), POS.core(FROST), POS.core(EMBER)];
     for (const L of LANES) { const n = Math.round((L.s1 - L.s0) / 10); for (let i = 0; i <= n; i++) pts.push(L.at(L.s0 + (L.s1 - L.s0) * i / n, 0)); }
     for (let i = 0; i <= 16; i++) pts.push(RIVER.at(i / 16, 0));
-    const nodes = pts.filter(p => Math.abs(p.x) < MAP.hx - 1 && Math.abs(p.z) < MAP.hz - 1 && !W.walls.some(w => (p.x - w.x) ** 2 + (p.z - w.z) ** 2 < (w.r + 1.3) ** 2));
+    const nodes = pts.filter(p => Math.abs(p.x) < MAP.hx - 1 && Math.abs(p.z) < MAP.hz - 1 && !W.walls.some(w => sq(p.x - w.x) + sq(p.z - w.z) < sq(w.r + 1.3)));
     const g = new Graph(); nodes.forEach((p, i) => g.addNode(new NavNode(i, new YVec(p.x, 0, p.z))));
     let edges = 0; for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { const d = dist(nodes[i], nodes[j]); if (d < 36 && !blocked(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z)) { g.addEdge(new NavEdge(i, j, d)); g.addEdge(new NavEdge(j, i, d)); edges++; } }
-    const seen = (x, z) => { let best = -1, bd = 1e9; for (let i = 0; i < nodes.length; i++) { const d = (nodes[i].x - x) ** 2 + (nodes[i].z - z) ** 2; if (d < bd && !blocked(x, z, nodes[i].x, nodes[i].z, 0.6)) { bd = d; best = i; } } return best; };
+    const seen = (x, z) => { let best = -1, bd = 1e9; for (let i = 0; i < nodes.length; i++) { const d = sq(nodes[i].x - x) + sq(nodes[i].z - z); if (d < bd && !blocked(x, z, nodes[i].x, nodes[i].z, 0.6)) { bd = d; best = i; } } return best; };
     return { g, nodes, edges, seen };
   })() : null;
   G.nav = NAV;
@@ -362,7 +378,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
 
   // ---------------- damage, death, rewards ----------------
   function heal(e, amt) { if (e.alive) e.hp = Math.min(e.maxHp, e.hp + amt); }
-  function giveGold(h, g, show) { h.gold += g; h.earned += g; if (show && h.isPlayer) { fx.text(show.x, show.h + 0.4, show.z, '+' + Math.round(g), 'gold'); audio.play('coin'); } }
+  function giveGold(h, g, show) { h.gold += g; h.earned += g; if (show && me(h)) { fx.text(show.x, show.h + 0.4, show.z, '+' + Math.round(g), 'gold'); audio.play('coin'); } }
   function addXp(h, x) {
     if (h.level >= T.maxLevel) return;
     h.xp += x;
@@ -371,7 +387,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (h.level === 5 || h.level === 9) { tribulation(h, h.level === 9); say(h, 'up'); }
       { const t = INSIGHT_LVL.indexOf(h.level); if (t >= 0) { h.insPend.push(t); if (!h.isPlayer || G.autoPlay) takeInsight(h, pickInsight(h)); } }
       if (h.alive && near(h)) { fx.ringWave(h.x, h.z, 7, GOLD, 0.6); fx.burst(h.x, 1.5, h.z, GOLD, { n: 18, speed: 3, up: 9, life: 0.8, size: 0.5, grav: 4 }); }
-      if (h.isPlayer) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至小成', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 绝招可至大成', 'good'); }
+      if (me(h)) { fx.pillar(h.x, h.z, 1.6, 9, GOLD, 0.6); fx.text(h.x, h.h + 1.4, h.z, '突破 · ' + realmOf(h.level), 'level'); audio.play('level'); if (h.level === 4) ui.announce('筑基巅峰 · 可以领悟绝招了', 'good'); else if (h.level === 5) ui.announce('结丹 · 雷劫将至', 'good'); else if (h.level === 8) ui.announce('金丹巅峰 · 绝招可至小成', 'good'); else if (h.level === 9) ui.announce('碎丹成婴 · 雷劫将至', 'good'); else if (h.level === 12) ui.announce('元婴巅峰 · 绝招可至大成', 'good'); }
     }
   }
   // 雷劫. Breaking through to 金丹 or 元婴 roots you for a breath inside a ward while the sky gathers, then lightning falls
@@ -386,14 +402,14 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     h.tribDue = false; const K = big ? TRIB.big : TRIB.small;
     const q = { h, big, t: 0, live: false, n: 0, bolts: K.bolts, part: K.part, dur: TRIB.prep + K.bolts * TRIB.every + 0.4 }; G.tribs.push(q); h.tribQ = q;
     audio.play('thunder', h.x, h.z, 0.35);   // far off: the sky is starting to turn
-    if (h.isPlayer) ui.toast(`十息后落雷，${big ? '九' : '五'}道：趁现在找个地方站好`);
+    if (me(h)) ui.toast(`十息后落雷，${big ? '九' : '五'}道：趁现在找个地方站好`);
     else if (dist(h, G.player) < 30) ui.toast(`${h.name}要渡雷劫了，离远些`);
   }
   function startBolts(q) {
     const h = q.h; q.live = true; q.x = h.x; q.z = h.z; h.tribQ = null; q.dmg = h.maxHp * q.part / q.bolts;
     stopRecall(h); h.stunT = Math.max(h.stunT, q.bolts * TRIB.every); h.windT = -1; h.order = null; h.dash = null;
     h.shield = Math.max(h.shield, h.maxHp * q.part); h.shieldT = q.bolts * TRIB.every + 1.5;
-    if (near(h)) V.tribStart(h); if (h.isPlayer) ui.announce(q.big ? '九道天雷' : '五道天雷', 'bad');
+    if (near(h)) V.tribStart(h); if (me(h)) ui.announce(q.big ? '九道天雷' : '五道天雷', 'bad');
   }
   function updateTribs(dt) {
     let k = 0;
@@ -419,7 +435,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     for (let i = G.bolts.length - 1; i >= 0; i--) {
       const b = G.bolts[i]; if ((b.t += dt) < TRIB.warn) continue; G.bolts.splice(i, 1);
       if (!b.wave.heard) { b.wave.heard = true; const k = (b.wave.i + 1) / b.wave.of; audio.play('thunder', b.wave.x, b.wave.z, 0.5 + 0.9 * k); if (b.wave.i === b.wave.of - 1) { audio.play('boom', b.wave.x, b.wave.z, 0.9); audio.play('kill', b.wave.x, b.wave.z, 0.7); } }   // one thunder a wave, each heavier; the last one breaks the sky
-      for (const e of G.units) if (e.alive && !isStruct(e) && !b.wave.has(e) && dist2(e.x, e.z, b.x, b.z) <= TRIB.r + e.r) { b.wave.add(e); damage(null, e, b.dmg * (e.kind === 'hero' ? 1 : 0.6), { ability: true }); if (e.isPlayer) ui.buzz(50); }
+      for (const e of G.units) if (e.alive && !isStruct(e) && !b.wave.has(e) && dist2(e.x, e.z, b.x, b.z) <= TRIB.r + e.r) { b.wave.add(e); damage(null, e, b.dmg * (e.kind === 'hero' ? 1 : 0.6), { ability: true }); if (me(e)) ui.buzz(50); }
       if (near(b)) V.tribBolt(b.x, b.z, TRIB.r);
     }
   }
@@ -431,7 +447,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (!tgt.alive || G.over) return 0;
     if (isStruct(tgt) && (!vulnerable(tgt) || o.ability)) return 0;
     if (src) {
-      if (src.kind === 'hero') { if (G.buffT[src.team] > 0) amt *= 1.15; if (!src.isPlayer && src.team === EMBER) amt *= diff.enemy; if ((!src.isPlayer || mirror) && src.team === FROST) amt *= 0.96; }
+      if (src.kind === 'hero') { if (G.buffT[src.team] > 0) amt *= 1.15; if (!net) { if (!src.isPlayer && src.team === EMBER) amt *= diff.enemy; if ((!src.isPlayer || mirror) && src.team === FROST) amt *= 0.96; } }
       if (src.kind === 'minion' && tgt.kind === 'hero') amt *= 0.5;
       if (src.kind === 'hero' && tgt.kind === 'hero') amt *= 0.75 * (1 - (tgt.dr || 0));      // duels last longer than wave clear
       if (src.kind === 'tower' && tgt.kind === 'hero') amt *= 0.85;
@@ -457,16 +473,16 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     }
     if (tgt.kind === 'hero' && tgt.def.id === 'keeper' && tgt.hp > 0 && tgt.hp < tgt.maxHp * 0.4 && tgt.pCd <= 0) {   // 守门: a shield when it matters
       tgt.pCd = 45; tgt.shield = Math.max(tgt.shield, tgt.maxHp * 0.16); tgt.shieldT = 4; audio.play('shield', tgt.x, tgt.z);
-      if (near(tgt)) { fx.ringWave(tgt.x, tgt.z, 9, tgt.fxCol, 0.5); if (tgt.isPlayer) fx.text(tgt.x, tgt.h + 1.4, tgt.z, '守门', 'heal'); }
+      if (near(tgt)) { fx.ringWave(tgt.x, tgt.z, 9, tgt.fxCol, 0.5); if (me(tgt)) fx.text(tgt.x, tgt.h + 1.4, tgt.z, '守门', 'heal'); }
     }
     if (src && amt > 0) {   // the blow is felt: flinch away from it, get shoved a little, and the attacker's world stops for a beat
       const hx = tgt.x - src.x, hz = tgt.z - src.z, hd = Math.hypot(hx, hz) || 1; tgt.hitK = 1; tgt.hitX = hx / hd; tgt.hitZ = hz / hd;
       if (o.basic && !isStruct(tgt)) { const kb = (tgt.kind === 'hero' ? 0.18 : 0.42) * (o.crit ? 1.8 : 1); tgt.x += tgt.hitX * kb; tgt.z += tgt.hitZ * kb; }
-      if (o.basic && src.isPlayer) { fx.hitStop(o.crit ? 0.075 : 0.038); fx.shake(o.crit ? 0.34 : 0.14); fx.punch(o.crit ? 0.24 : 0.08); }
-      else if (tgt.isPlayer && amt > tgt.maxHp * 0.05) fx.shake(0.2);
+      if (o.basic && me(src)) { fx.hitStop(o.crit ? 0.075 : 0.038); fx.shake(o.crit ? 0.34 : 0.14); fx.punch(o.crit ? 0.24 : 0.08); }
+      else if (me(tgt) && amt > tgt.maxHp * 0.05) fx.shake(0.2);
     }
     if (src && src.kind === 'hero') {
-      if (tgt.kind === 'hero') { src.dealt += amt; tgt.dmgLog.set(src, G.t); for (const tw of G.structs[tgt.team].list) { if (tw.alive && dist(tw, src) <= tw.range + src.r && (!tw.target || tw.target.kind !== 'hero')) { tw.target = src; tw.atkT = Math.max(tw.atkT, 0.3); if (src.isPlayer) { ui.toast('你在塔下攻击了敌方修士 · 灵塔转火'); audio.play('horn'); } } } }
+      if (tgt.kind === 'hero') { src.dealt += amt; tgt.dmgLog.set(src, G.t); for (const tw of G.structs[tgt.team].list) { if (tw.alive && dist(tw, src) <= tw.range + src.r && (!tw.target || tw.target.kind !== 'hero')) { tw.target = src; tw.atkT = Math.max(tw.atkT, 0.3); if (me(src)) { ui.toast('你在塔下攻击了敌方修士 · 灵塔转火'); audio.play('horn'); } } } }
       if (tgt.kind === 'neutral') for (const u of tgt.camp.units) if (u.alive && !u.aggro) u.aggro = src;
       if (o.basic) { const ls = src.ls + (src.hasteT > 0 ? src.lsBuff || 0 : 0); if (ls > 0) heal(src, amt * ls); if (src.slowHit) applySlow(tgt, src.slowHit); }
       else if (o.ability && src.sv > 0) heal(src, amt * src.sv * (tgt.kind === 'hero' ? 1 : 0.35));
@@ -485,8 +501,8 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       }
       if (o.drain) { const got = amt * o.drain * (tgt.kind === 'hero' ? 1 : 0.35); heal(src, got); if (near(src) && got > 4) fx.line(tgt.x, 1.6, tgt.z, src.x, 1.8, src.z, [1.6, 0.1, 0.12], 8, 0.4, 0.3); }
     }
-    if (amt > 0.5 && ((src && src.isPlayer) || tgt.isPlayer)) fx.text(tgt.x, tgt.h + 0.5, tgt.z, Math.round(amt) + (o.crit ? '!' : ''), tgt.isPlayer ? 'hurt' : o.crit ? 'crit' : o.ability ? 'magic' : 'hit');
-    if (tgt.isPlayer) G.hurtFlash = Math.min(1, (G.hurtFlash || 0) + amt / tgt.maxHp * 2.5);
+    if (amt > 0.5 && ((src && me(src)) || me(tgt))) fx.text(tgt.x, tgt.h + 0.5, tgt.z, Math.round(amt) + (o.crit ? '!' : ''), me(tgt) ? 'hurt' : o.crit ? 'crit' : o.ability ? 'magic' : 'hit');
+    if (me(tgt)) G.hurtFlash = Math.min(1, (G.hurtFlash || 0) + amt / tgt.maxHp * 2.5);
     if (tgt.hp <= 0 && tgt.alive) kill(tgt, src);
     return amt;
   }
@@ -501,7 +517,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const s = tgt.stats; if (near(tgt)) { fx.dust(tgt.x, tgt.z, DUST, { n: tgt.kind === 'neutral' ? 12 : 5, speed: 3, size: tgt.kind === 'neutral' ? 2.4 : 1.5, life: 0.9 }); fx.burst(tgt.x, 1, tgt.z, col, { n: 5, speed: 5, life: 0.45, size: 0.26 }); }
       if (killer) giveGold(killer, s.gold, tgt);
       if (killer && tgt.kind === 'neutral' && killer.def.id === 'qingya') heal(killer, killer.maxHp * 0.04);
-      if (killer && killer.isPlayer) { if (tgt.nk && tgt.nk !== 'golem') { fx.slowmo(0.6, 0.28); fx.punch(0.4); } else { fx.hitStop(0.05); fx.punch(0.14); } }   // the last blow is felt
+      if (killer && me(killer)) { if (tgt.nk && tgt.nk !== 'golem') { fx.slowmo(0.6, 0.28); fx.punch(0.4); } else { fx.hitStop(0.05); fx.punch(0.14); } }   // the last blow is felt
       if (tgt.kind === 'minion') shareXp(1 - tgt.team, tgt, s.xp);
       else if (src && src.team !== NEUTRAL) {
         shareXp(src.team, tgt, s.xp);
@@ -522,7 +538,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       rec.sort((a, b) => b[1] - a[1]);
       const k = killer || (rec.length ? rec.shift()[0] : null);
       const ended = tgt.streak || 0, worth = clamp(1 + 0.14 * ended - 0.16 * (tgt.fallen || 0), 0.5, 1.8); tgt.streak = 0; tgt.fallen = (tgt.fallen || 0) + 1;
-      if (near(tgt)) V.fall(tgt, tgt.team === FROST); if (tgt.isPlayer) ui.buzz(220); else if (k && k.isPlayer) ui.buzz([40, 50, 90]);
+      if (near(tgt)) V.fall(tgt, tgt.team === FROST); if (me(tgt)) ui.buzz(220); else if (k && me(k)) ui.buzz([40, 50, 90]);
       tgt.deaths++; tgt.respawnT = (T.respawn(tgt.level) + G.t / 60 * 1.4) * T.respawnK * clamp(1 - (G.kills[1 - tgt.team] - G.kills[tgt.team]) * 0.035, 0.55, 1);   // the side that is losing the kill race comes back sooner
       tgt.order = null; tgt.dmgLog.clear(); tgt.shield = 0; tgt.slowT = tgt.stunT = tgt.hasteT = 0; tgt.veilT = 0; tgt.heat = 0;
       G.kills[1 - tgt.team]++;
@@ -531,10 +547,10 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         k.streak = (k.streak || 0) + 1; k.fallen = 0;
         chat(k, 'kill', false, { t: tgt.name }); chat(tgt, 'die');
         k.kills++; giveGold(k, T.killGold * fair + (G.firstBlood ? 0 : 100), tgt); addXp(k, (80 + 16 * tgt.level) * fair);
-        k.multi = G.t - k.multiT < 10 ? k.multi + 1 : 1; k.multiT = G.t; k.bestMulti = Math.max(k.bestMulti || 0, k.multi); k.bestStreak = Math.max(k.bestStreak || 0, k.streak || 0); if (k.isPlayer && k.streak === 3) ui.toast('你连镇三人，对面盯上你了');
+        k.multi = G.t - k.multiT < 10 ? k.multi + 1 : 1; k.multiT = G.t; k.bestMulti = Math.max(k.bestMulti || 0, k.multi); k.bestStreak = Math.max(k.bestStreak || 0, k.streak || 0); if (me(k) && k.streak === 3) ui.toast('你连镇三人，对面盯上你了');
       }
       for (const [a] of rec) { const fair = clamp(0.35 + 0.65 * tgt.level / a.level, 0.4, 1.4) * worth; a.fallen = 0; a.assists++; giveGold(a, T.assistGold * fair); addXp(a, (40 + 8 * tgt.level) * fair); }
-      say(tgt, 'die'); if (k) sayQ.push({ h: k, at: G.t + 1.3, chance: k.isPlayer ? 1 : 0.7 });
+      say(tgt, 'die'); if (k) sayQ.push({ h: k, at: G.t + 1.3, chance: me(k) ? 1 : 0.7 });
       for (const a of [k, ...rec.map(r => r[0])]) if (a && a.alive && a.def.id === 'wenren') a.cds[2] = 0;
       for (const a of [k, ...rec.map(r => r[0])]) if (a && a.alive && a.def.id === 'shade') { heal(a, a.maxHp * 0.2); if (near(a)) V.healed(a, a.fxCol); }   // 索命
       ui.feed(k, tgt, src);
@@ -547,24 +563,24 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       else if (k && k.multi === 2) { ui.announce(k.name + ' · 一气双镇', cls); audio.play('star', undefined, undefined, 0.9); }
       else if (k && ended >= 3) ui.announce(`${k.name} 斩了 ${tgt.name} 的道 · 终结 ${ended} 连镇`, cls);
       else if (k && k.streak >= 3) { ui.announce(`${k.name} · ${STREAK[Math.min(7, k.streak)]}`, cls); audio.play('star', undefined, undefined, 0.9); }
-      else if (tgt.isPlayer) ui.announce('你已陨落', 'bad'); else if (k && k.isPlayer) ui.announce('镇压 ' + tgt.name, 'good');
+      else if (me(tgt)) ui.announce('你已陨落', 'bad'); else if (k && me(k)) ui.announce('镇压 ' + tgt.name, 'good');
       fx.burst(tgt.x, 1.6, tgt.z, col, { n: 34, speed: 9, up: 9, life: 1.0, size: 0.32, grav: 14 }); fx.ringWave(tgt.x, tgt.z, 10, col, 0.6); fx.dust(tgt.x, tgt.z, DUST, { n: 12, speed: 4, size: 2.4, life: 1.3 }); fx.flash(tgt.x, 2.5, tgt.z, col, 260, 0.5);
-      audio.play(tgt.isPlayer ? 'death' : 'kill', tgt.x, tgt.z); if (near(tgt)) fx.shake(0.35);
-      if (k && k.isPlayer) { fx.slowmo(0.65, 0.2); fx.punch(0.55); } else if (tgt.isPlayer) fx.slowmo(0.8, 0.3); else if (near(tgt) && rec.some(r => r[0].isPlayer)) fx.slowmo(0.4, 0.4);
+      audio.play(me(tgt) ? 'death' : 'kill', tgt.x, tgt.z); if (near(tgt)) fx.shake(0.35);
+      if (k && me(k)) { fx.slowmo(0.65, 0.2); fx.punch(0.55); } else if (me(tgt)) fx.slowmo(0.8, 0.3); else if (near(tgt) && rec.some(r => me(r[0]))) fx.slowmo(0.4, 0.4);
     } else {
       const good = tgt.team !== G.player.team;
       fx.explosion(tgt.x, tgt.z, tgt.kind === 'core' ? 3 : 2.1, FLAME); for (let i = 0; i < 4; i++) fx.burst(tgt.x, 3 + i * 2, tgt.z, col, { n: 26, speed: 12, up: 10, life: 1.2, size: 0.4, spread: 2, grav: 16 });
       fx.ringWave(tgt.x, tgt.z, 30, col, 0.9); fx.ringWave(tgt.x, tgt.z, 18, WHITE, 0.5); fx.shake(tgt.kind === 'core' ? 1.2 : 0.7); audio.play('boom', tgt.x, tgt.z); if (near(tgt)) fx.slowmo(tgt.kind === 'core' ? 1.3 : 0.7, 0.28);
       if (tgt.kind === 'tower') {
         tgt.warn.visible = false; tgt.beam.visible = false;
-      for (const h of G.heroes) if (h.team !== tgt.team) { giveGold(h, T.towerGold, h.isPlayer ? tgt : null); addXp(h, 90); }
+      for (const h of G.heroes) if (h.team !== tgt.team) { giveGold(h, T.towerGold, me(h) ? tgt : null); addXp(h, 90); }
         ui.announce(good ? '敌方灵塔已被摧毁' : '我方灵塔被摧毁', good ? 'good' : 'bad'); audio.play('horn');
         { const sp = G.heroes.find(h => h.team === G.player.team && h.alive && !h.isPlayer); if (sp) chat(sp, good ? 'towerUp' : 'towerDown'); }
       } else { G.over = true; G.winner = 1 - tgt.team; G.overT = 0; fx.slowmo(2.2, 0.22); fx.shake(0.9); ui.buzz([60, 60, 200]); G.focus.tx = tgt.x; G.focus.tz = tgt.z; }
     }
   }
   const applySlow = (e, s) => { if (s && e.alive && !isStruct(e)) { e.slowT = Math.max(e.slowT, s[1]); e.slowPct = Math.max(e.slowT > 0 ? e.slowPct : 0, s[0]); } };
-  const applyStun = (e, t) => { if (t && e.alive && !isStruct(e)) { if (e.isPlayer && e.stunT <= 0) ui.buzz(70); e.stunT = Math.max(e.stunT, t); e.windT = -1; } };
+  const applyStun = (e, t) => { if (t && e.alive && !isStruct(e)) { if (me(e) && e.stunT <= 0) ui.buzz(70); e.stunT = Math.max(e.stunT, t); e.windT = -1; } };
   function eachEnemy(team, x, z, r, fn) {
     for (const e of G.units) { if (!e.alive || e.team === team || isStruct(e)) continue; if (dist2(e.x, e.z, x, z) <= r + e.r) fn(e); }
   }
@@ -587,7 +603,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       if (p.homing) {
         const t = p.homing; if (!t.alive) { endProj(p, i, 3); continue; }
         const dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
-        if (d <= step + t.r * 0.6) { damage(p.src, t, p.dmg, { basic: p.basic, crit: p.crit }); if (p.slow) applySlow(t, p.slow); if (p.emp && near(t)) V.empowered(t, p.color); if (p.boom) { eachEnemy(p.team, t.x, t.z, 3.4, o => { if (o !== t) damage(p.src, o, p.dmg * 0.6, { ability: true }); }); if (near(t)) { fx.explosion(t.x, t.z, 0.75, FLAME); audio.play('blast', t.x, t.z, 0.8); } } if (p.tower && t.kind === 'hero' && t.alive) { t.heat = Math.min(T.heatMax, (t.heat || 0) + 1); t.heatT = T.heatHold; if (t.isPlayer) fx.text(t.x, t.h + 1.4, t.z, '下一发塔伤 ×' + (1 + T.heatStep * t.heat).toFixed(1), 'hurt'); } if (near(t)) V.basicHit(t, p.dx || 0, p.dz || 0, p.color, p.src.kind === 'tower' ? 2 : p.src.kind === 'hero' ? 1 : 0, p.crit, p.src.kind === 'hero' ? p.src.def.id : null); endProj(p, i, 0); continue; }
+        if (d <= step + t.r * 0.6) { damage(p.src, t, p.dmg, { basic: p.basic, crit: p.crit }); if (p.slow) applySlow(t, p.slow); if (p.emp && near(t)) V.empowered(t, p.color); if (p.boom) { eachEnemy(p.team, t.x, t.z, 3.4, o => { if (o !== t) damage(p.src, o, p.dmg * 0.6, { ability: true }); }); if (near(t)) { fx.explosion(t.x, t.z, 0.75, FLAME); audio.play('blast', t.x, t.z, 0.8); } } if (p.tower && t.kind === 'hero' && t.alive) { t.heat = Math.min(T.heatMax, (t.heat || 0) + 1); t.heatT = T.heatHold; if (me(t)) fx.text(t.x, t.h + 1.4, t.z, '下一发塔伤 ×' + (1 + T.heatStep * t.heat).toFixed(1), 'hurt'); } if (near(t)) V.basicHit(t, p.dx || 0, p.dz || 0, p.color, p.src.kind === 'tower' ? 2 : p.src.kind === 'hero' ? 1 : 0, p.crit, p.src.kind === 'hero' ? p.src.def.id : null); endProj(p, i, 0); continue; }
         p.x += dx / d * step; p.z += dz / d * step; p.y += (t.h * 0.55 - p.y) * Math.min(1, step / d); p.dx = dx / d; p.dz = dz / d;
       } else {
         if (p.returning) { const c = p.src, qx = c.x - p.x, qz = c.z - p.z, qd = Math.hypot(qx, qz) || 1; if (qd < 1.5 || !c.alive) { endProj(p, i, 0); continue; } p.dx = qx / qd; p.dz = qz / qd; }   // on its way back to the hand
@@ -626,7 +642,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const vis = near(z);
       if (vis) V.zoneTick(z, dt);
       if (z.t >= z.next) {
-        if (z.heal) { for (const a of G.heroes) if (a.alive && a.team === z.team && dist2(a.x, a.z, z.x, z.z) <= z.r + a.r) { heal(a, z.dmg); if (near(a)) { V.healed(a, z.col); if (a.isPlayer || z.src.isPlayer) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(z.dmg), 'heal'); } } }
+        if (z.heal) { for (const a of G.heroes) if (a.alive && a.team === z.team && dist2(a.x, a.z, z.x, z.z) <= z.r + a.r) { heal(a, z.dmg); if (near(a)) { V.healed(a, z.col); if (me(a) || me(z.src)) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(z.dmg), 'heal'); } } }
         else eachEnemy(z.team, z.x, z.z, z.r, e => { damage(z.src, e, z.dmg, { ability: true, drain: z.s.drain }); applySlow(e, z.s.slow); applyStun(e, z.s.stun); if (z.s.vuln && e.alive) { e.vulnK = z.s.vuln[0]; e.vulnT = G.t + z.s.vuln[1]; } });
         if (vis) { const ss = SKSND[z.s && z.s.id]; if (ss && ss.land) { for (const [n, gn] of ss.land) audio.play(n, z.x, z.z, gn * (z.tick ? 0.7 : 1)); z.quiet = true; } V.zoneFire(z, close(z)); }
         if (z.tick && z.t < z.delay + z.dur - 0.01) z.next += z.tick; else G.zones.splice(i, 1);
@@ -667,9 +683,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       case 'shield': for (const a of G.heroes) if (a.alive && a.team === h.team && (a === h || (s.aoe && dist(a, h) < s.aoe))) { a.shield = Math.max(a.shield, dmg + (a === h ? h.maxHp * (s.hpR || 0) : 0)); a.shieldT = s.dur; } break;
       case 'taunt': eachEnemy(h.team, h.x, h.z, s.radius, e => { e.tauntT = s.dur; e.taunter = h; e.windT = -1; }); h.shield = Math.max(h.shield, dmg + h.maxHp * (s.hpR || 0)); h.shieldT = s.dur + 2; break;
       case 'haste':                                                    // rng / adK: a stance rather than a sprint; aoe: handed to those nearby who have none running; veil: out of sight
-        for (const a of G.heroes) { if (!a.alive || a.team !== h.team || (a !== h && !(s.aoe && dist(a, h) < s.aoe && a.hasteT <= 0))) continue; a.hasteT = s.dur; a.hasteMs = s.ms; a.hasteAs = s.as || 0; a.lsBuff = s.ls || 0; a.hasteDr = s.dr || 0; a.hasteRng = s.rng || 0; a.hasteAd = s.adK || 0; if (s.veil) { a.veilT = s.dur; a.revealT = 0; } if (s.b !== undefined) { heal(a, dmg); if (a.isPlayer || h.isPlayer) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(dmg), 'heal'); } }
+        for (const a of G.heroes) { if (!a.alive || a.team !== h.team || (a !== h && !(s.aoe && dist(a, h) < s.aoe && a.hasteT <= 0))) continue; a.hasteT = s.dur; a.hasteMs = s.ms; a.hasteAs = s.as || 0; a.lsBuff = s.ls || 0; a.hasteDr = s.dr || 0; a.hasteRng = s.rng || 0; a.hasteAd = s.adK || 0; if (s.veil) { a.veilT = s.dur; a.revealT = 0; } if (s.b !== undefined) { heal(a, dmg); if (me(a) || me(h)) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(dmg), 'heal'); } }
         break;
-      case 'heal': if (s.dur) addZone(h, tx, tz, s, dmg); else { A.healed = []; for (const a of G.heroes) if (a.alive && a.team === h.team && dist2(a.x, a.z, tx, tz) <= s.radius + a.r) { heal(a, dmg); A.healed.push(a); if (a.isPlayer || h.isPlayer) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(dmg), 'heal'); } } break;
+      case 'heal': if (s.dur) addZone(h, tx, tz, s, dmg); else { A.healed = []; for (const a of G.heroes) if (a.alive && a.team === h.team && dist2(a.x, a.z, tx, tz) <= s.radius + a.r) { heal(a, dmg); A.healed.push(a); if (me(a) || me(h)) fx.text(a.x, a.h + 0.5, a.z, '+' + Math.round(dmg), 'heal'); } } break;
       case 'dash': h.dash = { dx, dz, left: clamp(d, 4, s.range), speed: s.speed, hit: s.b !== undefined ? new Set() : null, s, dmg }; if (s.reset) { h.atkT = 0; h.windT = -1; } break;
       case 'backdash':
         h.dash = { dx: -dx, dz: -dz, left: s.range, speed: s.speed, hit: null, s };
@@ -690,7 +706,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       case 'zone': addZone(h, tx, tz, s, dmg); break;
     }
     if (near(h) || near({ x: tx, z: tz })) { const ss = SKSND[s.id]; audio.play('sig_' + h.def.id, h.x, h.z, SIG_GAIN); if (ss && ss.cast) { for (const [n, gn] of ss.cast) audio.play(n, h.x, h.z, gn); A.quiet = true; } V.cast(h, s, A); }
-    if (i === 3) { audio.play('ult', h.x, h.z, h.isPlayer ? 1 : 0.75, 'boom'); say(h, 'ult', h.isPlayer ? 1 : 0.6); if (h.isPlayer) { ui.buzz(35); fx.hitStop(0.09); fx.zoomIn(1); fx.punch(0.3); ui.ultName(s.name, RANK.ult.name[s.rank - 1]); } }
+    if (i === 3) { audio.play('ult', h.x, h.z, me(h) ? 1 : 0.75, 'boom'); say(h, 'ult', me(h) ? 1 : 0.6); if (me(h)) { ui.buzz(35); fx.hitStop(0.09); fx.zoomIn(1); fx.punch(0.3); ui.ultName(s.name, RANK.ult.name[s.rank - 1]); } }
     return true;
   }
   function updateDash(h, dt) {
@@ -718,31 +734,31 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const f = POS.fountain(h.team); if (h.atHome && dist2(h.x, h.z, f.x, f.z) < T.shopR) return false;   // already home with the shop open: nothing to gain
     h.recallT = T.recallTime; h.order = null; h.target = null; h.windT = -1;
     if (near(h)) h.recallFx = fx.decal({ mode: 5, x: h.x, z: h.z, size: 7, color: h.fxCol || TEAM_COL[h.team].glow, dur: T.recallTime, hold: 0.05, alpha: 0.85 });
-    if (h.isPlayer) audio.play('recall');
+    if (me(h)) audio.play('recall');
     return true;
   }
   function stopRecall(h, quiet) {
     if (!(h.recallT > 0)) return; h.recallT = 0;
     if (h.recallFx) { fx.release(h.recallFx); h.recallFx = null; }
-    if (!quiet && h.isPlayer) ui.toast('归宗被打断');
+    if (!quiet && me(h)) ui.toast('归宗被打断');
   }
   function tickRecall(h, dt) {
     h.recallT -= dt; h.moving = false; h.windT = -1;
     const c = TEAM_COL[h.team].glow, shown = near(h) && canSee(G.player, h);
     if (h.recallFx) { h.recallFx.m.visible = shown; h.recallFx.m.rotation.y += dt * 1.4; }
     if (shown && Math.floor((h.recallT + dt) * 2) !== Math.floor(h.recallT * 2)) fx.pillar(h.x, h.z, 1.5, 6 + (T.recallTime - h.recallT) * 2, c, 0.55);   // a column of light that grows as the pull builds
-    if (shown) { const a = G.t * 5 + h.id; for (let k = 0; k < 2; k++) fx.spark(h.x + Math.cos(a + k * 3.14) * 2.3, 0.2, h.z + Math.sin(a + k * 3.14) * 2.3, 0, 7 + Math.random() * 5, 0, c, 0.42, 0.7); }
+    if (shown) { const a = G.t * 5 + h.id; for (let k = 0; k < 2; k++) fx.spark(h.x + Math.cos(a + k * 3.14) * 2.3, 0.2, h.z + Math.sin(a + k * 3.14) * 2.3, 0, 7 + vis() * 5, 0, c, 0.42, 0.7); }
     if (h.recallT > 0) return;
     const f = POS.fountain(h.team); h.recallT = 0; G.recalls++; if (h.recallFx) { fx.release(h.recallFx); h.recallFx = null; }
     if (shown) { fx.pillar(h.x, h.z, 1.8, 13, c, 0.5); fx.ringWave(h.x, h.z, 9, c, 0.5); }
     { const sp = spawnAt(h.team, slotZ(h.slot)); h.x = sp.x; h.z = sp.z; } h.order = null; h.target = null; h.facing = faceOf(h.team); h.ai.state = 'lane'; h.atHome = true;
-    if (near(h) || h.isPlayer) { fx.pillar(h.x, h.z, 1.8, 13, c, 0.5); fx.ringWave(h.x, h.z, 9, c, 0.6); }
-    if (h.isPlayer) audio.play('arrive'); else audio.play('arrive', h.x, h.z, 0.6);
+    if (near(h) || me(h)) { fx.pillar(h.x, h.z, 1.8, 13, c, 0.5); fx.ringWave(h.x, h.z, 9, c, 0.6); }
+    if (me(h)) audio.play('arrive'); else audio.play('arrive', h.x, h.z, 0.6);
   }
   function respawn(h) {
     const sp = spawnAt(h.team, slotZ(h.slot)); h.x = sp.x; h.z = sp.z; h.alive = true; h.atHome = true; h.hp = h.maxHp; h.mana = h.maxMana; h.barShown = h.barLag = 1; h.order = null; h.facing = faceOf(h.team); h.ai.state = 'lane';
-    fx.ringWave(h.x, h.z, 9, TEAM_COL[h.team].glow, 0.7); for (let k = 0; k < 30; k++) fx.spark(h.x + (Math.random() - 0.5) * 1.5, Math.random() * 2, h.z + (Math.random() - 0.5) * 1.5, 0, 6 + Math.random() * 10, 0, TEAM_COL[h.team].glow, 0.7, 0.9);
-    if (h.isPlayer) { audio.play('level'); G.focus.x = h.x; G.focus.z = h.z; }
+    fx.ringWave(h.x, h.z, 9, TEAM_COL[h.team].glow, 0.7); for (let k = 0; k < 30; k++) fx.spark(h.x + (vis() - 0.5) * 1.5, vis() * 2, h.z + (vis() - 0.5) * 1.5, 0, 6 + vis() * 10, 0, TEAM_COL[h.team].glow, 0.7, 0.9);
+    if (me(h)) { audio.play('level'); G.focus.x = h.x; G.focus.z = h.z; }
   }
   function autoAcquire(h, reach = h.range + (h.ranged ? 1.5 : 4), nearest = false) {
     let best = null, bs = 1e9;
@@ -769,9 +785,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   }
   function updateHero(h, dt) {
     h.omen = h.tribQ ? (h.tribQ.big ? 2 : 1) : h.alive && (h.level === 4 || h.level === 8) && h.xp >= T.xpNeed(h.level) * 0.72 ? (h.level === 8 ? 2 : 1) : 0;
-    if (h.omen && h.omenAt !== h.level) { h.omenAt = h.level; if (h.isPlayer) ui.toast(h.omen === 2 ? '成婴的雷劫快到了：九道，找个地方' : '结丹的雷劫快到了：五道，找个地方'); else if (h.team !== G.player.team && canSee(G.player, h)) { const sp = G.heroes.find(a => a.team === G.player.team && a.alive && !a.isPlayer && dist(a, h) < 22); if (sp) chat(sp, [`${h.name}头上起雷云了，快渡劫了`], true); } }
+    if (h.omen && h.omenAt !== h.level) { h.omenAt = h.level; if (me(h)) ui.toast(h.omen === 2 ? '成婴的雷劫快到了：九道，找个地方' : '结丹的雷劫快到了：五道，找个地方'); else if (h.team !== G.player.team && canSee(G.player, h)) { const sp = G.heroes.find(a => a.team === G.player.team && a.alive && !a.isPlayer && dist(a, h) < 22); if (sp) chat(sp, [`${h.name}头上起雷云了，快渡劫了`], true); } }
     h.vulnOn = h.vulnT > G.t || h.lawT > G.t; V.status(h, near(h) && canSee(G.player, h));
-    if (h.alive && !h.moving && !h.target && h.combatT > 5 && h.recallT <= 0 && near(h)) { if ((h.idleT = (h.idleT || 0) + dt) > (h.idleN || 6)) { h.idleT = 0; h.idleN = 5 + Math.random() * 6; h.animCast = 0.75; } } else h.idleT = 0;   // standing about: a small gesture now and then
+    if (h.alive && !h.moving && !h.target && h.combatT > 5 && h.recallT <= 0 && near(h)) { if ((h.idleT = (h.idleT || 0) + dt) > (h.idleN || 6)) { h.idleT = 0; h.idleN = 5 + vis() * 6; h.animCast = 0.75; } } else h.idleT = 0;   // standing about: a small gesture now and then
     if (h.alive && (h.pfxT = (h.pfxT || 0) - dt) <= 0 && near(h) && canSee(G.player, h)) {
       h.pfxT = 0.09; V.passive(h, G.t);
       if (h.def.id === 'shade') for (const e of G.heroes) if (e.alive && e.team !== h.team && e.hp < e.maxHp * 0.4 && dist(e, h) < 13 && canSee(G.player, e)) V.doom(e);
@@ -794,7 +810,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     else if ((!h.isPlayer || G.autoPlay) && !(h.recallT > 0)) { h.think -= dt; if (h.think <= 0) { h.think = 0.22 + Math.random() * 0.08; botThink(h, 0.26); } }
     if (h.recallT > 0) { if (h.order) stopRecall(h); else { tickRecall(h, dt); return; } }
     execOrder(h, dt); tickAttack(h, dt);
-    if (h.moving && near(h)) { h.stepD = (h.stepD || 0) + h.curSpeed * dt; if (h.stepD > 2.4) { h.stepD = 0; fx.smoke(h.x, 0.25, h.z, (Math.random() - 0.5), 0.5, (Math.random() - 0.5), DUST, 1.0, 0.7, 0.16, 1.6); } }
+    if (h.moving && near(h)) { h.stepD = (h.stepD || 0) + h.curSpeed * dt; if (h.stepD > 2.4) { h.stepD = 0; fx.smoke(h.x, 0.25, h.z, (vis() - 0.5), 0.5, (vis() - 0.5), DUST, 1.0, 0.7, 0.16, 1.6); } }
   }
 
   // ---------------- bots ----------------
@@ -836,7 +852,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (!retreat && !eh && h.combatT > 4 && G.t > ai.shopAt && (dist(h, f) > 42 || (!h.atHome && dist(h, f) < T.shopR)) && h.gold >= botWant(h)) { ai.shopAt = G.t + 30; if (startRecall(h)) { G.botStat.shop++; chat(h, '回去置办法器，马上来'); return; } }
     const campUp = c => c.units.some(u => u.alive), holding = hasFront && dir * (front - sOf(ownS)) > 8;
     const nearestCamp = far => { let best = null, bd = far; for (const c of G.camps) { if (c.c.kind !== 'golem' || dir * sideOf(c.c.x, c.c.z) > 0 || !campUp(c)) continue; const d = dist(h, c.c); if (d < bd) { bd = d; best = c; } } return best; };
-    const ambushSpot = () => { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b) - (team !== G.player.team && !G.autoPlay && G.favBrush === b ? 7 : 0); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } return best; };
+    const ambushSpot = () => { let best = null, bd = 14; for (const b of BRUSH) { const d = dist(h, b) - (!G.autoPlay && G.heroes.some(o => o.isPlayer && o.team !== team && o.favBrush === b) ? 7 : 0); if (d < bd && dir * (pj(b) - front) < 5 && !danger(b)) { bd = d; best = b; } } return best; };
     if (!TRI) {
       // 一路: now and then, lie in wait in the grass beside the lane; when the lane is quiet and holding, slip off to clear a camp
       if (ai.state === 'lane' && G.t > ai.ambushAt) {
@@ -892,8 +908,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     let sig = ai.sig && G.t < ai.sig.until && !retreat ? ai.sig : null, sigAct = null, sigTw = null;
     // 开团 is a standing order rather than a single call: while it is on, the side keeps to its leader and takes the leader's
     // fights. It is weighed the same way as any signal, every think, so nobody follows into a death.
-    if (G.rally && team === G.player.team && !h.isPlayer && G.player.alive && !retreat) {
-      const pl = G.player, tu = pl.order && pl.order.type === 'attack' && pl.order.target && pl.order.target.alive ? pl.order.target : null;
+    const pl = G.rallyBy[team];
+    if (pl && pl !== h && pl.alive && !h.isPlayer && !retreat) {
+      const tu = pl.order && pl.order.type === 'attack' && pl.order.target && pl.order.target.alive ? pl.order.target : null;
       sig = ai.rally = Object.assign(ai.rally || { id: -1, said: false }, { type: 'attack', x: pl.x, z: pl.z, unit: tu, until: G.t + 1 });
     } else if (ai.rally) ai.rally = null;
     if (sig) {
@@ -904,7 +921,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         let foes = 0, pals = 1; for (const o of G.heroes) { if (!o.alive || o === h) continue; if (o.team !== team) { if (!o.hid && dist(o, sig) < 13) foes++; } else if (dist(o, sig) < 13 || (sig.id === -1 ? !!o.ai.rally : o.ai.sig && o.ai.sig.id === sig.id && G.t < o.ai.sig.until)) pals++; }
         sigAct = hpF > 0.4 && foes <= pals + 1 ? sig.type : 'no';
       }
-      if (!sig.said) { sig.said = true; if (near(h)) { const say = { back: ['撤', '走'], gather: ['来了', '这就到'], attack: ['上', '随你'], no: ['过不去', '太险，去不得'] }[sigAct]; fx.say(h.x, h.h + 1.6, h.z, say[Math.floor(Math.random() * say.length)], team === G.player.team); } }
+      if (!sig.said) { sig.said = true; if (near(h)) { const say = { back: ['撤', '走'], gather: ['来了', '这就到'], attack: ['上', '随你'], no: ['过不去', '太险，去不得'] }[sigAct]; fx.say(h.x, h.h + 1.6, h.z, say[Math.floor(vis() * say.length)], team === G.player.team); } }
       if (sigAct !== 'no' && ai.state !== 'lane') ai.state = 'lane';
     }
     // ---- the fight itself: who each seat goes for, and how it carries itself (both modes) ----
@@ -921,7 +938,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     // (一路 has only three a side: a 护法 that stands back and leaves the last hits is a body short, so there it fights with the rest)
     let dodged = false;
     for (const b of G.bolts) if (dist2(h.x, h.z, b.x, b.z) < TRIB.r + 1 && Math.random() < 0.7) { let ox = h.x - b.x, oz = h.z - b.z; const d = Math.hypot(ox, oz) || 1; if (d < 0.4) { ox = 1; oz = 0; } h.order = { type: 'move', x: b.x + ox / d * (TRIB.r + 2.6), z: b.z + oz / d * (TRIB.r + 2.6) }; dodged = true; break; }   // step out of a closing ring
-    if (!dodged) for (const z of G.zones) if (z.team !== team && dist2(h.x, h.z, z.x, z.z) < z.r + 0.8 && Math.random() < (team === EMBER ? 0.75 / diff.react : 0.6)) {
+    if (!dodged) for (const z of G.zones) if (z.team !== team && dist2(h.x, h.z, z.x, z.z) < z.r + 0.8 && Math.random() < (net || team === EMBER ? 0.75 / diff.react : 0.6)) {
       let ox = h.x - z.x, oz = h.z - z.z; const d = Math.hypot(ox, oz) || 1; if (d < 0.5) { const tn = L.tan(hs); ox = -dir * tn.x; oz = -dir * tn.z; }
       h.order = { type: 'move', x: z.x + ox / d * (z.r + 2.5), z: z.z + oz / d * (z.r + 2.5) }; dodged = true; break;
     }
@@ -972,7 +989,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     // --- abilities ---
     if (ambush) return;                                                // not a sound while waiting
     ai.castLock -= dtT; if (ai.castLock > 0) return;
-    const err = team === EMBER ? diff.aim : 1.4, manaF = h.mana / h.maxMana;
+    const err = net || team === EMBER ? diff.aim : 1.4, manaF = h.mana / h.maxMana;
     const lead = (t, d) => ({ x: t.x + t.vx * d * 0.85 + (Math.random() - 0.5) * err * 2, z: t.z + t.vz * d * 0.85 + (Math.random() - 0.5) * err * 2 });
     for (const i of [3, 0, 1, 2]) {
       if (!canCast(h, i)) continue; const s = h.def.skills[i]; let aim = null;
@@ -997,7 +1014,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
           else if ((eh && ehD < Math.max(h.range + 2 + (s.rng || 0), s.dr && !s.as ? 8 : 0) && !retreat) || (retreat && eh && ehD < 10 && s.ms > 0)) aim = h;
           break;
       }
-      if (aim) { cast(h, i, aim.x, aim.z); ai.castLock = (0.5 + Math.random() * 0.8) * (team === EMBER ? diff.react : 1); return; }
+      if (aim) { cast(h, i, aim.x, aim.z); ai.castLock = (0.5 + Math.random() * 0.8) * (net || team === EMBER ? diff.react : 1); return; }
     }
   }
 
@@ -1070,7 +1087,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       let bd = 1e9, hero = null, hd = 1e9;
       for (const u of G.units) { if (!u.alive || u.team === tw.team || u.team === NEUTRAL || isStruct(u) || u.hid) continue; const d = dist(tw, u) - u.r; if (d > tw.range) continue; if (u.kind === 'hero') { if (d < hd) { hd = d; hero = u; } } else if (d < bd) { bd = d; t = u; } }
       t = t || hero;
-      if (t) { tw.target = t; if (t.kind === 'hero') { tw.atkT = Math.max(tw.atkT, T.towerLock); if (t.isPlayer) { ui.toast('灵塔锁定了你'); audio.play('warn'); } } }   // a moment to react before the first shot
+      if (t) { tw.target = t; if (t.kind === 'hero') { tw.atkT = Math.max(tw.atkT, T.towerLock); if (me(t)) { ui.toast('灵塔锁定了你'); audio.play('warn'); } } }   // a moment to react before the first shot
     }
     // the line of sight: faint on a minion; on a hero it runs from yellow to red with heat and brightens as the shot comes
     if (t && near(tw)) {
@@ -1085,35 +1102,71 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   }
 
   // ---------------- player commands ----------------
+  // Everything a person does to their cultivator is a command, {c: kind, ...}. Alone it is carried out on the spot. Online it goes
+  // to the room and comes back together with everyone else's for the same moment (G.exec), so every machine applies it alike.
+  // Units travel as ids. Whatever a command would only say to its own player (a toast, a sound) is said by that machine alone.
   const P = () => G.player;
-  G.cmdMove = (x, z) => { const h = P(); if (h.alive) { h.order = { type: 'move', x: clamp(x, -MAP.hx + 1.5, MAP.hx - 1.5), z: clamp(z, -MAP.hz + 1.5, MAP.hz - 1.5) }; h.target = null; } };
-  G.cmdAttackMove = (x, z) => { const h = P(); if (h.alive) h.order = { type: 'amove', x: clamp(x, -MAP.hx + 1.5, MAP.hx - 1.5), z: clamp(z, -MAP.hz + 1.5, MAP.hz - 1.5), target: null }; };
-  G.cmdAttack = t => { const h = P(); if (h.alive && valid(t)) h.order = { type: 'attack', target: t }; };
-  G.cmdDir = (dx, dz) => { const h = P(); if (!h.alive) return; if (dx === 0 && dz === 0) { if (h.order && h.order.type === 'dir') h.order = null; } else h.order = { type: 'dir', dx, dz }; };
-  G.cmdStop = () => { const h = P(); h.order = null; h.target = null; h.windT = -1; stopRecall(h); };
-  G.recall = () => { const h = P(); if (MODE.noRecall) { ui.toast('一路不能归宗：万宝阁只在出山前和陨落时开'); return false; } if (h.recallT > 0) return true; const ok = startRecall(h); if (!ok && h.alive && !G.over) ui.toast(h.stunT > 0 || h.dash ? '现在无法归宗' : '已经在山门内，万宝阁开着'); return ok; };
+  const ref = id => (id ? G.byId.get(id) || null : null);
+  const inMap = (v, k, pad) => clamp(v, -MAP[k] + pad, MAP[k] - pad);
+  const ORDERS = {
+    move(h, q) { if (h.alive) { h.order = { type: 'move', x: inMap(q.x, 'hx', 1.5), z: inMap(q.z, 'hz', 1.5) }; h.target = null; } },
+    amove(h, q) { if (h.alive) h.order = { type: 'amove', x: inMap(q.x, 'hx', 1.5), z: inMap(q.z, 'hz', 1.5), target: null }; },
+    atk(h, q) { const t = ref(q.id); if (h.alive && valid(t)) h.order = { type: 'attack', target: t }; },
+    dir(h, q) { if (!h.alive) return; if (q.dx === 0 && q.dz === 0) { if (h.order && h.order.type === 'dir') h.order = null; } else h.order = { type: 'dir', dx: q.dx, dz: q.dz }; },
+    stop(h) { h.order = null; h.target = null; h.windT = -1; stopRecall(h); },
+    recall(h) { if (!MODE.noRecall && !(h.recallT > 0)) startRecall(h); },
+    sig(h, q) { signal(h, q.type, q.x, q.z, ref(q.id)); },
+    rally(h, q) { setRally(h, q.on); },
+    cast(h, q) { cast(h, q.i, q.x, q.z); },
+    buy(h, q) { const why = buyItem(h, q.id); if (me(h)) { if (why) ui.toast(why); else audio.play('buy'); } },
+    learn(h, q) { learn(h, q.i); },
+    ins(h, q) { if (h.insPend.length) takeInsight(h, q.k); },
+    bot(h, q) { h.isPlayer = !q.on; if (q.on) { h.order = null; if (G.rallyBy[h.team] === h) setRally(h, false); } },   // a player dropped: the cultivator plays itself until they are back
+  };
+  G.exec = (h, q) => { const f = ORDERS[q.c]; if (f && h) f(h, q); };
+  const send = q => { if (net) opts.send(q); else G.exec(P(), q); };
+  G.cmdMove = (x, z) => send({ c: 'move', x, z });
+  G.cmdAttackMove = (x, z) => send({ c: 'amove', x, z });
+  G.cmdAttack = t => { if (t) send({ c: 'atk', id: t.id }); };
+  G.cmdDir = (dx, dz) => send({ c: 'dir', dx, dz });
+  G.cmdStop = () => send({ c: 'stop' });
+  G.recall = () => {
+    const h = P(); if (MODE.noRecall) { ui.toast('一路不能归宗：万宝阁只在出山前和陨落时开'); return false; } if (h.recallT > 0) return true;
+    const f = POS.fountain(h.team), why = !h.alive || G.over ? '-' : h.stunT > 0 || h.dash ? '现在无法归宗' : h.atHome && dist2(h.x, h.z, f.x, f.z) < T.shopR ? '已经在山门内，万宝阁开着' : '';
+    if (why) { if (why !== '-') ui.toast(why); return false; } send({ c: 'recall' }); return true;
+  };
   G.pings = []; G.recalls = 0; G.gCall = [0, 0]; G.botStat = { ambush: 0, hunt: 0, hide: 0, shop: 0, jungle: 0, guardian: 0, gank: 0, group: 0 };
   G.plan = [0, 1].map(() => ({ mode: 'rest', lane: 0, until: 0, next: 0 }));
   G.tribs = []; G.bolts = []; G.tribK = 0; G.surgeT = [0, 0]; G.surgeK = [1, 1];                              // 破阵 / 渊息: this side's disciples march stronger
-  let pingAt = -9;
   // Signals: 集合 (come here), 进攻 (take this), 撤退 (fall back). A mark on the ground and the map, a sound, and every allied
-  // bot in earshot weighs it (see botThink). unit = what was pointed at, for 进攻.
+  // bot in earshot weighs it (see botThink). unit = what was pointed at, for 进攻. Only the caller's own side sees or hears it.
   let sigId = 0;
-  G.signal = (type, x, z, unit = null) => {
-    if (G.over || G.t - pingAt < 1.2) return false; pingAt = G.t; x = clamp(x, -MAP.hx + 2, MAP.hx - 2); z = clamp(z, -MAP.hz + 2, MAP.hz - 2);
-    const c = { gather: [0.5, 1.5, 0.9], attack: [1.9, 0.35, 0.2], retreat: [1.8, 1.4, 0.3] }[type], me = P(), id = ++sigId;
-    G.pings.push({ x, z, t: G.t, type });
-    fx.pillar(x, z, 0.9, 14, c, 0.9); fx.ringWave(x, z, 12, c, 0.7); fx.decal({ mode: 1, x, z, size: 1, size0: 9, color: c, dur: 0.6 }); audio.play(type === 'retreat' ? 'warn' : 'ping');
-    ui.toast({ gather: '集合！', attack: '进攻！', retreat: '撤退！' }[type]);
+  function signal(by, type, x, z, unit) {
+    if (G.over || G.t - (by.pingAt ?? -9) < 1.2 || !(type in SIG_COL)) return false; by.pingAt = G.t; x = inMap(x, 'hx', 2); z = inMap(z, 'hz', 2);
+    const c = SIG_COL[type], id = ++sigId, ours = by.team === P().team;
+    if (ours) {
+      G.pings.push({ x, z, t: G.t, type });
+      fx.pillar(x, z, 0.9, 14, c, 0.9); fx.ringWave(x, z, 12, c, 0.7); fx.decal({ mode: 1, x, z, size: 1, size0: 9, color: c, dur: 0.6 }); audio.play(type === 'retreat' ? 'warn' : 'ping');
+      ui.toast((me(by) ? '' : (by.pname || by.name) + '：') + { gather: '集合！', attack: '进攻！', retreat: '撤退！' }[type]);
+    }
     const reach = type === 'retreat' ? 50 : 90;
-    for (const h of G.heroes) if (h.team === me.team && !h.isPlayer && h.alive && dist2(h.x, h.z, x, z) < reach) h.ai.sig = { id, type, x, z, unit, until: G.t + (type === 'retreat' ? 7 : 12), said: false };
-    { let best = null, bd = 1e9; for (const h of G.heroes) if (h.team === me.team && !h.isPlayer) { const d = dist2(h.x, h.z, x, z); if (d < bd) { bd = d; best = h; } }
+    for (const h of G.heroes) if (h.team === by.team && !h.isPlayer && h.alive && dist2(h.x, h.z, x, z) < reach) h.ai.sig = { id, type, x, z, unit, until: G.t + (type === 'retreat' ? 7 : 12), said: false };
+    if (ours) { let best = null, bd = 1e9; for (const h of G.heroes) if (h.team === by.team && !h.isPlayer) { const d = dist2(h.x, h.z, x, z); if (d < bd) { bd = d; best = h; } }
       if (best) chat(best, !best.alive ? 'deadAck' : bd > reach ? 'far' : best.hp / best.maxHp < 0.4 && type !== 'retreat' ? 'hurt' : { gather: 'ackGather', attack: 'ackAttack', retreat: 'ackRetreat' }[type], true); }
     return true;
-  };
+  }
+  const SIG_COL = { gather: [0.5, 1.5, 0.9], attack: [1.9, 0.35, 0.2], retreat: [1.8, 1.4, 0.3] };
+  G.signal = (type, x, z, unit = null) => { const h = P(); if (G.over || G.t - (h.pingAt ?? -9) < 1.2) return false; send({ c: 'sig', type, x, z, id: unit ? unit.id : 0 }); return true; };
   G.ping = (x, z) => G.signal('gather', x, z);
-  G.rally = false;
-  G.setRally = on => { G.rally = on === undefined ? !G.rally : !!on; if (G.rally && !P().alive) G.rally = false; ui.rally(G.rally); if (G.rally) { audio.play('horn'); const p = P(); fx.ringWave(p.x, p.z, 16, [1.9, 0.45, 0.25], 0.8); const one = L => L[Math.floor(Math.random() * L.length)]; fx.say(p.x, p.h + 1.6, p.z, one(['随我开团！', '都过来，跟我上！', '集合，开打！']), true); let k = 0; for (const a of G.heroes) if (a.alive && a.team === p.team && a !== p && k < 2) { chat(a, 'rally', true); k++; } } return G.rally; };
+  // 开团: a standing order for the caller's side (G.rallyBy[team] = who called it); it falls with them
+  G.rallyBy = [null, null];
+  function setRally(h, on) {
+    const was = G.rallyBy[h.team] === h; on = on === undefined ? !was : !!on; if (on && !h.alive) on = false; if (on === was) return;
+    G.rallyBy[h.team] = on ? h : null; if (me(h)) ui.rally(on);
+    if (on && h.team === P().team) { audio.play('horn'); fx.ringWave(h.x, h.z, 16, [1.9, 0.45, 0.25], 0.8); const one = L => L[Math.floor(vis() * L.length)]; fx.say(h.x, h.h + 1.6, h.z, one(['随我开团！', '都过来，跟我上！', '集合，开打！']), true); let k = 0; for (const a of G.heroes) if (a.alive && a.team === h.team && a !== h && k < 2) { chat(a, 'rally', true); k++; } }
+  }
+  Object.defineProperty(G, 'rally', { get: () => G.rallyBy[P().team] === P() });
+  G.setRally = on => { const h = P(), v = on === undefined ? !G.rally : !!on; send({ c: 'rally', on: v }); return v && h.alive; };
   G.passive = () => { const h = P(), d = h.def.passive; return { stacks: d.pct ? Math.round((1 - h.hp / h.maxHp) * 60) : d.max ? h.pStack : 0, cd: d.cd ? Math.max(0, h.pCd) : 0 }; };
   G.pick = (x, z, slack = 1.3) => {
     let best = null, bd = 1e9;
@@ -1127,7 +1180,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   };
   G.canCast = i => canCast(P(), i);
   G.strikeTarget = (i, ax, az) => { const h = P(), s = h.def.skills[i]; let best = null, bd = 1e9; for (const e of G.heroes) { if (!e.alive || e.team === h.team || e.hid || dist(h, e) > s.range + 1) continue; const q = dist2(e.x, e.z, ax, az); if (q < bd) { bd = q; best = e; } } return best; };
-  G.castAt = (i, x, z) => { const h = P(), ok = cast(h, i, x, z); if (!ok && h.alive) { const s = h.def.skills[i]; ui.toast(h.ranks[i] < 1 ? '还没学会这一招：按 1-4 或点招式上方的 + 号' : h.cds[i] > 0 ? '招式调息中' : h.mana < s.mana ? '灵力不足' : s.kind === 'strike' ? '附近没有敌方修士' : ''); } return ok; };
+  G.castAt = (i, x, z) => { const h = P(), ok = net ? canCast(h, i) : cast(h, i, x, z); if (ok && net) send({ c: 'cast', i, x, z }); if (!ok && h.alive) { const s = h.def.skills[i]; ui.toast(h.ranks[i] < 1 ? '还没学会这一招：按 1-4 或点招式上方的 + 号' : h.cds[i] > 0 ? '招式调息中' : h.mana < s.mana ? '灵力不足' : s.kind === 'strike' ? '附近没有敌方修士' : ''); } return ok; };
   // touch: aim automatically — at the best enemy in range, otherwise along the facing / stick direction
   G.castAuto = (i, sx = 0, sz = 0) => {
     const h = P(), s = h.def.skills[i]; if (!h.alive) return false;
@@ -1140,9 +1193,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     return G.castAt(i, h.x + fx_ * d, h.z + fz_ * d);
   };
   G.canShop = () => canShop(P());
-  G.buy = id => { const why = buyItem(P(), id); if (why) ui.toast(why); else audio.play('buy'); return !why; };
+  G.buy = id => { const why = buyItem(P(), id, net); if (why) ui.toast(why); else if (net) send({ c: 'buy', id }); else audio.play('buy'); return !why; };
   G.price = id => priceOf(P(), id);
-  G.learn = i => learn(P(), i);
+  G.learn = i => { if (!canLearn(P(), i)) return false; send({ c: 'learn', i }); return true; };
   G.canLearn = i => canLearn(P(), i);
   G.skill = i => eff(P(), i);
   G.skillDmg = (i, rank) => { const h = P(), keep = h.ranks[i]; h.ranks[i] = rank; const s = eff(h, i), v = s.b !== undefined ? skillDmg(h, s, i) : 0; h.ranks[i] = keep; return v; };
@@ -1163,36 +1216,39 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   const takeInsight = (h, k) => {
     const t = h.insPend.shift(); if (t === undefined) return false; const q = INSIGHT[h.def.id][t][k ? 1 : 0]; h.ins.push(q);
     if (near(h)) { fx.pillar(h.x, h.z, 1.4, 12, h.fxCol, 0.6); fx.ringWave(h.x, h.z, 9, h.fxCol, 0.5); }
-    if (h.isPlayer) { audio.play('star'); ui.announce(`感悟 · ${q[0]}`, 'good'); ui.buzz(40); }
+    if (me(h)) { audio.play('star'); ui.announce(`感悟 · ${q[0]}`, 'good'); ui.buzz(40); }
     else if (h.team === G.player.team) chat(h, 'ins', true, { i: q[0], w: WHY[q[4]], d: q[1] });   // allies report what they took and why; the other side keeps it to itself
     return true;
   };
-  G.chooseInsight = k => (G.insight() ? takeInsight(P(), k) : false);
+  G.chooseInsight = k => { if (!G.insight()) return false; send({ c: 'ins', k }); return true; };
 
   // ---------------- frame update ----------------
   const BAR = { kill: [1.0, 0.9, 0.3], self: [0.3, 0.95, 0.42], ally: [0.3, 0.62, 1.0], enemy: [1.0, 0.27, 0.2], neutral: [0.95, 0.78, 0.3] };
   CAMPS.forEach(c => { const camp = { c, units: [], respawnT: 0 }; G.camps.push(camp); spawnCamp(camp); });
 
-  G.update = (dt, time) => {
-    if (G.over) { G.overT += dt; dt *= 0.35; }
-    else {
-      G.t += dt;
+  // The match moves in fixed steps (G.step, TICK seconds each), the picture follows every frame (G.draw). Online every machine
+  // takes exactly the same steps with exactly the same commands, so step must never read anything only one machine has: the
+  // camera, this machine's player, the dice for show (vis), the quality setting.
+  G.step = dt => {
+    if (G.over) { G.overT += dt; return; }
+    {
+      G.t += dt; G.tick++;
       if (G.t >= G.nextWave) {
         G.nextWave += T.waveEvery; G.wave++;
         if (G.wave === 1) { ui.announce('两宗弟子已下山', ''); audio.play('horn'); }
         if (G.wave > 3 && G.t - (G.moodAt || 0) > 50) {                 // how the match is going, said by whoever feels it — either side
           const pt = G.player.team, lead = (G.kills[pt] - G.kills[1 - pt]) + (G.structs[pt].list.filter(x => x.alive).length - G.structs[1 - pt].list.filter(x => x.alive).length) * 2.5;
-          if (Math.abs(lead) >= 6) { G.moodAt = G.t; const pick = t => { const L = G.heroes.filter(h => h.team === t && h.alive && !h.isPlayer); return L[Math.floor(Math.random() * L.length)]; }, foe = pick(1 - pt), ally = pick(pt);
-            if (foe) chat(foe, lead > 0 ? 'behind' : 'ahead', true); if (ally && Math.random() < 0.6) chat(ally, lead > 0 ? 'ahead' : 'behind'); }
+          if (Math.abs(lead) >= 6) { G.moodAt = G.t; const pick = t => { const L = G.heroes.filter(h => h.team === t && h.alive && !h.isPlayer); return L[Math.floor(vis() * L.length)]; }, foe = pick(1 - pt), ally = pick(pt);
+            if (foe) chat(foe, lead > 0 ? 'behind' : 'ahead', true); if (ally && vis() < 0.6) chat(ally, lead > 0 ? 'ahead' : 'behind'); }
         }
         if ((G.wave === 2 || G.wave === 7) && (G.pairN || 0) < 2) {      // people with history say so: once early, once more a few minutes in, never the same pair twice
           const by = id => G.heroes.filter(h => h.def.id === id), pt = G.player.team, said = G.pairDone || (G.pairDone = new Set()); let done = false;
-          const order = PAIRS.map((p, k) => [p, k]).sort((a, b) => (by(b[0][0]).some(h => h.isPlayer) || by(b[0][1]).some(h => h.isPlayer) ? 1 : 0) - (by(a[0][0]).some(h => h.isPlayer) || by(a[0][1]).some(h => h.isPlayer) ? 1 : 0) || Math.random() - 0.5);   // the player's own ties first
+          const order = PAIRS.map((p, k) => [p, k]).sort((a, b) => (by(b[0][0]).some(h => h.isPlayer) || by(b[0][1]).some(h => h.isPlayer) ? 1 : 0) - (by(a[0][0]).some(h => h.isPlayer) || by(a[0][1]).some(h => h.isPlayer) ? 1 : 0) || vis() - 0.5);   // the player's own ties first
           for (const [[a, b, same, opp], k] of order) { if (done) break; if (said.has(k)) continue; for (const A of by(a)) { if (done) break; for (const B of by(b)) { if (A === B) continue; const L = A.team === B.team ? same : opp;
             fx.say(A.x, A.h + 1.6, A.z, L[0], A.team === pt); fx.say(B.x, B.h + 1.6, B.z, L[1], B.team === pt); if (!A.isPlayer) ui.chat(A, L[0], A.team !== pt, 8000); if (!B.isPlayer) ui.chat(B, L[1], B.team !== pt, 8000);
             said.add(k); G.pairN = (G.pairN || 0) + 1; done = true; break; } } }
         }
-        if (G.wave === 1) { const sp = G.heroes.filter(h => h.team === G.player.team && !h.isPlayer); if (sp[0]) chat(sp[0], 'start', true); if (sp[1]) chat(sp[1], sp[1].ai.jungler ? ['我去巡山，有事喊我'] : 'start', true); const foe = G.heroes.filter(h => h.team !== G.player.team); if (foe.length) chat(foe[Math.floor(Math.random() * foe.length)], 'eStart', true); }
+        if (G.wave === 1) { const sp = G.heroes.filter(h => h.team === G.player.team && !h.isPlayer); if (sp[0]) chat(sp[0], 'start', true); if (sp[1]) chat(sp[1], sp[1].ai.jungler ? ['我去巡山，有事喊我'] : 'start', true); const foe = G.heroes.filter(h => h.team !== G.player.team); if (foe.length) chat(foe[Math.floor(vis() * foe.length)], 'eStart', true); }
         for (const team of [FROST, EMBER]) for (let lane = 0; lane < LANES.length; lane++) {
           const lost = !G.structs[1 - team].lanes[lane][1].alive; // the side that broke through gets a stronger wave down that lane
           const list = ['melee', 'melee', 'melee', 'ranged']; if (G.t > 300) list.push('ranged'); if (lost) list.unshift('melee');
@@ -1201,7 +1257,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       }
       for (let i = G.spawnQ.length - 1; i >= 0; i--) if (G.spawnQ[i].t <= G.t) { const q = G.spawnQ[i]; G.spawnQ.splice(i, 1); spawnMinion(q.team, q.type, q.off, q.lane); }
       for (const c of G.camps) if (c.respawnT > 0) { c.respawnT -= dt; if (c.respawnT <= 0) spawnCamp(c); }
-      if (G.rally && !G.player.alive) G.setRally(false);               // the order falls with the one who gave it
+      for (const r of G.rallyBy) if (r && !r.alive) setRally(r, false);   // the order falls with the one who gave it
       teamThink(FROST); teamThink(EMBER);
       if (T.bossAt && !G.bossUp && G.t >= T.bossAt) {                  // 渊主残念 rises in the upper pit, whatever was there
         G.bossUp = true; const camp = G.camps.find(c => c.c.kind === 'guardian');
@@ -1209,7 +1265,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       }
       for (const team of [FROST, EMBER]) { if (G.surgeT[team] > 0) G.surgeT[team] -= dt; if (G.buffT[team] > 0) G.buffT[team] -= dt; let n = 0, sum = 0; for (const h of G.heroes) if (h.team === team) { n++; sum += h.level; } G.avgLvl[team] = sum / n; }
       for (const e of G.units) { e.brush = !e.alive || isStruct(e) ? -1 : brushAt(e.x, e.z); if (e.revealT > 0) e.revealT -= dt; }
-      { const p = G.player, b = p.alive ? p.brush : -1; if (b >= 0 && b !== G.pBrushWas) { const n = G.pBrushN || (G.pBrushN = {}); n[b] = (n[b] || 0) + 1; if (n[b] >= 3 && n[b] >= (n[G.favIdx] || 0)) { G.favIdx = b; G.favBrush = BRUSH[b]; } } G.pBrushWas = b; }   // the grass the player keeps going back to
+      for (const p of G.heroes) { if (!p.isPlayer) continue; const b = p.alive ? p.brush : -1; if (b >= 0 && b !== p.bWas) { const n = p.bN || (p.bN = {}); n[b] = (n[b] || 0) + 1; if (n[b] >= 3 && n[b] >= (n[p.favIdx] || 0)) { p.favIdx = b; p.favBrush = BRUSH[b]; } } p.bWas = b; }   // the grass each person keeps going back to
       // who can be seen. Brush hides you from anyone not in it with you; in a mode with fog you must also be within sight of
       // something on the other side (a cultivator, a disciple, a tower). Striking, casting or being hit shows you for a moment.
       for (const e of G.units) {
@@ -1243,7 +1299,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
         else if (e.kind === 'tower') updateTower(e, dt);
       }
       // fountains burn intruders
-      for (const team of [FROST, EMBER]) { const f = POS.fountain(team); for (const e of G.units) if (e.alive && e.team === 1 - team && dist2(e.x, e.z, f.x, f.z) < T.fountainR) { damage(null, e, e.maxHp * 0.6 * dt + 60 * dt); if (Math.random() < 0.3) fx.line(f.x, 3, f.z, e.x, 1.5, e.z, TEAM_COL[team].glow, 12, 0.6, 0.2); } }
+      for (const team of [FROST, EMBER]) { const f = POS.fountain(team); for (const e of G.units) if (e.alive && e.team === 1 - team && dist2(e.x, e.z, f.x, f.z) < T.fountainR) { damage(null, e, e.maxHp * 0.6 * dt + 60 * dt); if (vis() < 0.3) fx.line(f.x, 3, f.z, e.x, 1.5, e.z, TEAM_COL[team].glow, 12, 0.6, 0.2); } }
       // soft separation so units do not stack
       const U = G.units;
       for (let i = 0; i < U.length; i++) {
@@ -1260,15 +1316,31 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const inv = 1 / Math.max(dt, 1e-3);
       for (const e of G.units) { e.vx = (e.x - e.px) * inv; e.vz = (e.z - e.pz) * inv; }
       if (G.hurtFlash > 0) G.hurtFlash = Math.max(0, G.hurtFlash - dt * 1.6);
+      for (let i = G.units.length - 1; i >= 0; i--) {                 // the fallen disciples and 邪祟 linger half a breath, then go
+        const e = G.units[i]; if (e.alive || (e.kind !== 'minion' && e.kind !== 'neutral')) continue;
+        if ((e.goneT += dt) > 0.5) { M.freeMinion(e.view); G.units.splice(i, 1); G.byId.delete(e.id); }
+      }
     }
-    // views, bars, cleanup
+  };
+  // a fingerprint of the match as it stands: online, machines compare these now and then to know they still agree
+  G.hash = () => {
+    const f = new Float64Array(1), u = new Uint32Array(f.buffer); let h = 2166136261 >>> 0;
+    const mix = v => { f[0] = v; h = Math.imul(h ^ u[0], 16777619) >>> 0; h = Math.imul(h ^ u[1], 16777619) >>> 0; };
+    mix(G.t); mix(G.units.length); for (const e of G.units) { mix(e.id); mix(e.x); mix(e.z); mix(e.hp); } for (const e of G.heroes) { mix(e.gold); mix(e.xp); mix(e.mana); }
+    return h;
+  };
+  // the picture: every unit drawn where it stands, slid between the last two steps (alpha) so motion stays smooth whatever the frame rate
+  G.draw = (dt, time, alpha = 1) => {
+    if (G.over) dt *= 0.35;
+    const lerpd = [];
+    if (alpha < 1) for (const e of G.units) { const dx = e.x - e.px, dz = e.z - e.pz; if (dx === 0 && dz === 0 || dx * dx + dz * dz > 9) continue; lerpd.push(e, e.x, e.z); e.x = e.px + dx * alpha; e.z = e.pz + dz * alpha; }
     const p = G.player;
     if (G.peek && !G.over) { G.focus.tx = G.peek.x; G.focus.tz = G.peek.z; } else if (!G.over && p.alive) { G.focus.tx = p.x; G.focus.tz = p.z; }
     const beat = Math.floor(G.t / 0.09) !== Math.floor((G.t - dt) / 0.09);
     fx.barsBegin();
     for (let i = G.units.length - 1; i >= 0; i--) {
       const e = G.units[i];
-      if (!e.alive && (e.kind === 'minion' || e.kind === 'neutral')) { e.goneT += dt; e.view.update(dt, e, time); if (e.goneT > 0.5) { M.freeMinion(e.view); G.units.splice(i, 1); } continue; }
+      if (!e.alive && (e.kind === 'minion' || e.kind === 'neutral')) { e.view.update(dt, e, time); continue; }
       e.view.update(dt, e, time);
       const unseen = e.hid && e.team !== p.team;
       if (beat && e.marks > 0 && e.markT > G.t && e.alive && !unseen && near(e)) V.marks(e, e.marks, e.markCol, G.t);
@@ -1290,7 +1362,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       else if (vulnerable(e) || frac < 1) fx.bar(e.x, y, e.z, shown, 0, e.kind === 'core' ? 150 : 110, 9, c, 0, 0, lag, frac, cut);
     }
     fx.barsEnd();
+    for (let i = 0; i < lerpd.length; i += 3) { lerpd[i].x = lerpd[i + 1]; lerpd[i].z = lerpd[i + 2]; }
   };
+  G.update = (dt, time) => { G.step(dt); G.draw(dt, time); };       // one step and one picture: the test tools
 
   G.vulnerable = vulnerable; G.frontStruct = frontStruct;
   return G;

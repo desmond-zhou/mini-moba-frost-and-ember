@@ -1,4 +1,5 @@
 // util.js — math helpers, seeded RNG, tileable noise data
+import { DMath as Math } from './dmath.js';                  // same numbers on every machine (online play)
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const lerp = (a, b, t) => a + (b - a) * t;
 export const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };

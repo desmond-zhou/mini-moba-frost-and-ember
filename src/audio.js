@@ -141,7 +141,7 @@ export function createAudio(lite) {
   // are true to the picture, things up-screen sound ahead and things down-screen behind (with headphones). Distance dulls
   // the sound and sends more of it to the room.
   A.play = (name, x, z, gain = 1, fb) => {                          // fb: what to play instead until a designed sound (w_/h_/ult) is ready
-    if (!ctx || A.muted || ctx.state !== 'running') return;
+    if (!ctx || A.muted || A.hush || ctx.state !== 'running') return;   // hush: catching up an online match, nothing to hear
     if (!bank[name] && !S[name]) { if (!fb || !S[fb]) return; name = fb; }
     let v = gain, dx = 0, dz = 0, far = 0;
     if (x !== undefined) { dx = x - A.listener.x; dz = z - A.listener.z; const d = Math.hypot(dx, dz); if (d > (SOFT[name] ? 30 : 58)) return; v *= 1 / (1 + (d / 17) * (d / 17)); far = Math.min(1, d / 42); }
