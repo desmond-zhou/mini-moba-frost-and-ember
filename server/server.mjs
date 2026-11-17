@@ -18,7 +18,14 @@ import { HEROES, HERO_ORDER, MODES, SEATS, SEAT_FIT, T } from '../src/config.js'
 
 // the page it hands out: FROSTEMBER_HTML when set (the server app carries its own copy), else this checkout's build
 const HTML_PATH = process.env.FROSTEMBER_HTML || path.join(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), 'dist/frostember.html');
-const PORT = +process.env.PORT || 8790, TURN_MS = 50, TPT = 3, HASH_EVERY = 40;
+const PORT = +process.env.PORT || 8790, HOST = process.env.HOST || undefined, TURN_MS = 50, TPT = 3, HASH_EVERY = 40;
+// open to the public (behind a proxy that sets X-Forwarded-For, e.g. Caddy): TRUST_PROXY=1. Limits keep one person from
+// filling the machine: connections per address, messages per second per connection, rooms in all, rooms opened per minute.
+const TRUST_PROXY = process.env.TRUST_PROXY === '1', MAX_CONN_PER_IP = 8, MAX_ROOMS = 400, MSG_RATE = 60, MSG_BURST = 150;
+const perIp = new Map();                                   // address → { conns, made: [times rooms were opened], misses: [times a code was wrong] }
+const ipOf = req => (TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket.remoteAddress || '?';
+const ipRec = ip => { let r = perIp.get(ip); if (!r) perIp.set(ip, r = { conns: 0, made: [], misses: [] }); return r; };
+const recent = (list, ms) => { const now = Date.now(); while (list.length && now - list[0] > ms) list.shift(); return list.length; };
 const log = (...a) => console.log(new Date().toISOString().slice(5, 19), ...a);
 
 // ---------------- the page ----------------
@@ -136,11 +143,13 @@ function onMessage(ws, m) {
   if (!c) return;
   if (m.t === 'ping') { send(ws, { t: 'pong', c: m.c }); return; }
   if (m.t === 'create') {
+    const ip = ipRec(ws.ip); if (rooms.size >= MAX_ROOMS || recent(ip.made, 60000) >= 5) { send(ws, { t: 'err', msg: '开房太频繁了，等一会儿再试' }); return; } ip.made.push(Date.now());
     if (r) leave(cid); if (!MODES[m.mode]) return;
     const rr = makeRoom(m.mode, cid); rr.members.set(cid, { cid, name: c.name, ws }); c.room = rr; rr.seats[0][0].cid = cid; update(rr); return;
   }
   if (m.t === 'join') {
-    const rr = rooms.get(clean(m.code, 8).toUpperCase()); if (!rr) { send(ws, { t: 'err', msg: '没有这个房间' }); return; }
+    const ip = ipRec(ws.ip); if (recent(ip.misses, 60000) >= 12) { send(ws, { t: 'err', msg: '试错太多次了，等一会儿再试' }); return; }
+    const rr = rooms.get(clean(m.code, 8).toUpperCase()); if (!rr) { ip.misses.push(Date.now()); send(ws, { t: 'err', msg: '没有这个房间' }); return; }
     if (rr === r) { update(rr); return; } if (r) leave(cid);
     if (rr.state === 'playing') { send(ws, { t: 'err', msg: '这一局已经开打了，等打完再进' }); return; }
     if (rr.members.size >= sizeOf(rr.mode) * 2 + 4) { send(ws, { t: 'err', msg: '房间满了' }); return; }
@@ -197,9 +206,13 @@ function onMessage(ws, m) {
 
 // ---------------- sockets ----------------
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 16 * 1024 });
-wss.on('connection', ws => {
+wss.on('connection', (ws, req) => {
+  ws.ip = ipOf(req); const ip = ipRec(ws.ip);
+  if (ip.conns >= MAX_CONN_PER_IP) { ws.close(1013, 'too many'); return; }
+  ip.conns++; ws.on('close', () => { if (--ip.conns <= 0 && !ip.made.length && !ip.misses.length) perIp.delete(ws.ip); });
+  let tokens = MSG_BURST, at = Date.now();                             // messages per second, with a little slack for bursts
   ws.alive = true; ws.on('pong', () => { ws.alive = true; });
-  ws.on('message', d => { let m; try { m = JSON.parse(d); } catch { return; } if (m && typeof m.t === 'string') try { onMessage(ws, m); } catch (e) { log('error', e.stack); } });
+  ws.on('message', d => { const now = Date.now(); tokens = Math.min(MSG_BURST, tokens + (now - at) / 1000 * MSG_RATE); at = now; if (--tokens < 0) { if (tokens < -MSG_BURST) ws.terminate(); return; } let m; try { m = JSON.parse(d); } catch { return; } if (m && typeof m.t === 'string') try { onMessage(ws, m); } catch (e) { log('error', e.stack); } });
   ws.on('close', () => {
     const c = ws.cid && byCid.get(ws.cid); if (!c || c.ws !== ws) return; c.ws = null;
     const r = c.room; if (!r) { byCid.delete(ws.cid); return; }
@@ -216,7 +229,7 @@ setInterval(() => {                                                      // dead
     if (anyone) r.emptyAt = 0; else if (!r.emptyAt) r.emptyAt = now; else if (now - r.emptyAt > 120000) { if (r.game) clearInterval(r.game.timer); rooms.delete(r.code); for (const m of r.members.keys()) { const c = byCid.get(m); if (c && c.room === r) { c.room = null; if (!c.ws) byCid.delete(m); } } log('closed', r.code); }
   }
 }, 15000);
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   log(`霜烬之争 server on :${PORT}`);
   const ips = Object.values(os.networkInterfaces()).flat().filter(a => a && a.family === 'IPv4' && !a.internal).map(a => a.address);
   console.log('\n  用浏览器打开（手机、电脑都行），点「联机对战」：');
