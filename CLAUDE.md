@@ -2,7 +2,7 @@
 
 单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v3.0.0-alpha.2**（V3：联机对战，单机照旧）。V2 单机最终版存档在标签 `v2-single-final` / 分支 `v2-single`。
 
-先读这份，再读 `docs/进度.md`（现状、下一步、踩过的坑）。其余文档按需：`docs/三路策划.md`、`docs/库选型.md`、`docs/打位演算.md`、`README.md`。
+先读这份，再读 `docs/进度.md`（现状、下一步、踩过的坑）。其余文档按需：`docs/联机与发行笔记.md`（帧同步的理由、房主自己开服、版号、ICP）、`docs/三路策划.md`、`docs/库选型.md`、`docs/打位演算.md`、`README.md`。
 
 ## 在哪
 
