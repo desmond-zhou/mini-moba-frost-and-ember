@@ -10,7 +10,7 @@
 |---|---|
 | 本地 | `/Users/desmondzhou/Claude Code/Mini-Server/mini-moba` |
 | 仓库 | 私有，`github.com/desmond-zhou/mini-moba-frost-and-ember`（原名 frostember，作者 2026-11-17 改名；本地 remote 还是旧地址，GitHub 会转过去），主干 `main`，每个可玩版本一个标签 |
-| 公开网站 | https://moba.app.desmondzhou.com （作者的 AWS：S3 + CloudFront + Route53，`deploy/publish.sh` 发布；只放单机，没有联机服务器时「联机对战」显示「暂未开放，想玩联系 Desmond」） |
+| 公开网站 | https://moba.app.desmondzhou.com （作者的 AWS：S3 + CloudFront + Route53，`deploy/publish.sh` 发布；只放单机，没有联机服务器时「联机对战」显示「服务器写好了，想玩找作者 Desmond 要」） |
 | 线上 | https://claude.ai/artifact/GzCkDyMnCr18U1iCeTCpiC （"任何有链接的人可见"，发布即生效） |
 | 小说设定 | 《天衍》正史设定：https://claude.ai/artifact/NAtLbe59n8C8Et26Lqj9Vy （Claude Docs，project id `ab713e6f-35c7-4aea-aa3f-cb2d0b065ae0`） |
 
