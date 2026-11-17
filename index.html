@@ -169,6 +169,7 @@ body.touch #sig { top: calc(var(--mh, 126px) + 64px + var(--sat)); } body.touch 
 #netPane button { padding: 10px 12px; font-size: 14px; font-weight: 700; color: var(--bone); background: var(--panel); border: 1px solid var(--line); } #netPane button small { margin-left: 6px; font-weight: 400; color: var(--dim); }
 #netPane #nCreate1, #netPane #nCreate3 { color: #1a1408; background: linear-gradient(#ffe7a8, #d6a441); border-color: #ffe7a8; } #netPane #nCreate1 small, #netPane #nCreate3 small { color: #5a4718; }
 #netPane #nCode { text-transform: uppercase; letter-spacing: .3em; text-align: center; font-size: 16px; }
+#netPane.off label, #netPane.off .two, #netPane.off #nStatus { display: none; } #netPane #nOff { color: var(--bone); font-size: 14px; line-height: 1.8; } #netPane #nOff[hidden] { display: none; }
 #netPane p { margin: 0; min-height: 1.2em; font-size: 12.5px; color: #ffb27a; text-align: center; } #netPane .back { color: var(--dim); }
 #chatIn { position: absolute; left: var(--gl); bottom: calc(190px + var(--sab)); width: min(360px, 60vw); pointer-events: auto; z-index: 4; } #chatIn[hidden] { display: none; }
 body.touch #chatIn { top: calc(var(--sat) + 64px); bottom: auto; left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 32px)); font-size: 16px; }
@@ -447,6 +448,7 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     <div class="credit">制作 · Desmond Zhou 周易　微信 desmondzhou　© 2026 版权所有</div>
     <div id="netPane" hidden><div class="pane">
       <h2>联机对战</h2>
+      <p id="nOff" hidden>联机对战暂时还没开放。<br>想和朋友一起打，可以联系 Desmond（微信 desmondzhou）。</p>
       <label>道号<input id="nName" maxlength="12" placeholder="你的名字" autocomplete="nickname"></label>
       <label id="nSrvRow" hidden>服务器<input id="nSrv" placeholder="例：192.168.1.20:8787" autocapitalize="off" spellcheck="false"></label>
       <div class="two"><button id="nCreate1" type="button">开一路房间<small>3v3</small></button><button id="nCreate3" type="button">开三路房间<small>5v5</small></button></div>

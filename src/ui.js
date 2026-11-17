@@ -114,7 +114,7 @@ export function createUI(isTouch, audio) {
   };
   // the box for joining or opening a room
   ui.netPane = (N, act) => {
-    el.netPane.hidden = false; el.nName.value = N.name || ''; el.nSrv.value = N.url ? N.url.replace(/^wss?:\/\//, '').replace(/\/ws$/, '') : '';
+    ui.netOffline(false); el.netPane.hidden = false; el.nName.value = N.name || ''; el.nSrv.value = N.url ? N.url.replace(/^wss?:\/\//, '').replace(/\/ws$/, '') : '';
     el.nSrvRow.hidden = !act.askServer; el.nStatus.textContent = act.status || '';
     const go = f => () => { audio.init(); audio.play('click'); const n = el.nName.value.trim(); if (!n) { el.nStatus.textContent = '先起个道号'; el.nName.focus(); return; } N.setName(n); f(); };
     el.nCreate1.onclick = go(() => act.create('single')); el.nCreate3.onclick = go(() => act.create('tri'));
@@ -125,6 +125,7 @@ export function createUI(isTouch, audio) {
     el.nClose.onclick = () => { el.netPane.hidden = true; act.close(); };
   };
   ui.netStatus = t => { el.nStatus.textContent = t; };
+  ui.netOffline = on => { el.netPane.classList.toggle('off', !!on); $('nOff').hidden = !on; };   // no room server here: say so, and who to ask
 
   // ---------- match HUD ----------
   let fogCv = null, fogImg = null;

@@ -92,11 +92,21 @@ function boot() {
       join: c => whenOpen(() => net.send({ t: 'join', code: c })),
       close: () => { if (!net.room) net.close(); },
     });
-    if (/claude\.ai$|claudeusercontent\.com$/.test(location.hostname)) ui.netStatus('这个网页里多半连不上联机服务器：请用浏览器打开开房人给的地址');
-    if (!net.url) { ui.netStatus('填上服务器地址（问开房的人要）'); return; }
-    net.connect();
-    if (code) { document.getElementById('nCode').value = code; if (net.name) document.getElementById('nJoin').click(); }
+    // Is there a room server to talk to? Only a page from disk (the Mac app) asks for an address; anywhere else, no answer from
+    // the server means online play is not offered here, and the box says so and who to ask.
+    const local = location.protocol === 'file:';
+    if (!net.url || /claude\.ai$|claudeusercontent\.com$/.test(location.hostname)) { if (local && !net.url) ui.netStatus('填上服务器地址'); else ui.netOffline(true); return; }
+    ui.netStatus('');
+    alive(net.url).then(ok => {
+      if (!ok) { if (local) ui.netStatus('连不上这个服务器'); else ui.netOffline(true); return; }
+      net.connect();
+      if (code) { document.getElementById('nCode').value = code; if (net.name) document.getElementById('nJoin').click(); }
+    });
   }
+  const alive = url => {                                               // the server answers /healthz with "ok …"
+    const h = url.replace(/^ws/, 'http').replace(/\/ws$/, '/healthz'), ctl = new AbortController(); setTimeout(() => ctl.abort(), 4000);
+    return fetch(h, { cache: 'no-store', signal: ctl.signal }).then(r => (r.ok ? r.text() : '')).then(t => t.startsWith('ok')).catch(() => false);
+  };
   ui.onNet = () => { if (net && net.room) { net.send({ t: 'leave' }); return; } openNet(); };
   addEventListener('keydown', e => {                                   // Enter: say something to your own side
     if (e.key !== 'Enter' || !G || !G.net || state !== 'playing' || document.activeElement === chatIn) return;
