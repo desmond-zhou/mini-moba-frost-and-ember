@@ -30,7 +30,7 @@ let page = null, pageAt = 0;
 const html = () => { const f = HTML_PATH; try { const m = fs.statSync(f).mtimeMs; if (m !== pageAt) { page = fs.readFileSync(f); pageAt = m; } } catch { page = null; } return page; };
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
-  if (u.pathname === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end(`ok ${hub.rooms.size} rooms`); return; }
+  if (u.pathname === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain', 'access-control-allow-origin': '*' }); res.end(`ok ${hub.rooms.size} rooms`); return; }
   if (u.pathname === '/' || u.pathname === '/index.html') {
     const b = html(); if (!b) { res.writeHead(503); res.end('build first: node build.mjs'); return; }
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' }); res.end(b); return;
