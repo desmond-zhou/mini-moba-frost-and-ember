@@ -9,7 +9,8 @@
 | | |
 |---|---|
 | 本地 | `/Users/desmondzhou/Claude Code/Mini-Server/mini-moba` |
-| 仓库 | 私有，`github.com/desmond-zhou/frostember`，主干 `main`，每个可玩版本一个标签 |
+| 仓库 | 私有，`github.com/desmond-zhou/mini-moba-frost-and-ember`（原名 frostember，作者 2026-11-17 改名；本地 remote 还是旧地址，GitHub 会转过去），主干 `main`，每个可玩版本一个标签 |
+| 公开网站 | https://moba.app.desmondzhou.com （作者的 AWS：S3 + CloudFront + Route53，`deploy/publish.sh` 发布；只放单机，没有联机服务器时「联机对战」显示「暂未开放，想玩联系 Desmond」） |
 | 线上 | https://claude.ai/artifact/GzCkDyMnCr18U1iCeTCpiC （"任何有链接的人可见"，发布即生效） |
 | 小说设定 | 《天衍》正史设定：https://claude.ai/artifact/NAtLbe59n8C8Et26Lqj9Vy （Claude Docs，project id `ab713e6f-35c7-4aea-aa3f-cb2d0b065ae0`） |
 
@@ -40,7 +41,7 @@ node pace.mjs tri 3 24            # 节奏：每分钟的平均等级。三路�
 # 调平衡（要大样本，见下）：node tune.mjs "runs/a_s*.jsonl,runs/b_s*.jsonl" "runs/a_t*.jsonl" [--write]
 node build.mjs                    # dist/frostember.html（双击即玩）和 dist/artifact.html（发布用）
 BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mode=tri" shot.png 200   # 测打包产物
-# 发布：用 Artifact 工具，file_path = dist/artifact.html，url = 上面的线上链接
+# 发布：用 Artifact 工具，file_path = dist/artifact.html，url = 上面的线上链接；公开网站：deploy/publish.sh
 # 版本号三处一起改：index.html 的 .ver、package.json、README.md；然后 commit、tag、push
 ```
 
