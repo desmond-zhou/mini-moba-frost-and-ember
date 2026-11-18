@@ -13,6 +13,7 @@ const hex = n => [...crypto.getRandomValues(new Uint8Array(n))].map(b => b.toStr
 // log: lines for the console. event(e): one record per thing worth counting (players, rooms, matches), for play metrics.
 export function createHub({ log = (...a) => console.log(new Date().toISOString().slice(5, 19), ...a), event = () => {} } = {}) {
   const perIp = new Map();                                 // address → { conns, made: [times rooms were opened], misses: [times a code was wrong] }
+  const LOOP = /^(127\.|::1$|::ffff:127\.)/;                        // this machine itself (the tests): no per-address limits; the public always arrives with its own address
   const ipRec = ip => { let r = perIp.get(ip); if (!r) perIp.set(ip, r = { conns: 0, made: [], misses: [] }); return r; };
   const recent = (list, ms) => { const now = Date.now(); while (list.length && now - list[0] > ms) list.shift(); return list.length; };
   let conns = 0;
@@ -159,12 +160,12 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
     }
     if (m.t === 'name') { const n = clean(m.name, 12); if (n) { c.name = n; if (r) { const mm = r.members.get(cid); if (mm && r.state === 'lobby') mm.name = uniqueName(r, cid, n); update(r); } else lobbyDirty(); } return; }
     if (m.t === 'create') {
-      const ip = ipRec(ws.ip); if (rooms.size >= MAX_ROOMS || recent(ip.made, 60000) >= 5) { send(ws, { t: 'err', msg: '开房太频繁了，等一会儿再试' }); return; } ip.made.push(Date.now());
+      const ip = ipRec(ws.ip); if (rooms.size >= MAX_ROOMS || (!LOOP.test(ws.ip) && recent(ip.made, 60000) >= 5)) { send(ws, { t: 'err', msg: '开房太频繁了，等一会儿再试' }); return; } ip.made.push(Date.now());
       if (r) leave(cid); if (!MODES[m.mode]) return;
       const rr = makeRoom(m.mode, cid); rr.members.set(cid, { cid, name: c.name, ws }); c.room = rr; rr.seats[0][0].cid = cid; event({ e: 'room', code: rr.code, mode: rr.mode, cid }); update(rr); return;
     }
     if (m.t === 'join') {
-      const ip = ipRec(ws.ip); if (recent(ip.misses, 60000) >= 12) { send(ws, { t: 'err', msg: '试错太多次了，等一会儿再试' }); return; }
+      const ip = ipRec(ws.ip); if (!LOOP.test(ws.ip) && recent(ip.misses, 60000) >= 12) { send(ws, { t: 'err', msg: '试错太多次了，等一会儿再试' }); return; }
       const rr = rooms.get(clean(m.code, 8).toUpperCase()); if (!rr) { ip.misses.push(Date.now()); send(ws, { t: 'err', msg: '没有这个房间' }); return; }
       if (rr === r) { update(rr); return; } if (r) leave(cid);
       if (rr.state === 'playing') { send(ws, { t: 'err', msg: '这一局已经开打了，等打完再进' }); return; }
@@ -225,7 +226,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
   // ---------------- sockets ----------------
   const H = { rooms, get busy() { return conns > 0 || rooms.size > 0; }, get online() { let n = 0; for (const c of byCid.values()) if (c.ws) n++; return n; } };
   H.open = (ws, ip) => {                                               // false: refused (too many from this address)
-    ws.ip = ip; const rec = ipRec(ip); if (rec.conns >= MAX_CONN_PER_IP) return false;
+    ws.ip = ip; const rec = ipRec(ip); if (rec.conns >= MAX_CONN_PER_IP && !LOOP.test(ip)) return false;
     rec.conns++; conns++; ws.tokens = MSG_BURST; ws.at = Date.now(); return true;
   };
   H.message = (ws, text) => {

@@ -15,11 +15,16 @@ const run = (cmd, args, env = {}, check = out => true) => new Promise(res => {
 });
 const smoke = mode => out => /^sim: \{/m.test(out) && !/PAGEERROR|SIMERR|"fatal":"[^"]/.test(out);
 const suites = [
+  ['unit: dmath, config, the online clock', 'node', ['--test', 'tests/unit.test.mjs']],
+  ['balance tables keep the rule (gapcheck)', 'node', ['gapcheck.mjs']],
   ['room server rules (protocol)', 'node', ['servertest.mjs']],
   ['single player smoke · 一路', 'node', ['test.mjs', 'auto=mage&bot=1&dyn=0&mode=single', 'runs/smoke_s.png', '90'], {}, smoke('single')],
   ['single player smoke · 三路', 'node', ['test.mjs', 'auto=mage&bot=1&dyn=0&mode=tri', 'runs/smoke_t.png', '90'], {}, smoke('tri')],
   ['same result on every machine · 一路', 'node', ['dettest.mjs', 'single', full ? '1200' : '300']],
   ['same result on every machine · 三路', 'node', ['dettest.mjs', 'tri', full ? '1500' : '300']],
+  ['same result with people\'s commands · 一路', 'node', ['dettest.mjs', 'single', full ? '1200' : '300'], { CMDS: '1' }],
+  ['same result with people\'s commands · 三路', 'node', ['dettest.mjs', 'tri', full ? '1500' : '300'], { CMDS: '1' }],
+  ['screens: phone upright / on its side / laptop / desktop', 'node', ['tests/layout.mjs']],
   ['lobby and room, as a person uses them', 'node', ['tests/lobbytest.mjs']],
   ['chat, signals and 开团 between allies', 'node', ['chattest.mjs', 'http://localhost:5179/']],
   ['online match, people clicking about, drop and rejoin · 一路', 'node', ['nettest.mjs', 'single', '45', 'runs/t_single'], { HUMAN: '1' }, out => /desync seen by client: 0/.test(out) && /after rejoin/.test(out)],
