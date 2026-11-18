@@ -19,7 +19,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
 
   // ---------------- rooms ----------------
   const rooms = new Map(), byCid = new Map();          // code → room; cid → { ws, name, room }
-  const CODE = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const CODE = '0123456789';                                         // room numbers are four digits: easy to say and to type on a phone
   const newCode = () => { for (;;) { let c = ''; for (let i = 0; i < 4; i++) c += CODE[rnd(CODE.length)]; if (!rooms.has(c)) return c; } };
   const clean = (s, n) => String(s ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
   const sizeOf = mode => MODES[mode].team;

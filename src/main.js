@@ -48,11 +48,13 @@ function boot() {
   // A room on the server (server/server.mjs): the title screen becomes the room; when the host starts, every machine gets the same
   // seed and lineup and plays the match turn by turn (net.js). Alone, nothing here runs.
   let net = null, pendingNet = null;
-  const chatIn = document.getElementById('chatIn'), netInfo = document.getElementById('netInfo');
+  const chatIn = document.getElementById('chatIn'), chatBox = document.getElementById('chatBox'), netInfo = document.getElementById('netInfo');
+  ui.onRename = n => { if (net) { net.setName(n); net.send({ t: 'name', name: n }); } };
   const roomAct = {
     send: m => net.send(m),
     leave: () => { net.send({ t: 'leave' }); },
-    invite: () => (/^https?:$/.test(location.protocol) && !/claude/.test(location.hostname) && location.port !== '5179' ? `${location.origin}/?room=${net.room.code}` : `房间号 ${net.room.code}`),
+    invite: () => `https://moba.app.desmondzhou.com/?room=${net.room.code}`,   // one public site, one server: the link works from anywhere
+    rename: n => { net.setName(n); net.send({ t: 'name', name: n }); },
   };
   const remember = code => { try { if (code) localStorage.setItem('frostember.room', code); else localStorage.removeItem('frostember.room'); } catch { /* private */ } };
   function ensureNet() {
@@ -96,14 +98,16 @@ function boot() {
       chat: text => whenOpen(() => net.send({ t: 'lchat', text })),
       rename: n => { if (net.open) net.send({ t: 'name', name: n }); },
       close: () => { if (!net.room) net.close(); },
+      code: code && !net.name ? code : '',                              // an invite and no name yet: the lobby asks for one, then joins
     });
     // every game talks to the one room server (net.js serverUrl); if it does not answer, the lobby says so and who to ask
     if (net.open) return;
-    ui.netStatus('连接中…');
+    const asking = code && !net.name;
+    if (!asking) ui.netStatus('连接中…');
     alive(net.url).then(ok => {
       if (!ok) { ui.netOffline(true); return; }
-      ui.netStatus(''); net.connect();
-      if (code) { document.getElementById('nCode').value = code; if (net.name) whenOpen(() => document.getElementById('nJoin').click()); }
+      if (!asking) ui.netStatus(''); net.connect();
+      if (code && net.name) whenOpen(() => net.send({ t: 'join', code }));
     });
   }
   const alive = url => {                                               // the server answers /healthz with "ok …"
@@ -115,13 +119,15 @@ function boot() {
     if (e.key !== 'Enter' || !G || !G.net || state !== 'playing' || document.activeElement === chatIn) return;
     e.preventDefault(); ui.onChat();
   });
-  ui.onChat = () => { chatIn.hidden = false; chatIn.value = ''; chatIn.focus(); };
+  ui.onChat = () => { chatBox.hidden = false; chatIn.value = ''; chatIn.focus(); };
+  const sayTeam = all => { const t = chatIn.value.trim(); if (t && net) net.send({ t: 'chat', text: t, team: !all }); chatIn.value = ''; };
+  document.getElementById('chatSend').onpointerdown = e => { e.preventDefault(); sayTeam(false); chatIn.blur(); };   // pointerdown: before the box loses focus and hides
   chatIn.onkeydown = e => {
     e.stopPropagation();
-    if (e.key === 'Enter') { const t = chatIn.value.trim(); if (t && net) net.send({ t: 'chat', text: t, team: !e.shiftKey }); chatIn.blur(); }
+    if (e.key === 'Enter') { sayTeam(e.shiftKey); chatIn.blur(); }
     else if (e.key === 'Escape') chatIn.blur();
   };
-  chatIn.onblur = () => { chatIn.hidden = true; };
+  chatIn.onblur = () => { chatBox.hidden = true; };
   if (qs.get('room')) setTimeout(() => openNet(qs.get('room').toUpperCase().slice(0, 4)), 300);
   else { let was = null; try { was = localStorage.getItem('frostember.room'); } catch { /* private */ } if (was && serverUrl()) { ensureNet(); net.connect(); } }   // back after a reload or a crash: the server puts you back in your seat
   ui.showTitle(start);

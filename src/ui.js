@@ -65,6 +65,9 @@ export function createUI(isTouch, audio) {
   let roomBuilt = false;
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   ui.esc = esc;
+  const copyText = t => (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t).then(() => true) : Promise.reject()).catch(() => {   // the clipboard API is not everywhere (http pages, some frames)
+    try { const a = document.createElement('textarea'); a.value = t; a.style.position = 'fixed'; a.style.opacity = '0'; document.body.append(a); a.select(); const ok = document.execCommand('copy'); a.remove(); return ok; } catch { return false; }
+  });
   const nameOf = h => (h.pname ? `${esc(h.pname)}（${h.name}）` : h.name);   // a person as 名字（修士）, a bot by the cultivator alone
   ui.showRoom = (N, act) => {
     const r = N.room; if (!r) return;
@@ -76,17 +79,21 @@ export function createUI(isTouch, audio) {
     el.seatSel.hidden = true; el.room.hidden = false; el.netBtn.textContent = '回大厅';
     if (!roomBuilt) {
       roomBuilt = true;
-      el.room.innerHTML = '<div class="rhead"></div><div class="sides"></div><div class="rchat"><div class="log"></div><input maxlength="120" enterkeyhint="send" placeholder="说点什么，回车发送"></div>';
-      const inp = el.room.querySelector('input');
-      inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter' && inp.value.trim()) { act.send({ t: 'chat', text: inp.value.trim() }); inp.value = ''; } };
+      el.room.innerHTML = '<div class="rhead"><span class="rinfo"></span><label>道号 <input class="rname" maxlength="12" autocomplete="nickname"></label></div><div class="sides"></div><div class="rchat"><div class="log"></div><div class="send"><input class="rsay" maxlength="120" enterkeyhint="send" placeholder="在房间里说话"><button type="button" class="rsend">发送</button></div></div>';
+      const inp = el.room.querySelector('.rsay'), say = () => { if (inp.value.trim()) { act.send({ t: 'chat', text: inp.value.trim() }); inp.value = ''; } };
+      inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') say(); };
+      el.room.querySelector('.rsend').onclick = () => { say(); inp.focus(); };
+      const nameIn = el.room.querySelector('.rname'); nameIn.value = N.name || '';
+      const rename = () => { const n = nameIn.value.trim(); if (n && n !== N.name) { act.rename(n); ui.toast('道号改成了 ' + n); } };
+      nameIn.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { rename(); nameIn.blur(); } }; nameIn.onchange = rename;
       el.room.onclick = e => {
         const b = e.target.closest('button'); if (!b) return; audio.init();
-        if (b.dataset.a === 'copy') { const link = act.invite(); try { navigator.clipboard.writeText(link); ui.toast('邀请已复制：' + link); } catch { ui.toast(link); } return; }
+        if (b.dataset.a === 'copy') { const link = act.invite(); copyText(link).then(ok => { b.textContent = ok ? '已复制 ✓' : '复制失败'; ui.toast(ok ? '邀请链接已复制，发给朋友：' + link : '没能复制，请手动发这个：' + link); setTimeout(() => { b.textContent = '复制邀请'; }, 2500); }); return; }
         if (b.dataset.kick) { act.send({ t: 'kick', cid: b.dataset.kick }); return; }
         if (b.classList.contains('seat') && b.classList.contains('empty')) { act.send({ t: 'seat', team: +b.dataset.t, slot: +b.dataset.i }); audio.play('click'); }
       };
     }
-    el.room.querySelector('.rhead').innerHTML = `房间 <b>${r.code}</b><span>${MODES[mode].name} · 空位由电脑补上</span><button type="button" data-a="copy">复制邀请</button><em class="ping">${N.ping ? '延迟 ' + N.ping + ' ms' : ''}</em>`;
+    el.room.querySelector('.rinfo').innerHTML = `房间 <b>${r.code}</b><span>${MODES[mode].name} · 空位由电脑补上</span><button type="button" data-a="copy">复制邀请</button><em class="ping">${N.ping ? '延迟 ' + N.ping + ' ms' : ''}</em>`;
     el.room.querySelector('.sides').innerHTML = r.seats.map((side, t) => `<div class="side ${t ? 'te' : 'tf'}"><h4>${t ? '烬方' : '霜方'}</h4>` + side.map((q, i) => {
       const h = q.hero && HEROES[q.hero], pos = five ? SEATS[i].pos : ['一', '二', '三'][i];
       const who = q.cid ? (q.cid === me ? '你' : '') + (q.cid === r.host ? (q.cid === me ? ' · ' : '') + '房主' : '') || '玩家' : '空位 · 点一下坐过来，没人就由电脑来打';
@@ -117,13 +124,22 @@ export function createUI(isTouch, audio) {
   // the lobby's talk, and a way in by room code. Clicking a waiting room joins it; empty seats are filled by bots at the start.
   ui.netPane = (N, act) => {
     ui.netOffline(false); el.netPane.hidden = false; el.nName.value = N.name || ''; el.nStatus.textContent = act.status || '';
-    const named = () => { const n = el.nName.value.trim(); if (!n) { el.nStatus.textContent = '先起个道号'; el.nName.focus(); return false; } if (n !== N.name) { N.setName(n); act.rename(n); } return true; };
+    let waiting = act.code || '';                                       // came in by an invite: join that room as soon as there is a name
+    if (waiting) { el.nCode.value = waiting; if (N.name) waiting = ''; else { el.nStatus.textContent = `起个道号，就进 ${waiting} 号房间`; setTimeout(() => el.nName.focus(), 50); } }
+    const named = () => {
+      const n = el.nName.value.trim(); if (!n) { el.nStatus.textContent = '先起个道号'; el.nName.focus(); return false; }
+      if (el.nStatus.textContent.includes('道号')) el.nStatus.textContent = '';
+      if (n !== N.name) { N.setName(n); act.rename(n); }
+      if (waiting) { const c = waiting; waiting = ''; act.join(c); }
+      return true;
+    };
     const go = f => () => { audio.init(); audio.play('click'); if (named()) f(); };
     el.nCreate1.onclick = go(() => act.create('single')); el.nCreate3.onclick = go(() => act.create('tri'));
-    el.nJoin.onclick = go(() => { const c = el.nCode.value.trim().toUpperCase(); if (c.length !== 4) { el.nStatus.textContent = '房间号是四个字'; return; } act.join(c); });
+    el.nJoin.onclick = go(() => { const c = el.nCode.value.replace(/\D/g, ''); if (c.length !== 4) { el.nStatus.textContent = '房间号是四位数字'; return; } act.join(c); });
     $('lbRooms').onclick = e => { const b = e.target.closest('.lbr'); if (!b) return; if (b.classList.contains('busy')) { ui.toast(b.textContent.includes('版本不同') ? '这个房间的游戏版本和你的不一样：刷新页面再试' : '这一局正在打，等打完再进'); return; } go(() => act.join(b.dataset.code))(); };
-    const lbIn = $('lbIn');
-    lbIn.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter' && lbIn.value.trim()) { if (!named()) return; act.chat(lbIn.value.trim()); lbIn.value = ''; } };
+    const lbIn = $('lbIn'), say = () => { if (!lbIn.value.trim() || !named()) return; act.chat(lbIn.value.trim()); lbIn.value = ''; lbIn.focus(); };
+    lbIn.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') say(); };
+    $('lbSend').onclick = say;
     el.nCode.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') el.nJoin.click(); };
     el.nName.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { named(); el.nName.blur(); } };
     el.nName.onchange = () => named();
@@ -144,7 +160,7 @@ export function createUI(isTouch, audio) {
     else { const s = log.querySelector('.sys'); if (s) s.remove(); add(m.line); }
     while (log.children.length > 60) log.firstChild.remove(); log.scrollTop = 1e6;
   };
-  ui.netStatus = t => { el.nStatus.textContent = t; };
+  ui.netStatus = t => { if ((!t || t === '连接中…') && el.nStatus.textContent.includes('道号')) return; el.nStatus.textContent = t; };   // connection chatter never covers the request for a name
   ui.netOffline = on => { el.netPane.classList.toggle('off', !!on); $('nOff').hidden = !on; };   // no room server here: say so, and who to ask
 
   // ---------- match HUD ----------
@@ -201,7 +217,8 @@ export function createUI(isTouch, audio) {
     ui.menuOpen = on === undefined ? !ui.menuOpen : on; el.menu.hidden = !ui.menuOpen;
     if (ui.menuOpen) {
       ui.toggleShop(false); ui.showScore(false); el.tip.hidden = true;
-      if (G) { el.mRestart.hidden = !!G.net; $('mBot').hidden = !G.net; $('mBot').textContent = G.player.isPlayer ? '托管 · 让电脑代打' : '取消托管 · 自己打'; el.mQuit.textContent = G.net ? '离开这局 · 电脑接着打' : '回山门 · 重新选人'; }
+      if (G) { const mn = $('mName'), mi = mn.querySelector('input'); mn.hidden = !G.net; if (G.net) { mi.value = G.player.pname || ''; mi.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') mi.blur(); }; mi.onchange = () => { const n = mi.value.trim(); if (n && ui.onRename) { ui.onRename(n); ui.toast('道号改好了：下一局起生效'); } }; }
+        el.mRestart.hidden = !!G.net; $('mBot').hidden = !G.net; $('mBot').textContent = G.player.isPlayer ? '托管 · 让电脑代打' : '取消托管 · 自己打'; el.mQuit.textContent = G.net ? '离开这局 · 电脑接着打' : '回山门 · 重新选人'; }
       if (G) { const p = G.player, d = p.def;                          // every ability spelled out: the one place to read them on a phone
         $('mSkills').innerHTML = `<li><i style="background-image:url(${pasIcon(d)});border-radius:50%"></i><div><b>被动 · ${d.passive.name}</b><span>${d.passive.desc}</span></div></li>` + d.skills.map((sk, i) => { const R = i === 3 ? RANK.ult : RANK.basic, r = p.ranks[i], e = G.skill(i), word = sk.kind === 'shield' ? '罡气' : sk.kind === 'heal' ? '治疗' : '伤害';
           return `<li><i style="background-image:url(${icon(d, sk)})"></i><div><b>${sk.key} · ${sk.name}${scaleTag(sk)}<u>${r ? R.name[r - 1] : '未学'}</u></b><span>${e.desc || sk.desc}</span><span class="n">灵力 ${sk.mana} · 调息 ${(e.cd * (1 - p.cdr)).toFixed(1)} 秒${sk.b !== undefined ? ` · ${word} ${Math.round(G.skillDmg(i, Math.max(1, r)))}` : ''}${scaleTxt(sk) ? ` · 随 ${scaleTxt(sk)}` : ''}</span></div></li>`; }).join(''); }
@@ -250,7 +267,7 @@ export function createUI(isTouch, audio) {
   ui.buzz = p => { try { if (isTouch && navigator.vibrate) navigator.vibrate(p); } catch { /* not every phone allows it */ } };
   ui.rally = on => { const b = el.sig.querySelector('[data-s=rally]'); if (b) b.classList.toggle('on', on); ui.toast(on ? '开团' : '解散'); };
   ui.announce = (text, cls) => { el.announce.textContent = text; el.announce.className = cls || ''; el.announce.animate([{ opacity: 0, transform: 'scale(1.25)' }, { opacity: 1, transform: 'scale(1)', offset: 0.12 }, { opacity: 1, offset: 0.8 }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 2600, easing: 'ease-out' }); };
-  ui.toast = text => { if (!text) return; el.toast.textContent = text; el.toast.animate([{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: 1300 }); };
+  ui.toast = text => { if (!text) return; const t = el.hud.hidden ? $('ttoast') : el.toast; t.textContent = text; t.animate([{ opacity: 0 }, { opacity: 1, offset: 0.1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: 1300 }); };
   const who = u => (u.kind === 'hero' ? `<i class="fp" style="background-image:url(${faceOf(u)})"></i><span class="${u.team === FROST ? 'frost' : 'ember'}">${nameOf(u)}</span>` : u.name || (u.kind === 'minion' ? '弟子' : '护山大阵'));
   ui.feed = (k, tgt, src) => {
     const d = document.createElement('div');

@@ -184,8 +184,13 @@ body.touch #sig { top: calc(var(--mh, 126px) + 64px + var(--sat)); } body.touch 
 #netPane #nCode { text-transform: uppercase; letter-spacing: .3em; text-align: center; font-size: 16px; }
 #netPane.off .two { display: none; }
 #netPane p { margin: 0; min-height: 1.2em; font-size: 12.5px; color: #ffb27a; text-align: center; } #netPane .back { color: var(--dim); }
-#chatIn { position: absolute; left: var(--gl); bottom: calc(190px + var(--sab)); width: min(360px, 60vw); pointer-events: auto; z-index: 4; } #chatIn[hidden] { display: none; }
-body.touch #chatIn { top: calc(var(--sat) + 64px); bottom: auto; left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 32px)); font-size: 16px; }
+#chatBox { position: absolute; left: var(--gl); bottom: calc(190px + var(--sab)); width: min(400px, 70vw); display: flex; gap: 6px; pointer-events: auto; z-index: 4; } #chatBox[hidden] { display: none; } #chatBox input { flex: 1; }
+body.touch #chatBox { top: calc(var(--sat) + 64px); bottom: auto; left: 50%; transform: translateX(-50%); width: min(440px, calc(100% - 32px)); } body.touch #chatIn { font-size: 16px; }
+.send { display: flex; gap: 6px; } .send input { flex: 1; min-width: 0; } .send button, #chatSend { padding: 0 14px; font-size: 13px; font-weight: 700; color: #1a1408; background: linear-gradient(#ffe7a8, #d6a441); border: 1px solid #ffe7a8; }
+#ttoast { position: fixed; left: 50%; top: calc(14px + var(--sat)); transform: translateX(-50%); z-index: 20; max-width: calc(100% - 32px); padding: 8px 16px; font-size: 14px; color: #ffe6b8; background: rgba(8, 12, 20, .92); border: 1px solid var(--line); opacity: 0; pointer-events: none; text-align: center; }
+#room .rinfo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+#room .rhead input { width: 9em; font: inherit; font-size: 13px; padding: 4px 8px; color: var(--bone); background: rgba(3, 5, 9, .85); border: 1px solid var(--line); } #room .rhead label { font-size: 12px; color: var(--dim); }
+#mName { display: grid; grid-template-columns: 4em 1fr; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); } #mName[hidden] { display: none; } #mName input { font: inherit; padding: 7px 10px; color: var(--bone); background: rgba(3, 5, 9, .85); border: 1px solid var(--line); }
 #chat div.me { border-left-color: var(--brass); }
 #netInfo { position: absolute; right: var(--gl); top: calc(var(--mh, 126px) + 18px + var(--sat)); font-size: 11px; color: var(--dim); pointer-events: none; text-align: right; }
 @media (max-width: 720px) { #room .sides { grid-template-columns: 1fr; } #room .te h4 { text-align: left; } .go2 { padding: 10px 12px; font-size: 14px; letter-spacing: .1em; } #room .rchat .log { max-height: 60px; } }
@@ -429,13 +434,14 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
         <div id="items"></div>
       </div>
     </div>
-    <div id="chat"></div><div id="netInfo"></div><input id="chatIn" maxlength="120" enterkeyhint="send" placeholder="对同门说（回车发送，Esc 取消）" hidden>
+    <div id="chat"></div><div id="netInfo"></div><div id="chatBox" hidden><input id="chatIn" maxlength="120" enterkeyhint="send" placeholder="对同门说（回车发送，Esc 取消）"><button id="chatSend" type="button">发送</button></div>
     <div id="sig"><button type="button" data-s="gather">集合<small>Z</small></button><button type="button" data-s="attack">进攻<small>X</small></button><button type="button" data-s="retreat">撤退<small>C</small></button><button type="button" data-s="rally">开团<small>V</small></button><button type="button" data-s="chat" hidden>说<small>↵</small></button></div>
     <div id="sys"><button id="menuBtn" type="button">菜单<small>Esc</small></button></div>
     <div id="ult"><b></b><small></small></div>
     <div id="menu" hidden><div class="pane">
       <h2>暂歇</h2>
       <button id="mResume" type="button" class="big">继续<small>Esc</small></button>
+      <label id="mName" hidden>道号<input maxlength="12" autocomplete="nickname"></label>
       <button id="mBot" type="button" hidden>托管</button>
       <button id="mRestart" type="button">重开此局</button>
       <button id="mQuit" type="button">回山门 · 重新选人</button>
@@ -447,6 +453,7 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     </div></div>
     <div id="shop" hidden><h2>万宝阁 <button id="shopX" type="button">关闭</button></h2><p id="shopNote" hidden>出过山门就只能看、不能买，自己走回来也不算。归宗（B）回来或陨落时才能买。</p><div id="shopGrid"></div></div>
   </div>
+  <div id="ttoast"></div>
   <div id="title" class="screen" hidden>
     <button id="fsBtn" type="button" class="fsBtn" hidden>全屏</button>
     <h1 class="mark">霜烬之争</h1>
@@ -466,8 +473,8 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
       <div class="lbTop"><label>道号<input id="nName" maxlength="12" placeholder="你的名字" autocomplete="nickname"></label><span id="lbOnline"></span></div>
       <div class="two"><button id="nCreate1" type="button">开一路房间<small>3v3</small></button><button id="nCreate3" type="button">开三路房间<small>5v5</small></button></div>
       <div id="lbRooms"></div>
-      <div class="lbChat"><div id="lbLog"></div><input id="lbIn" maxlength="120" enterkeyhint="send" placeholder="在大厅里说话，回车发送"></div>
-      <div class="two"><input id="nCode" maxlength="4" placeholder="房间号" autocapitalize="characters" spellcheck="false"><button id="nJoin" type="button">按房间号加入</button></div>
+      <div class="lbChat"><div id="lbLog"></div><div class="send"><input id="lbIn" maxlength="120" enterkeyhint="send" placeholder="在大厅里说话"><button id="lbSend" type="button">发送</button></div></div>
+      <div class="two"><input id="nCode" maxlength="4" placeholder="四位房间号" inputmode="numeric" pattern="[0-9]*" autocomplete="off"><button id="nJoin" type="button">按房间号加入</button></div>
       <p id="nStatus"></p>
       <button id="nClose" type="button" class="back">返回</button>
     </div></div>
