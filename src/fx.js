@@ -297,6 +297,16 @@ export function createFx(R) {
   const layer = document.getElementById('floaters');
   const texts = []; for (let i = 0; i < 28; i++) { const el = document.createElement('div'); el.className = 'floater'; layer.appendChild(el); texts.push(el); }
   let ti = 0; const v3 = new THREE.Vector3();
+  // name tags: online, each person's name and cultivator over their head (pooled; whatever was not placed this frame hides)
+  const tags = []; let tn = 0;
+  fx.tagsBegin = () => { tn = 0; };
+  fx.tag = (x, y, z, str, cls) => {
+    v3.set(x, y, z).project(R.camera); if (v3.z > 1 || Math.abs(v3.x) > 1.05 || Math.abs(v3.y) > 1.05) return;
+    let el = tags[tn]; if (!el) { el = document.createElement('div'); layer.appendChild(el); tags.push(el); } tn++;
+    if (el.dataset.t !== str) { el.textContent = str; el.dataset.t = str; } const c = 'nametag ' + cls; if (el.className !== c) el.className = c;
+    el.style.left = ((v3.x * 0.5 + 0.5) * 100).toFixed(2) + '%'; el.style.top = ((-v3.y * 0.5 + 0.5) * 100).toFixed(2) + '%'; el.hidden = false;
+  };
+  fx.tagsEnd = () => { for (let i = tn; i < tags.length; i++) tags[i].hidden = true; };
   // a line of speech over someone's head: it rises a little and stays long enough to read
   fx.say = (x, y, z, str, ally) => {
     v3.set(x, y, z).project(R.camera); if (v3.z > 1 || Math.abs(v3.x) > 1.05 || Math.abs(v3.y) > 1.05) return;
@@ -358,7 +368,7 @@ export function createFx(R) {
   }
   const resetVolumes = () => { for (const pool of [pillars, domes, bubbles]) for (const v of pool) { v.busy = false; v.m.visible = false; } fx.punchAmt = 0; fx.stopT = 0; fx.slowT = 0; fx.zoomK = 0; };
 
-  fx.reset = () => { resetVolumes(); fx.aimHide(); for (const d of pool) fx.release(d); for (const b of bolts) fx.freeBolt(b); for (const s of scorches) s.m.visible = false; for (const s of lights) { s.held = false; s.l.intensity = 0; } life.fill(0); fx.shakeAmt = 0; };
+  fx.reset = () => { fx.tagsBegin(); fx.tagsEnd(); resetVolumes(); fx.aimHide(); for (const d of pool) fx.release(d); for (const b of bolts) fx.freeBolt(b); for (const s of scorches) s.m.visible = false; for (const s of lights) { s.held = false; s.l.intensity = 0; } life.fill(0); fx.shakeAmt = 0; };
   fx.shake = a => { fx.shakeAmt = Math.min(1.2, fx.shakeAmt + a); };
 
   fx.update = dt => {

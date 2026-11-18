@@ -28,6 +28,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 .frost { color: var(--frost); } .ember { color: var(--ember); }
 
+.nametag { position: absolute; transform: translate(-50%, -100%); font-size: 11.5px; font-weight: 700; white-space: nowrap; text-shadow: 0 1px 2px #000, 0 0 3px #000; color: #9fd2ff; } .nametag.foe { color: #ffab8a; } .nametag.me { color: #ffe08a; } .nametag[hidden] { display: none; }
 .floater { position: absolute; font-weight: 800; font-size: 17px; opacity: 0; white-space: nowrap; font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px #000, 0 0 2px #000; }
 .floater.hit { font-size: 19px; } .floater.crit { color: #ffd66b; font-size: 30px; font-family: var(--f-brush); text-shadow: 0 2px 4px #000, 0 0 10px rgba(255, 190, 60, .8); } .floater.magic { color: #c3b0ff; } .floater.heal { color: #8ff0a0; } .floater.hurt { color: #ff7a66; } .floater.gold { color: #ffd45e; font-size: 15px; } .floater.level { color: #ffe08a; font-size: 20px; font-family: var(--f-display); }
 
@@ -162,14 +163,26 @@ body.touch #sig { top: calc(var(--mh, 126px) + 64px + var(--sat)); } body.touch 
 #modeSel.locked button:not(.on), #diff.locked button:not(.on) { opacity: .45; }
 .card.taken { opacity: .32; filter: grayscale(.8); }
 #netPane { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(4, 6, 10, .7); z-index: 10; } #netPane[hidden] { display: none; }
-#netPane .pane { width: min(380px, calc(100% - 24px)); display: flex; flex-direction: column; gap: 10px; padding: 20px; background: var(--panel-solid); border: 1px solid var(--line); }
+#netPane .pane { width: min(620px, calc(100% - 20px)); max-height: calc(100% - 20px); overflow-y: auto; }
+#netPane.off .lbTop, #netPane.off #lbRooms, #netPane.off .lbChat, #netPane.off #nStatus { display: none; }
+#netPane .lbTop { display: flex; align-items: center; gap: 10px; } #netPane .lbTop label { flex: 1; } #lbOnline { font-size: 12px; color: var(--dim); white-space: nowrap; }
+#lbRooms { display: grid; gap: 6px; max-height: 34vh; overflow-y: auto; } #lbRooms:empty::before { content: '还没有房间，开一个吧'; font-size: 12.5px; color: var(--dim); text-align: center; padding: 10px; }
+#lbRooms .lbr { display: grid; grid-template-columns: 92px 1fr auto; gap: 8px; align-items: center; padding: 7px 10px; text-align: left; font-weight: 400; }
+#lbRooms .lbr .md b { display: block; font: 900 14px var(--f-display); color: var(--brass); letter-spacing: .1em; } #lbRooms .lbr .md span { font-size: 11px; color: var(--dim); }
+#lbRooms .lbr .sd { display: grid; gap: 3px; min-width: 0; } #lbRooms .lbr .sd div { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 11.5px; color: var(--dim); white-space: nowrap; overflow: hidden; }
+#lbRooms .lbr .sd i { flex: 0 0 18px; width: 18px; height: 18px; background: #0a0f18 center / cover; border: 1px solid var(--line-soft); } #lbRooms .lbr .sd i.bot { opacity: .35; }
+#lbRooms .lbr .sd .f::before { content: '霜'; color: var(--frost); margin-right: 2px; } #lbRooms .lbr .sd .e::before { content: '烬'; color: var(--ember); margin-right: 2px; }
+#lbRooms .lbr .lbGo { font-size: 12.5px; color: var(--brass); white-space: nowrap; text-align: right; } #lbRooms .lbr.busy { opacity: .6; } #lbRooms .lbr.busy .lbGo { color: var(--dim); }
+#netPane .lbChat { display: grid; gap: 4px; } #lbLog { height: 110px; overflow-y: auto; padding: 6px 8px; font-size: 12.5px; background: rgba(3, 5, 9, .6); border: 1px solid var(--line-soft); } #lbLog b { color: var(--brass); margin-right: 6px; } #lbLog .sys { color: var(--dim); }
+#netPane #lbIn { font: inherit; font-size: 13px; padding: 7px 10px; color: var(--bone); background: rgba(3, 5, 9, .85); border: 1px solid var(--line); outline: none; }
+#netPane .pane { display: flex; flex-direction: column; gap: 10px; padding: 20px; background: var(--panel-solid); border: 1px solid var(--line); }
 #netPane h2 { margin: 0 0 4px; text-align: center; font: 400 36px/1 var(--f-brush); letter-spacing: .3em; margin-right: -.3em; color: var(--brass); }
 #netPane label { display: grid; grid-template-columns: 4em 1fr; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); } #netPane label[hidden] { display: none; }
 #netPane .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 #netPane button { padding: 10px 12px; font-size: 14px; font-weight: 700; color: var(--bone); background: var(--panel); border: 1px solid var(--line); } #netPane button small { margin-left: 6px; font-weight: 400; color: var(--dim); }
 #netPane #nCreate1, #netPane #nCreate3 { color: #1a1408; background: linear-gradient(#ffe7a8, #d6a441); border-color: #ffe7a8; } #netPane #nCreate1 small, #netPane #nCreate3 small { color: #5a4718; }
 #netPane #nCode { text-transform: uppercase; letter-spacing: .3em; text-align: center; font-size: 16px; }
-#netPane.off label, #netPane.off .two, #netPane.off #nStatus { display: none; } #netPane #nOff { color: var(--bone); font-size: 14px; line-height: 1.8; } #netPane #nOff[hidden] { display: none; }
+#netPane.off .two { display: none; }
 #netPane p { margin: 0; min-height: 1.2em; font-size: 12.5px; color: #ffb27a; text-align: center; } #netPane .back { color: var(--dim); }
 #chatIn { position: absolute; left: var(--gl); bottom: calc(190px + var(--sab)); width: min(360px, 60vw); pointer-events: auto; z-index: 4; } #chatIn[hidden] { display: none; }
 body.touch #chatIn { top: calc(var(--sat) + 64px); bottom: auto; left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 32px)); font-size: 16px; }
@@ -440,7 +453,7 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     <div class="sub" id="sub">十八位修士 · 3V3 · 摧毁敌方阵眼</div>
     <div id="modeSel"></div>
     <div id="room" hidden></div>
-    <div id="seatSel" hidden></div><div class="ver">v3.0.0-alpha.2</div>
+    <div id="seatSel" hidden></div><div class="ver">v3.0.0-alpha.3</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div id="rec"></div>
@@ -448,12 +461,13 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     <p class="help" id="help"></p>
     <div class="credit">制作 · <a href="https://desmondzhou.com/" target="_blank" rel="noopener">Desmond Zhou 周易</a>　微信 desmondzhou　<a href="https://desmondzhou.com/" target="_blank" rel="noopener">© 2026 版权所有</a></div>
     <div id="netPane" hidden><div class="pane">
-      <h2>联机对战</h2>
-      <p id="nOff" hidden>联机对战的服务器已经写好了，这个网站上没有开。<br>想和朋友一起打，可以找作者 Desmond 要（微信 desmondzhou）。</p>
-      <label>道号<input id="nName" maxlength="12" placeholder="你的名字" autocomplete="nickname"></label>
-      <label id="nSrvRow" hidden>服务器<input id="nSrv" placeholder="例：192.168.1.20:8787" autocapitalize="off" spellcheck="false"></label>
+      <h2>联机大厅</h2>
+      <p id="nOff" hidden>联机服务器暂时连不上，过一会儿再试。<br>一直不行可以联系 Desmond（微信 desmondzhou）。</p>
+      <div class="lbTop"><label>道号<input id="nName" maxlength="12" placeholder="你的名字" autocomplete="nickname"></label><span id="lbOnline"></span></div>
       <div class="two"><button id="nCreate1" type="button">开一路房间<small>3v3</small></button><button id="nCreate3" type="button">开三路房间<small>5v5</small></button></div>
-      <div class="two"><input id="nCode" maxlength="4" placeholder="房间号" autocapitalize="characters" spellcheck="false"><button id="nJoin" type="button">加入</button></div>
+      <div id="lbRooms"></div>
+      <div class="lbChat"><div id="lbLog"></div><input id="lbIn" maxlength="120" enterkeyhint="send" placeholder="在大厅里说话，回车发送"></div>
+      <div class="two"><input id="nCode" maxlength="4" placeholder="房间号" autocapitalize="characters" spellcheck="false"><button id="nJoin" type="button">按房间号加入</button></div>
       <p id="nStatus"></p>
       <button id="nClose" type="button" class="back">返回</button>
     </div></div>

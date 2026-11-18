@@ -1,6 +1,6 @@
 # 霜烬之争 — 接手说明
 
-单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v3.0.0-alpha.2**（V3：联机对战，单机照旧）。V2 单机最终版存档在标签 `v2-single-final` / 分支 `v2-single`。
+单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v3.0.0-alpha.3**（V3：联机对战，单机照旧）。V2 单机最终版存档在标签 `v2-single-final` / 分支 `v2-single`。
 
 先读这份，再读 `docs/进度.md`（现状、下一步、踩过的坑）。其余文档按需：`docs/联机与发行笔记.md`（帧同步的理由、房主自己开服、版号、ICP）、`docs/三路策划.md`、`docs/库选型.md`、`docs/打位演算.md`、`README.md`。
 
@@ -104,7 +104,16 @@ node nettest.mjs tri 45 runs/net              # 两个无头玩家走一遍房�
 node uishot.mjs <目录>                         # 标题和联机框在手机竖屏、横屏、电脑上的截图
 ```
 
-**服务器不自动启动**（作者 2026-11-16 的要求）：`serverapp.mjs`（`npm run app` 会一起做）生成 `dist/霜烬之争服务器.app`，作者双击才启动，终端窗口显示地址和日志，关窗口即停。它自带打包好的服务器和一份游戏页面，任何装了 Node.js 的 Mac 都能跑。不要加 launchd 之类的常驻。作者的设备都在 Tailscale 里，服务器开着时用 `http://des-mac-mini:8790/` 打开即可联机。对公网开放（`tailscale funnel`）要作者同意。
+**线上服务器（2026-11-18 起）**：所有人开房、加入都走它，前端写死在 `src/net.js` 的 `SERVER`（`wss://server.moba.app.desmondzhou.com:37190/ws`）；开发时 5179 端口的页面连本机 8790，测试可用 `?server=` 指定。
+- 机器：AWS Lightsail 俄勒冈 `des-lightsail-us-west-2`（5 美元档，Ubuntu 24.04，固定 IP 54.186.176.43），在作者的 Tailscale 里。登录只能走 Tailscale：`ssh des-lightsail-us-west-2`（Mac mini 的 `~/.ssh/config` 已配好，密钥 `~/.ssh/lightsail_oregon`）。
+- 对公网只开两个口：37190（Caddy 做 HTTPS，转给本机 8790 上的 Node 服务器）和 80（只给证书续期）。两层防火墙：Lightsail 的端口规则 + 机器上的 ufw（Tailscale 网卡全放行，公网只放 80、37190）。以后在这台机器上加的服务默认只有 Tailscale 能访问；要对公网开放，两层都要加规则。
+- 服务：systemd `frostember`（`deploy/server/frostember.service`），Caddy 配置 `deploy/server/Caddyfile`。更新：`node build.mjs && deploy/server.sh`（有房间时要 `FORCE=1`，重启会结束所有房间和对局）。前端更新：`deploy/publish.sh`。
+- 对局统计：`/opt/frostember/metrics.jsonl`（玩家登录、开房、开局、结束），只经 Tailscale 看：http://des-lightsail-us-west-2:8790/stats （`/stats.json` 是原始数据），公网访问是 404。
+- 大厅：联机先进大厅（在线人数、所有房间和每个人的阵营与修士、大厅聊天、按房间号加入），再进房间（标题界面兼任）。空位开战时由电脑补上。
+- 名字的写法（作者要求，到处一致）：真人是「玩家名（修士名）」，电脑只写修士名。游戏里是 `G.nm(h)`，界面里是 `nameOf(h)`；头顶名字只给真人。角色台词里提到别人仍用修士名（在戏里说话）。
+- 版本：`build.mjs` 给决定胜负的代码算指纹 `__SIM__`；房间只收同一指纹的页面，不同的提示刷新。改了 game / config / dmath / util / world 后要同时更新前端和服务器。
+
+**Mac mini 上的服务器不自动启动**（作者 2026-11-16 的要求）：`serverapp.mjs`（`npm run app` 会一起做）生成 `dist/霜烬之争服务器.app`，作者双击才启动，终端窗口显示地址和日志，关窗口即停。它自带打包好的服务器和一份游戏页面，任何装了 Node.js 的 Mac 都能跑。不要加 launchd 之类的常驻。作者的设备都在 Tailscale 里，服务器开着时用 `http://des-mac-mini:8790/` 打开即可联机。对公网开放（`tailscale funnel`）要作者同意。
 
 ## 用语表
 

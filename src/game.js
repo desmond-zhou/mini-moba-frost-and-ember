@@ -19,7 +19,9 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   const diff = mirror ? { enemy: 0.96, react: 1, aim: 1.4 } : T.difficulty[opts.difficulty] || T.difficulty.normal;
   const G = { seed, net, tick: 0, t: 0, over: false, winner: -1, overT: 0, units: [], heroes: [], proj: [], zones: [], kills: [0, 0], player: null, firstBlood: false, structs: [null, null], camps: [], spawnQ: [], nextWave: T.waveFirst, wave: 0, buffT: [0, 0], avgLvl: [1, 1], focus: { x: 0, z: 0 } };
   let uid = 0; G.byId = new Map();
-  const me = h => h === G.player;                                      // this machine's own cultivator: what only its player sees, hears and feels
+  const me = h => h === G.player;
+  const nm = h => (h.pname ? `${h.pname}（${h.name}）` : h.name);         // how a cultivator is named on screen: a person as 名字（修士）, a bot by the cultivator alone
+  G.nm = nm;                                      // this machine's own cultivator: what only its player sees, hears and feels
   const V = createVfx(fx, audio);
   const close = e => dist2(e.x, e.z, G.focus.x, G.focus.z) < 26;
 
@@ -403,7 +405,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const q = { h, big, t: 0, live: false, n: 0, bolts: K.bolts, part: K.part, dur: TRIB.prep + K.bolts * TRIB.every + 0.4 }; G.tribs.push(q); h.tribQ = q;
     audio.play('thunder', h.x, h.z, 0.35);   // far off: the sky is starting to turn
     if (me(h)) ui.toast(`十息后落雷，${big ? '九' : '五'}道：趁现在找个地方站好`);
-    else if (dist(h, G.player) < 30) ui.toast(`${h.name}要渡雷劫了，离远些`);
+    else if (dist(h, G.player) < 30) ui.toast(`${nm(h)}要渡雷劫了，离远些`);
   }
   function startBolts(q) {
     const h = q.h; q.live = true; q.x = h.x; q.z = h.z; h.tribQ = null; q.dmg = h.maxHp * q.part / q.bolts;
@@ -557,13 +559,13 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const good = tgt.team !== G.player.team;
       // what the sky announces: the first to fall, several at once, a run without falling, a run cut short
       const STREAK = [, , , '锋芒毕露', '气贯长虹', '道心通明', '万法不侵', '一人镇一宗'], cls = good ? 'good' : 'bad';
-      if (!G.firstBlood) { G.firstBlood = true; ui.announce((k ? k.name + ' · ' : '') + '开锋', cls); }
+      if (!G.firstBlood) { G.firstBlood = true; ui.announce((k ? nm(k) + ' · ' : '') + '开锋', cls); }
       else if (G.heroes.every(h => h.team !== tgt.team || !h.alive)) ui.announce(good ? '敌方满门尽陨' : '我方满门尽陨', cls);
-      else if (k && k.multi >= 3) ui.announce(k.name + ' · 三花聚顶', cls);
-      else if (k && k.multi === 2) { ui.announce(k.name + ' · 一气双镇', cls); audio.play('star', undefined, undefined, 0.9); }
-      else if (k && ended >= 3) ui.announce(`${k.name} 斩了 ${tgt.name} 的道 · 终结 ${ended} 连镇`, cls);
-      else if (k && k.streak >= 3) { ui.announce(`${k.name} · ${STREAK[Math.min(7, k.streak)]}`, cls); audio.play('star', undefined, undefined, 0.9); }
-      else if (me(tgt)) ui.announce('你已陨落', 'bad'); else if (k && me(k)) ui.announce('镇压 ' + tgt.name, 'good');
+      else if (k && k.multi >= 3) ui.announce(nm(k) + ' · 三花聚顶', cls);
+      else if (k && k.multi === 2) { ui.announce(nm(k) + ' · 一气双镇', cls); audio.play('star', undefined, undefined, 0.9); }
+      else if (k && ended >= 3) ui.announce(`${nm(k)} 斩了 ${nm(tgt)} 的道 · 终结 ${ended} 连镇`, cls);
+      else if (k && k.streak >= 3) { ui.announce(`${nm(k)} · ${STREAK[Math.min(7, k.streak)]}`, cls); audio.play('star', undefined, undefined, 0.9); }
+      else if (me(tgt)) ui.announce('你已陨落', 'bad'); else if (k && me(k)) ui.announce('镇压 ' + nm(tgt), 'good');
       fx.burst(tgt.x, 1.6, tgt.z, col, { n: 34, speed: 9, up: 9, life: 1.0, size: 0.32, grav: 14 }); fx.ringWave(tgt.x, tgt.z, 10, col, 0.6); fx.dust(tgt.x, tgt.z, DUST, { n: 12, speed: 4, size: 2.4, life: 1.3 }); fx.flash(tgt.x, 2.5, tgt.z, col, 260, 0.5);
       audio.play(me(tgt) ? 'death' : 'kill', tgt.x, tgt.z); if (near(tgt)) fx.shake(0.35);
       if (k && me(k)) { fx.slowmo(0.65, 0.2); fx.punch(0.55); } else if (me(tgt)) fx.slowmo(0.8, 0.3); else if (near(tgt) && rec.some(r => me(r[0]))) fx.slowmo(0.4, 0.4);
@@ -785,7 +787,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
   }
   function updateHero(h, dt) {
     h.omen = h.tribQ ? (h.tribQ.big ? 2 : 1) : h.alive && (h.level === 4 || h.level === 8) && h.xp >= T.xpNeed(h.level) * 0.72 ? (h.level === 8 ? 2 : 1) : 0;
-    if (h.omen && h.omenAt !== h.level) { h.omenAt = h.level; if (me(h)) ui.toast(h.omen === 2 ? '成婴的雷劫快到了：九道，找个地方' : '结丹的雷劫快到了：五道，找个地方'); else if (h.team !== G.player.team && canSee(G.player, h)) { const sp = G.heroes.find(a => a.team === G.player.team && a.alive && !a.isPlayer && dist(a, h) < 22); if (sp) chat(sp, [`${h.name}头上起雷云了，快渡劫了`], true); } }
+    if (h.omen && h.omenAt !== h.level) { h.omenAt = h.level; if (me(h)) ui.toast(h.omen === 2 ? '成婴的雷劫快到了：九道，找个地方' : '结丹的雷劫快到了：五道，找个地方'); else if (h.team !== G.player.team && canSee(G.player, h)) { const sp = G.heroes.find(a => a.team === G.player.team && a.alive && !a.isPlayer && dist(a, h) < 22); if (sp) chat(sp, [`${nm(h)}头上起雷云了，快渡劫了`], true); } }
     h.vulnOn = h.vulnT > G.t || h.lawT > G.t; V.status(h, near(h) && canSee(G.player, h));
     if (h.alive && !h.moving && !h.target && h.combatT > 5 && h.recallT <= 0 && near(h)) { if ((h.idleT = (h.idleT || 0) + dt) > (h.idleN || 6)) { h.idleT = 0; h.idleN = 5 + vis() * 6; h.animCast = 0.75; } } else h.idleT = 0;   // standing about: a small gesture now and then
     if (h.alive && (h.pfxT = (h.pfxT || 0) - dt) <= 0 && near(h) && canSee(G.player, h)) {
@@ -1147,7 +1149,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     if (ours) {
       G.pings.push({ x, z, t: G.t, type });
       fx.pillar(x, z, 0.9, 14, c, 0.9); fx.ringWave(x, z, 12, c, 0.7); fx.decal({ mode: 1, x, z, size: 1, size0: 9, color: c, dur: 0.6 }); audio.play(type === 'retreat' ? 'warn' : 'ping');
-      ui.toast((me(by) ? '' : (by.pname || by.name) + '：') + { gather: '集合！', attack: '进攻！', retreat: '撤退！' }[type]);
+      ui.toast((me(by) ? '' : nm(by) + '：') + { gather: '集合！', attack: '进攻！', retreat: '撤退！' }[type]);
     }
     const reach = type === 'retreat' ? 50 : 90;
     for (const h of G.heroes) if (h.team === by.team && !h.isPlayer && h.alive && dist2(h.x, h.z, x, z) < reach) h.ai.sig = { id, type, x, z, unit, until: G.t + (type === 'retreat' ? 7 : 12), said: false };
@@ -1337,7 +1339,7 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
     const p = G.player;
     if (G.peek && !G.over) { G.focus.tx = G.peek.x; G.focus.tz = G.peek.z; } else if (!G.over && p.alive) { G.focus.tx = p.x; G.focus.tz = p.z; }
     const beat = Math.floor(G.t / 0.09) !== Math.floor((G.t - dt) / 0.09);
-    fx.barsBegin();
+    fx.barsBegin(); fx.tagsBegin();
     for (let i = G.units.length - 1; i >= 0; i--) {
       const e = G.units[i];
       if (!e.alive && (e.kind === 'minion' || e.kind === 'neutral')) { e.view.update(dt, e, time); continue; }
@@ -1356,12 +1358,12 @@ export function createGame(R, W, M, fx, audio, ui, opts) {
       const sh = Math.min(1 - Math.max(frac, e.barLag), e.shield / e.maxHp), shown = e.barShown, lag = e.barLag, cut = e.cutK;
       const ripe = p.alive && e.team !== p.team && (e.kind === 'minion' || e.kind === 'neutral') && e.hp <= p.ad * (G.buffT[p.team] > 0 ? 1.15 : 1);   // one basic attack from you would finish it
       const c = ripe ? BAR.kill : e === p ? BAR.self : e.team === NEUTRAL ? BAR.neutral : e.team === p.team ? BAR.ally : BAR.enemy;
-      if (e.kind === 'hero') fx.bar(e.x, y, e.z, shown, sh, 96, 14, c, e.maxHp / 300, Math.max(0.001, e.mana / e.maxMana), lag, frac, cut);
+      if (e.kind === 'hero') { fx.bar(e.x, y, e.z, shown, sh, 96, 14, c, e.maxHp / 300, Math.max(0.001, e.mana / e.maxMana), lag, frac, cut); if (e.pname) fx.tag(e.x, y + 0.55, e.z, nm(e), e === p ? 'me' : e.team === p.team ? 'ally' : 'foe'); }
       else if (e.kind === 'minion') fx.bar(e.x, y, e.z, shown, 0, ripe ? 48 : 40, ripe ? 7 : 5, c, 0, 0, lag, frac, cut);
       else if (e.kind === 'neutral') { if (frac < 1 || e.aggro) fx.bar(e.x, y, e.z, shown, 0, e.nk === 'abyss' ? 150 : e.nk !== 'golem' ? 110 : 56, 7, c, 0, 0, lag, frac, cut); }
       else if (vulnerable(e) || frac < 1) fx.bar(e.x, y, e.z, shown, 0, e.kind === 'core' ? 150 : 110, 9, c, 0, 0, lag, frac, cut);
     }
-    fx.barsEnd();
+    fx.barsEnd(); fx.tagsEnd();
     for (let i = 0; i < lerpd.length; i += 3) { lerpd[i].x = lerpd[i + 1]; lerpd[i].z = lerpd[i + 2]; }
   };
   G.update = (dt, time) => { G.step(dt); G.draw(dt, time); };       // one step and one picture: the test tools

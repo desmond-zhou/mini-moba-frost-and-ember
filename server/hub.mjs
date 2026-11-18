@@ -10,7 +10,8 @@ const MAX_CONN_PER_IP = 8, MAX_ROOMS = 400, MSG_RATE = 60, MSG_BURST = 150;
 const rnd = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
 const hex = n => [...crypto.getRandomValues(new Uint8Array(n))].map(b => b.toString(16).padStart(2, '0')).join('');
 
-export function createHub({ log = (...a) => console.log(new Date().toISOString().slice(5, 19), ...a) } = {}) {
+// log: lines for the console. event(e): one record per thing worth counting (players, rooms, matches), for play metrics.
+export function createHub({ log = (...a) => console.log(new Date().toISOString().slice(5, 19), ...a), event = () => {} } = {}) {
   const perIp = new Map();                                 // address → { conns, made: [times rooms were opened], misses: [times a code was wrong] }
   const ipRec = ip => { let r = perIp.get(ip); if (!r) perIp.set(ip, r = { conns: 0, made: [], misses: [] }); return r; };
   const recent = (list, ms) => { const now = Date.now(); while (list.length && now - list[0] > ms) list.shift(); return list.length; };
@@ -25,7 +26,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
   const blankSeats = mode => [0, 1].map(() => Array.from({ length: sizeOf(mode) }, () => ({ cid: null, hero: null, ready: false })));
 
   function makeRoom(mode, host) {
-    const r = { code: newCode(), mode, diff: 'normal', host, members: new Map(), seats: blankSeats(mode), state: 'lobby', game: null, emptyAt: 0, made: Date.now() };
+    const r = { code: newCode(), mode, v: (byCid.get(host) || {}).v || '', diff: 'normal', host, members: new Map(), seats: blankSeats(mode), state: 'lobby', game: null, emptyAt: 0, made: Date.now() };
     rooms.set(r.code, r); log('room', r.code, mode); return r;
   }
   const seatOf = (r, cid) => { for (let t = 0; t < 2; t++) for (let i = 0; i < r.seats[t].length; i++) if (r.seats[t][i].cid === cid) return [t, i]; return null; };
@@ -38,12 +39,35 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
   }
   const send = (ws, m) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
   const toRoom = (r, m, filter) => { const s = JSON.stringify(m); for (const x of r.members.values()) if (x.ws && x.ws.readyState === 1 && (!filter || filter(x))) x.ws.send(s); };
-  const update = r => toRoom(r, roomView(r));
+  const uniqueName = (r, cid, name) => { const others = new Set([...r.members.values()].filter(m => m.cid !== cid).map(m => m.name)); let n = name, k = 2; while (others.has(n)) n = name.slice(0, 10) + k++; return n; };
+  const update = r => { toRoom(r, roomView(r)); lobbyDirty(); };
+
+  // ---------------- the lobby ----------------
+  // Everyone connected and not in a room is in the lobby: they see who is online, every room (its map, who sits on which
+  // side as whom, whether it is under way) and talk to each other. The list is sent again a moment after anything changes.
+  const lchat = [];                                                    // the last 40 lines said in the lobby
+  let lobbyT = 0;
+  const lobbyView = () => {
+    let online = 0, idle = 0; for (const c of byCid.values()) if (c.ws) { online++; if (!c.room) idle++; }
+    const list = [...rooms.values()].map(r => ({
+      code: r.code, mode: r.mode, v: r.v, state: r.state, host: (r.members.get(r.host) || {}).name || '', size: sizeOf(r.mode) * 2,
+      since: r.game ? r.game.started : r.made,
+      seats: r.seats.map(side => side.map(q => (q.cid ? { name: (r.members.get(q.cid) || {}).name || '', hero: q.hero, ready: q.ready } : null))),
+    })).sort((a, b) => (a.state === 'lobby' ? 0 : 1) - (b.state === 'lobby' ? 0 : 1) || b.since - a.since);
+    return { t: 'lobby', online, idle, rooms: list };
+  };
+  const inLobby = fn => { for (const c of byCid.values()) if (c.ws && !c.room) fn(c); };
+  function lobbyDirty() {
+    if (lobbyT) return;
+    lobbyT = setTimeout(() => { lobbyT = 0; const v = JSON.stringify(lobbyView()); inLobby(c => { if (c.ws.readyState === 1) c.ws.send(v); }); }, 250);
+  }
+  const toLobby = ws => { send(ws, lobbyView()); send(ws, { t: 'lchat', hist: lchat }); };
 
   function leave(cid, quiet) {
     const c = byCid.get(cid), r = c && c.room; if (!r) return; c.room = null;
     if (r.state === 'playing') { const m = r.members.get(cid); if (m) m.ws = null; dropped(r, cid); }
     else { r.members.delete(cid); const s = seatOf(r, cid); if (s) r.seats[s[0]][s[1]] = { cid: null, hero: null, ready: false }; }
+    if (r.state === 'lobby' && !r.members.size) { rooms.delete(r.code); log('closed', r.code, 'empty'); lobbyDirty(); return; }   // the last one out closes the room
     if (r.host === cid) { const next = [...r.members.values()].find(m => m.ws); if (next) r.host = next.cid; }
     if (!quiet) update(r);
   }
@@ -66,6 +90,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
     for (const m of r.members.values()) sendStart(r, m);
     g.timer = setInterval(() => turn(r), TURN_MS);
     log('start', r.code, r.mode, lineup.map(q => (q.human ? q.name + ':' : '') + q.hero).join(' '));
+    event({ e: 'start', code: r.code, mode: r.mode, diff: r.diff, v: r.v, players: lineup.map(q => ({ team: q.team, hero: q.hero, cid: q.cid || null, name: q.name || null })) });
     update(r);
   }
   function sendStart(r, m) {
@@ -83,6 +108,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
     for (const side of r.seats) for (const q of side) { q.ready = false; if (!q.cid) q.hero = null; }            // bots are drawn again next time
     for (const [cid, m] of r.members) if (!m.ws) { r.members.delete(cid); const s = seatOf(r, cid); if (s) r.seats[s[0]][s[1]] = { cid: null, hero: null, ready: false }; }
     log('end', r.code, why, g.n, 'turns', g.desync ? 'DESYNC' : '');
+    event({ e: 'end', code: r.code, mode: r.mode, why, secs: Math.round(g.n * TURN_MS / 1000), winner: g.winner ?? -1, desync: g.desync, humans: g.lineup.filter(q => q.cid).length });
     update(r);
   }
   function dropped(r, cid) {   // their cultivator plays itself until they come back
@@ -105,10 +131,12 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
     const cid = ws.cid, c = cid && byCid.get(cid), r = c && c.room;
     if (m.t === 'hello') {
       const id = /^[a-z0-9]{8,32}$/.test(m.cid) ? m.cid : hex(8); ws.cid = id;
-      const old = byCid.get(id); if (old && old.ws && old.ws !== ws) { send(old.ws, { t: 'err', msg: '这个身份在别处登录了' }); old.ws.close(); }
-      const me = old || { room: null }; me.ws = ws; me.name = clean(m.name, 12) || '无名修士'; byCid.set(id, me);
-      send(ws, { t: 'welcome', cid: id });
-      if (me.room) {                                                       // back from a drop: same room, same seat
+      const old = byCid.get(id); if (old && old.ws && old.ws !== ws) { send(old.ws, { t: 'kicked', msg: '你在另一个页面打开了联机，这里先断开' }); old.ws.close(); }   // kicked: that page stops reconnecting
+      const me = old || { room: null }; me.ws = ws; me.name = clean(m.name, 12) || '无名修士'; me.v = clean(m.v, 40); byCid.set(id, me);
+      event({ e: 'hello', cid: id, name: me.name, v: me.v });
+      send(ws, { t: 'welcome', cid: id }); lobbyDirty();
+      if (!me.room) toLobby(ws);
+      else {                                                       // back from a drop: same room, same seat
         const rr = me.room, mm = rr.members.get(id); if (mm) { mm.ws = ws; mm.name = me.name; }
         if (rr.state === 'playing' && rr.game) { sendStart(rr, mm); const li = rr.game.lineup.findIndex(q => q.cid === id); if (li >= 0) rr.game.bucket.push([li, { c: 'bot', on: false }]); }
         update(rr);
@@ -117,10 +145,16 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
     }
     if (!c) return;
     if (m.t === 'ping') { send(ws, { t: 'pong', c: m.c }); return; }
+    if (m.t === 'lchat') {                                               // talk in the lobby
+      if (r) return; const text = clean(m.text, 120); if (!text) return;
+      const line = { from: c.name, text, at: Date.now() }; lchat.push(line); if (lchat.length > 40) lchat.shift();
+      const msg = JSON.stringify({ t: 'lchat', line }); inLobby(x => { if (x.ws.readyState === 1) x.ws.send(msg); }); return;
+    }
+    if (m.t === 'name') { const n = clean(m.name, 12); if (n) { c.name = n; if (r) { const mm = r.members.get(cid); if (mm && r.state === 'lobby') mm.name = uniqueName(r, cid, n); update(r); } else lobbyDirty(); } return; }
     if (m.t === 'create') {
       const ip = ipRec(ws.ip); if (rooms.size >= MAX_ROOMS || recent(ip.made, 60000) >= 5) { send(ws, { t: 'err', msg: '开房太频繁了，等一会儿再试' }); return; } ip.made.push(Date.now());
       if (r) leave(cid); if (!MODES[m.mode]) return;
-      const rr = makeRoom(m.mode, cid); rr.members.set(cid, { cid, name: c.name, ws }); c.room = rr; rr.seats[0][0].cid = cid; update(rr); return;
+      const rr = makeRoom(m.mode, cid); rr.members.set(cid, { cid, name: c.name, ws }); c.room = rr; rr.seats[0][0].cid = cid; event({ e: 'room', code: rr.code, mode: rr.mode, cid }); update(rr); return;
     }
     if (m.t === 'join') {
       const ip = ipRec(ws.ip); if (recent(ip.misses, 60000) >= 12) { send(ws, { t: 'err', msg: '试错太多次了，等一会儿再试' }); return; }
@@ -128,7 +162,8 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
       if (rr === r) { update(rr); return; } if (r) leave(cid);
       if (rr.state === 'playing') { send(ws, { t: 'err', msg: '这一局已经开打了，等打完再进' }); return; }
       if (rr.members.size >= sizeOf(rr.mode) * 2 + 4) { send(ws, { t: 'err', msg: '房间满了' }); return; }
-      rr.members.set(cid, { cid, name: c.name, ws }); c.room = rr;
+      if (rr.v && c.v !== rr.v) { send(ws, { t: 'err', msg: '你的游戏版本和这个房间不一样：刷新一下页面再进' }); return; }
+      rr.members.set(cid, { cid, name: uniqueName(rr, cid, c.name), ws }); c.room = rr;
       const free = rr.seats.flatMap((side, t) => side.map((q, i) => [t, i, q])).filter(x => !x[2].cid).sort((a, b) => rr.seats[a[0]].filter(q => q.cid).length - rr.seats[b[0]].filter(q => q.cid).length)[0];
       if (free) free[2].cid = cid;                                         // sit down on the emptier side; anyone can move later
       update(rr); return;
@@ -136,7 +171,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
     if (!r) return;
     const host = r.host === cid, mySeat = seatOf(r, cid), q = mySeat && r.seats[mySeat[0]][mySeat[1]];
     switch (m.t) {
-      case 'leave': leave(cid); send(ws, { t: 'left' }); return;
+      case 'leave': leave(cid); send(ws, { t: 'left' }); toLobby(ws); return;
       case 'chat': { const text = clean(m.text, 120); if (!text) return; const team = r.state === 'playing' && m.team && mySeat ? mySeat[0] : -1; toRoom(r, { t: 'chat', from: c.name, cid, text, team }, x => team < 0 || (seatOf(r, x.cid) || [-1])[0] === team); return; }
       case 'cmd': {
         const g = r.game, li = g ? g.lineup.findIndex(x => x.cid === cid) : -1; if (li < 0 || !m.q || !CMD[m.q.c] || !CMD[m.q.c](m.q)) return;
@@ -151,7 +186,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
         else if (was !== m.h && !g.desync) { g.desync = true; log('DESYNC', r.code, 'turn', m.k, was, m.h, c.name); toRoom(r, { t: 'desync', k: m.k }); }
         return;
       }
-      case 'over': { const g = r.game; if (g && !g.overAt) { g.overAt = Date.now(); log('over', r.code, 'winner', m.w, 'turn', g.n); } return; }
+      case 'over': { const g = r.game; if (g && !g.overAt) { g.overAt = Date.now(); g.winner = m.w === 0 || m.w === 1 ? m.w : -1; log('over', r.code, 'winner', m.w, 'turn', g.n); } return; }
     }
     if (r.state !== 'lobby') return;
     switch (m.t) {
@@ -167,7 +202,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
         for (const [t, x] of keep) { const side = r.seats[t], free = side.find(s => !s.cid) || r.seats[1 - t].find(s => !s.cid); if (!free) { const mm = r.members.get(x.cid); continue; } free.cid = x.cid; const tt = side.includes(free) ? t : 1 - t; free.hero = x.hero && !taken(r, x.hero, tt, free) ? x.hero : null; }
       } break;
       case 'diff': if (host && T.difficulty[m.diff]) r.diff = m.diff; break;
-      case 'kick': if (host && m.cid !== cid && r.members.has(m.cid)) { const k = byCid.get(m.cid); leave(m.cid, true); if (k) send(k.ws, { t: 'left', msg: '你被请出了房间' }); } break;
+      case 'kick': if (host && m.cid !== cid && r.members.has(m.cid)) { const k = byCid.get(m.cid); leave(m.cid, true); if (k) { send(k.ws, { t: 'left', msg: '你被请出了房间' }); if (k.ws) toLobby(k.ws); } } break;
       case 'start': {
         if (!host) return; const people = r.seats.flat().filter(x => x.cid);
         const notReady = people.filter(x => x.cid !== cid && !(x.ready && x.hero)); if (notReady.length) { send(ws, { t: 'err', msg: '还有人没选好或没准备' }); return; }
@@ -180,7 +215,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
   }
 
   // ---------------- sockets ----------------
-  const H = { rooms, get busy() { return conns > 0 || rooms.size > 0; } };
+  const H = { rooms, get busy() { return conns > 0 || rooms.size > 0; }, get online() { let n = 0; for (const c of byCid.values()) if (c.ws) n++; return n; } };
   H.open = (ws, ip) => {                                               // false: refused (too many from this address)
     ws.ip = ip; const rec = ipRec(ip); if (rec.conns >= MAX_CONN_PER_IP) return false;
     rec.conns++; conns++; ws.tokens = MSG_BURST; ws.at = Date.now(); return true;
@@ -193,7 +228,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
   H.close = ws => {
     if (ws.hubGone) return; ws.hubGone = true; conns--;
     const rec = perIp.get(ws.ip); if (rec && --rec.conns <= 0 && !rec.made.length && !rec.misses.length) perIp.delete(ws.ip);
-    const c = ws.cid && byCid.get(ws.cid); if (!c || c.ws !== ws) return; c.ws = null;
+    const c = ws.cid && byCid.get(ws.cid); if (!c || c.ws !== ws) return; c.ws = null; lobbyDirty();
     const r = c.room; if (!r) { byCid.delete(ws.cid); return; }
     const m = r.members.get(ws.cid); if (m) m.ws = null;
     if (r.state === 'playing') dropped(r, ws.cid); else leave(ws.cid);  // in the lobby a drop is a leave

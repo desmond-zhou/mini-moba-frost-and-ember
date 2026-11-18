@@ -6,17 +6,13 @@
 // until the backlog is gone.
 const store = { get(k, d) { try { return localStorage.getItem('frostember.' + k) || d; } catch { return d; } }, set(k, v) { try { localStorage.setItem('frostember.' + k, v); } catch { /* private mode */ } } };
 
-// where the room server is: the page's own host when the server handed out the page; the local server while developing;
-// otherwise whatever address was entered last (the Mac app, a file on disk)
+export const SIM = typeof __SIM__ !== 'undefined' ? __SIM__ : 'dev';   // the game-rules fingerprint (build.mjs); rooms only take pages that share it
+export const SERVER = 'wss://server.moba.app.desmondzhou.com:37190/ws';   // the one room server everyone plays through (Lightsail, Oregon)
 export function serverUrl() {
-  const q = new URLSearchParams(location.search).get('server');
+  const q = new URLSearchParams(location.search).get('server');      // for testing: ?server=ws://host:port/ws
   if (q) return q.startsWith('ws') ? q : 'ws://' + q + '/ws';
-  if (location.protocol === 'http:' || location.protocol === 'https:') {
-    if (/claude\.ai$|claudeusercontent\.com$/.test(location.hostname)) return store.get('server', '');
-    if (location.port === '5179') return `ws://${location.hostname}:8790/ws`;
-    return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
-  }
-  return store.get('server', '');
+  if (location.port === '5179') return `ws://${location.hostname}:8790/ws`;   // developing: the server on this machine
+  return SERVER;
 }
 
 export function createNet() {
@@ -30,12 +26,13 @@ export function createNet() {
     emit('status', tries ? '重新连接中…' : '连接中…');
     let ws; try { ws = new WebSocket(N.url); } catch (e) { emit('status', '地址不对：' + N.url); return; }
     N.ws = ws;
-    ws.onopen = () => { tries = 0; N.open = true; N.send({ t: 'hello', cid: N.cid, name: N.name }); };
+    ws.onopen = () => { tries = 0; N.open = true; N.send({ t: 'hello', cid: N.cid, name: N.name, v: SIM }); };
     ws.onmessage = e => {
       let m; try { m = JSON.parse(e.data); } catch { return; }
       if (m.t === 'welcome') { N.cid = m.cid; store.set('cid', m.cid); emit('status', ''); emit('open'); return; }
       if (m.t === 'pong') { N.ping = Math.round(performance.now() - m.c); return; }
       if (m.t === 'room') N.room = m; if (m.t === 'left') N.room = null;
+      if (m.t === 'kicked') N.want = false;                          // opened in another page: this one stops reconnecting
       emit(m.t, m);
     };
     ws.onclose = () => {

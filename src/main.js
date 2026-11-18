@@ -7,7 +7,7 @@ import { createAudio } from './audio.js';
 import { createUI } from './ui.js';
 import { createInput } from './input.js';
 import { createGame } from './game.js';
-import { createNet, serverUrl } from './net.js';
+import { createNet, serverUrl, SIM } from './net.js';
 import { uTime } from './mat.js';
 import { LANES, MID, RIVER, biomeX, MODE, MODES, setMode, POS, CAMPS, EMBER } from './config.js';
 
@@ -61,13 +61,19 @@ function boot() {
       net.on.status = t => { ui.netStatus(t); };
       net.on.open = () => { if (pendingNet) { const f = pendingNet; pendingNet = null; f(); } else if (net.room && net.room.state === 'lobby' && state === 'title') net.send({ t: 'join', code: net.room.code }); };   // a dropped connection in the room: sit back down
       net.on.err = m => { ui.toast(m.msg); ui.netStatus(m.msg); };
-      net.on.left = m => { remember(null); if (m && m.msg) ui.toast(m.msg); if (state === 'title') ui.showTitle(start); };
+      net.on.left = m => { remember(null); if (m && m.msg) ui.toast(m.msg); if (state === 'title') { ui.showTitle(start); openNet(); } };   // out of the room: back in the lobby
+      net.on.lobby = m => {
+        if (state !== 'title' && G && G.net && net.match) { ui.toast('联机服务器重启了，这一局中断了'); toTitle(); return; }   // back from a drop and the server no longer has the match
+        ui.lobby(m, SIM);
+      };
+      net.on.kicked = m => { ui.toast(m.msg); };
+      net.on.lchat = m => ui.lobbyChat(m);
       net.on.room = m => { remember(m.code); if (state === 'title') ui.showRoom(net, roomAct); };
       net.on.chat = m => {
         const h = G && G.net ? G.heroes.find(x => x.pname === m.from) : null;
         if (h && state === 'playing') ui.chat(h, (m.team >= 0 ? '' : '〔全〕') + ui.esc(m.text), h.team !== G.player.team, 7000); else ui.roomChat(m.from, m.text);
       };
-      net.on.desync = () => ui.toast('联机对局出现不同步（已记录，请告诉作者）');
+      net.on.desync = () => { window.__desync = (window.__desync || 0) + 1; ui.toast('联机对局出现不同步（已记录，请告诉作者）'); };
       net.on.start = m => {
         if (m.me < 0) { ui.toast('这一局没有你的位置'); return; }
         ui.netPane && (document.getElementById('netPane').hidden = true);
@@ -83,24 +89,21 @@ function boot() {
   }
   function openNet(code) {
     ensureNet();
-    const whenOpen = f => { if (net.open) f(); else { pendingNet = f; net.connect(serverUrl() || net.url); } };
-    net.url = net.url || serverUrl();
+    const whenOpen = f => { if (net.open) f(); else { pendingNet = f; net.connect(); } };
     ui.netPane(net, {
-      askServer: !serverUrl(), status: net.open ? '' : '',
-      server: a => { if (!a) return; net.url = a.startsWith('ws') ? a : 'ws://' + a + (a.includes('/') ? '' : '/ws'); try { localStorage.setItem('frostember.server', net.url); } catch { /* private */ } },
       create: mode => whenOpen(() => net.send({ t: 'create', mode })),
       join: c => whenOpen(() => net.send({ t: 'join', code: c })),
+      chat: text => whenOpen(() => net.send({ t: 'lchat', text })),
+      rename: n => { if (net.open) net.send({ t: 'name', name: n }); },
       close: () => { if (!net.room) net.close(); },
     });
-    // Is there a room server to talk to? Only a page from disk (the Mac app) asks for an address; anywhere else, no answer from
-    // the server means online play is not offered here, and the box says so and who to ask.
-    const local = location.protocol === 'file:';
-    if (!net.url || /claude\.ai$|claudeusercontent\.com$/.test(location.hostname)) { if (local && !net.url) ui.netStatus('填上服务器地址'); else ui.netOffline(true); return; }
-    ui.netStatus('');
+    // every game talks to the one room server (net.js serverUrl); if it does not answer, the lobby says so and who to ask
+    if (net.open) return;
+    ui.netStatus('连接中…');
     alive(net.url).then(ok => {
-      if (!ok) { if (local) ui.netStatus('连不上这个服务器'); else ui.netOffline(true); return; }
-      net.connect();
-      if (code) { document.getElementById('nCode').value = code; if (net.name) document.getElementById('nJoin').click(); }
+      if (!ok) { ui.netOffline(true); return; }
+      ui.netStatus(''); net.connect();
+      if (code) { document.getElementById('nCode').value = code; if (net.name) whenOpen(() => document.getElementById('nJoin').click()); }
     });
   }
   const alive = url => {                                               // the server answers /healthz with "ok …"
@@ -172,6 +175,13 @@ function boot() {
   }
   requestAnimationFrame(frame);
   document.addEventListener('visibilitychange', () => { audio.pause(document.hidden); last = performance.now(); });
+  // online, a player who switches away for more than a few seconds hands their cultivator to the bot, and takes it back on return
+  let awayT = 0, awayBot = false;
+  document.addEventListener('visibilitychange', () => {
+    if (!G || !G.net || !net || !net.match) return;
+    if (document.hidden) { clearTimeout(awayT); awayT = setTimeout(() => { if (document.hidden && G && G.net && G.player.isPlayer) { G.cmdBot(true); awayBot = true; } }, 8000); }
+    else { clearTimeout(awayT); if (awayBot) { awayBot = false; G.cmdBot(false); ui.toast('你切走的时候电脑替你打了一会儿，现在交还给你'); } }
+  });
 
   // debug / automated-test handle
   window.__moba = { hold: false, get G() { return G; }, R, fx, start, input, audio, frame: dt => tick(last + dt * 1000), sim(sec, step = TICK) { for (let t = 0; t < sec && G && !G.over; t += step) { time += step; G.step(step); fx.update(step); } if (G) G.draw(0, time); return G ? { t: G.t, units: G.units.length, kills: G.kills, over: G.over } : null; } };

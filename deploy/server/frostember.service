@@ -1,0 +1,15 @@
+[Unit]
+Description=霜烬之争 online room server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/frostember
+Environment=PORT=8790 HOST=0.0.0.0 TRUST_PROXY=1 FROSTEMBER_HTML=/opt/frostember/game.html METRICS_FILE=/opt/frostember/metrics.jsonl
+ExecStart=/usr/bin/node /opt/frostember/server.mjs
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

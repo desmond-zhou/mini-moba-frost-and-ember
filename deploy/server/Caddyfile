@@ -1,0 +1,9 @@
+# The public door to the room server: HTTPS on port 37190 (the game connects to wss://server.moba.app.desmondzhou.com:37190/ws).
+# Port 80 stays open only so Let's Encrypt can renew the certificate. The play metrics (/stats) are never served through here:
+# open them over Tailscale at http://des-lightsail-us-west-2:8790/stats
+server.moba.app.desmondzhou.com:37190 {
+	encode zstd gzip
+	@private path /stats /stats.json
+	respond @private 404
+	reverse_proxy 127.0.0.1:8790
+}
