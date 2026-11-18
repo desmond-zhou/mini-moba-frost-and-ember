@@ -33,14 +33,21 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
   // who may take a cultivator: in 一路 nobody twice in the whole match, in 三路 nobody twice on one side
   const taken = (r, hero, team, except) => r.seats.some((side, t) => (r.mode === 'single' || t === team) && side.some(q => q !== except && q.hero === hero));
   function roomView(r) {
-    return { t: 'room', code: r.code, mode: r.mode, diff: r.diff, host: r.host, state: r.state,
+    return { t: 'room', countIn: r.countAt ? Math.max(0, r.countAt - Date.now()) : 0, code: r.code, mode: r.mode, diff: r.diff, host: r.host, state: r.state,
       members: [...r.members.values()].map(m => ({ cid: m.cid, name: m.name, online: !!m.ws })),
       seats: r.seats.map(side => side.map(q => ({ cid: q.cid, hero: q.hero, ready: q.ready, name: q.cid ? (r.members.get(q.cid) || {}).name || '' : '' }))) };
   }
   const send = (ws, m) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
   const toRoom = (r, m, filter) => { const s = JSON.stringify(m); for (const x of r.members.values()) if (x.ws && x.ws.readyState === 1 && (!filter || filter(x))) x.ws.send(s); };
   const uniqueName = (r, cid, name) => { const others = new Set([...r.members.values()].filter(m => m.cid !== cid).map(m => m.name)); let n = name, k = 2; while (others.has(n)) n = name.slice(0, 10) + k++; return n; };
-  const update = r => { toRoom(r, roomView(r)); lobbyDirty(); };
+  // everyone seated has picked and pressed 准备: the match starts by itself ten seconds later, unless someone changes their mind
+  const COUNT_MS = 10000;
+  function countdown(r) {
+    const people = r.seats.flat().filter(q => q.cid), all = r.state === 'lobby' && people.length > 0 && people.every(q => q.ready && q.hero);
+    if (all && !r.countAt) { r.countAt = Date.now() + COUNT_MS; r.countT = setTimeout(() => { r.countT = 0; r.countAt = 0; if (r.state === 'lobby' && rooms.has(r.code)) startMatch(r); }, COUNT_MS); }
+    else if (!all && r.countAt) { clearTimeout(r.countT); r.countT = 0; r.countAt = 0; }
+  }
+  const update = r => { countdown(r); toRoom(r, roomView(r)); lobbyDirty(); };
 
   // ---------------- the lobby ----------------
   // Everyone connected and not in a room is in the lobby: they see who is online, every room (its map, who sits on which
@@ -130,7 +137,7 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
   function onMessage(ws, m) {
     const cid = ws.cid, c = cid && byCid.get(cid), r = c && c.room;
     if (m.t === 'hello') {
-      const id = /^[a-z0-9]{8,32}$/.test(m.cid) ? m.cid : hex(8); ws.cid = id;
+      const id = typeof m.cid === 'string' && /^[a-z0-9]{8,32}$/.test(m.cid) ? m.cid : hex(8); ws.cid = id;
       const old = byCid.get(id); if (old && old.ws && old.ws !== ws) { send(old.ws, { t: 'kicked', msg: '你在另一个页面打开了联机，这里先断开' }); old.ws.close(); }   // kicked: that page stops reconnecting
       const me = old || { room: null }; me.ws = ws; me.name = clean(m.name, 12) || '无名修士'; me.v = clean(m.v, 40); byCid.set(id, me);
       event({ e: 'hello', cid: id, name: me.name, v: me.v });
@@ -204,8 +211,9 @@ export function createHub({ log = (...a) => console.log(new Date().toISOString()
       case 'diff': if (host && T.difficulty[m.diff]) r.diff = m.diff; break;
       case 'kick': if (host && m.cid !== cid && r.members.has(m.cid)) { const k = byCid.get(m.cid); leave(m.cid, true); if (k) { send(k.ws, { t: 'left', msg: '你被请出了房间' }); if (k.ws) toLobby(k.ws); } } break;
       case 'start': {
-        if (!host) return; const people = r.seats.flat().filter(x => x.cid);
-        const notReady = people.filter(x => x.cid !== cid && !(x.ready && x.hero)); if (notReady.length) { send(ws, { t: 'err', msg: '还有人没选好或没准备' }); return; }
+        if (!host) return; if (r.countT) { clearTimeout(r.countT); r.countT = 0; r.countAt = 0; } const people = r.seats.flat().filter(x => x.cid);
+        // 立即开战: the host starts now, ready or not (so one person who forgot 准备 does not hold everyone up). Anyone seated who
+        // has not picked gets a cultivator drawn for them, the way bots are.
         if (q && !q.hero) { send(ws, { t: 'err', msg: '先选一位修士' }); return; }
         startMatch(r); return;
       }

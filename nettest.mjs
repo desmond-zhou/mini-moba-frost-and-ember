@@ -24,7 +24,7 @@ await B.p.click('.card[data-k="mage"]'); await sleep(300); await B.p.click('#goB
 await A.p.click('.card[data-k="warden"]'); await sleep(600);
 await A.p.screenshot({ path: shot + '_lobby.png' }); await B.p.screenshot({ path: shot + '_lobby_phone.png' });
 await A.p.click('#goBtn');
-await A.p.waitForFunction(() => window.__moba.G && window.__moba.G.net, { timeout: 10000 }); await B.p.waitForFunction(() => window.__moba.G && window.__moba.G.net, { timeout: 10000 });
+await A.p.waitForFunction(() => window.__moba.G && window.__moba.G.net, { timeout: 25000 }); await B.p.waitForFunction(() => window.__moba.G && window.__moba.G.net, { timeout: 25000 });
 console.log('started');
 if (process.env.HUMAN) for (const p of [A.p, B.p]) await p.evaluate(() => {   // a restless player: moves, casts, learns, buys, signals
   const m = window.__moba, ids = ['jian', 'zhang', 'jia', 'fu', 'huiyuan', 'xuening', 'qingfeng', 'xingwen', 'zhenxue', 'xingdun'];
@@ -52,4 +52,5 @@ if (process.env.TOEND) {                                                // play 
 }
 const log = process.env.SERVER ? '' : fs.readFileSync('runs/server.log', 'utf8').split('\n').slice(-12).join('\n'); console.log(log);
 const desync = await A.p.evaluate(() => window.__desync || 0); console.log('desync seen by client:', desync);
-await A.b.close(); await B.b.close(); process.exit(/DESYNC/.test(log) ? 1 : 0);
+const mine = log.split('\n').filter(l => l.includes(' ' + code + ' '));                       // only this match's lines: other tests (servertest) make a desync on purpose
+await Promise.race([Promise.all([A.b.close(), B.b.close()]), sleep(3000)]); process.exit(desync || mine.some(l => /DESYNC/.test(l)) ? 1 : 0);

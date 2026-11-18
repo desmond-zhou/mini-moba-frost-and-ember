@@ -188,6 +188,11 @@ body.touch #sig { top: calc(var(--mh, 126px) + 64px + var(--sat)); } body.touch 
 body.touch #chatBox { top: calc(var(--sat) + 64px); bottom: auto; left: 50%; transform: translateX(-50%); width: min(440px, calc(100% - 32px)); } body.touch #chatIn { font-size: 16px; }
 .send { display: flex; gap: 6px; } .send input { flex: 1; min-width: 0; } .send button, #chatSend { padding: 0 14px; font-size: 13px; font-weight: 700; color: #1a1408; background: linear-gradient(#ffe7a8, #d6a441); border: 1px solid #ffe7a8; }
 #ttoast { position: fixed; left: 50%; top: calc(14px + var(--sat)); transform: translateX(-50%); z-index: 20; max-width: calc(100% - 32px); padding: 8px 16px; font-size: 14px; color: #ffe6b8; background: rgba(8, 12, 20, .92); border: 1px solid var(--line); opacity: 0; pointer-events: none; text-align: center; }
+#room .ract { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+#room .rwait { flex: 1; font-size: 12.5px; color: var(--dim); } #room .rwait .cd { color: #7fe39a; font-size: 14px; }
+#room .rready, #room .rstart { padding: 8px 22px; font-size: 14px; font-weight: 800; letter-spacing: .1em; color: #1a1408; background: linear-gradient(#ffe7a8, #d6a441); border: 1px solid #ffe7a8; } #room .rready[hidden], #room .rstart[hidden] { display: none; }
+#room .rstart { margin-left: 4px; padding: 7px 16px; font-size: 13px; font-weight: 700; letter-spacing: .1em; color: #ff9a7a; background: transparent; border: 1px dashed #ff9a7a; } #room .rstart small { display: block; font-size: 10.5px; font-weight: 400; letter-spacing: 0; color: var(--dim); } #room .rstart.dim { opacity: .45; }
+#room .rready.on { color: #7fe39a; background: rgba(8, 20, 12, .9); border-color: #7fe39a; } #room .rready.dim, #room .rstart.dim { filter: grayscale(.7) brightness(.7); }
 #room .rinfo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
 #room .rhead input { width: 9em; font: inherit; font-size: 13px; padding: 4px 8px; color: var(--bone); background: rgba(3, 5, 9, .85); border: 1px solid var(--line); } #room .rhead label { font-size: 12px; color: var(--dim); }
 #mName { display: grid; grid-template-columns: 4em 1fr; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); } #mName[hidden] { display: none; } #mName input { font: inherit; padding: 7px 10px; color: var(--bone); background: rgba(3, 5, 9, .85); border: 1px solid var(--line); }
@@ -460,7 +465,7 @@ body.touch #announce { font-size: clamp(20px, 4.4vw, 34px); letter-spacing: .08e
     <div class="sub" id="sub">十八位修士 · 3V3 · 摧毁敌方阵眼</div>
     <div id="modeSel"></div>
     <div id="room" hidden></div>
-    <div id="seatSel" hidden></div><div class="ver">v3.0.0-alpha.3</div>
+    <div id="seatSel" hidden></div><div class="ver">v3.0.0-alpha.4</div>
     <div id="cards"></div>
     <div id="detail"></div>
     <div id="rec"></div>

@@ -54,7 +54,7 @@ export function createUI(isTouch, audio) {
       ? '摇杆移动，松手自动打附近的敌人 · 招式点一下自动瞄，按住拖动自己瞄 · 小地图下：集合 / 进攻 / 撤退 / 开团 · 招式说明在菜单里'
       : '<kbd>右键</kbd>移动 / 攻击 <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd>招式 <kbd>A</kbd>攻击移动 <kbd>B</kbd>归宗 <kbd>P</kbd>万宝阁 <kbd>Tab</kbd>计分板 · 信号 <kbd>Z</kbd>集合 <kbd>X</kbd>进攻 <kbd>C</kbd>撤退 <kbd>V</kbd>开团 · <kbd>Esc</kbd>菜单里有招式说明';
     paint(); el.hud.hidden = true; el.end.hidden = true; el.title.hidden = false;
-    roomBuilt = false; el.room.hidden = true; el.title.classList.remove('inroom'); el.netBtn.textContent = '联机对战'; el.goBtn.textContent = '出战'; el.goBtn.classList.remove('dim');
+    clearInterval(ui.countT); ui.countT = 0; roomBuilt = false; el.room.hidden = true; el.title.classList.remove('inroom'); el.netBtn.textContent = '联机对战'; el.goBtn.textContent = '出战'; el.goBtn.classList.remove('dim');
     el.diff.title = ''; for (const c of el.cards.children) c.classList.remove('taken'); el.modeSel.classList.remove('locked'); el.diff.classList.remove('locked');
   };
 
@@ -79,7 +79,7 @@ export function createUI(isTouch, audio) {
     el.seatSel.hidden = true; el.room.hidden = false; el.netBtn.textContent = '回大厅';
     if (!roomBuilt) {
       roomBuilt = true;
-      el.room.innerHTML = '<div class="rhead"><span class="rinfo"></span><label>道号 <input class="rname" maxlength="12" autocomplete="nickname"></label></div><div class="sides"></div><div class="rchat"><div class="log"></div><div class="send"><input class="rsay" maxlength="120" enterkeyhint="send" placeholder="在房间里说话"><button type="button" class="rsend">发送</button></div></div>';
+      el.room.innerHTML = '<div class="rhead"><span class="rinfo"></span><label>道号 <input class="rname" maxlength="12" autocomplete="nickname"></label></div><div class="sides"></div><div class="ract"><span class="rwait"></span><button type="button" class="rready"></button><button type="button" class="rstart" title="不等别人准备，也不等倒数，马上开打">立即开战<small>不等准备</small></button></div><div class="rchat"><div class="log"></div><div class="send"><input class="rsay" maxlength="120" enterkeyhint="send" placeholder="在房间里说话"><button type="button" class="rsend">发送</button></div></div>';
       const inp = el.room.querySelector('.rsay'), say = () => { if (inp.value.trim()) { act.send({ t: 'chat', text: inp.value.trim() }); inp.value = ''; } };
       inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') say(); };
       el.room.querySelector('.rsend').onclick = () => { say(); inp.focus(); };
@@ -97,7 +97,7 @@ export function createUI(isTouch, audio) {
     el.room.querySelector('.sides').innerHTML = r.seats.map((side, t) => `<div class="side ${t ? 'te' : 'tf'}"><h4>${t ? '烬方' : '霜方'}</h4>` + side.map((q, i) => {
       const h = q.hero && HEROES[q.hero], pos = five ? SEATS[i].pos : ['一', '二', '三'][i];
       const who = q.cid ? (q.cid === me ? '你' : '') + (q.cid === r.host ? (q.cid === me ? ' · ' : '') + '房主' : '') || '玩家' : '空位 · 点一下坐过来，没人就由电脑来打';
-      const tag = !q.cid ? '' : q.cid === r.host ? '' : `<s class="${q.ready ? 'ok' : ''}">${q.ready ? '已准备' : '未准备'}</s>`;
+      const tag = !q.cid ? '' : `<s class="${q.ready ? 'ok' : ''}">${q.ready ? '已准备' : '未准备'}</s>`;
       const kick = host && q.cid && q.cid !== me ? `<button type="button" class="kick" data-kick="${q.cid}" title="请出房间">×</button>` : '';
       return `<button type="button" class="seat${q.cid === me ? ' mine' : ''}${q.cid ? '' : ' empty'}" data-t="${t}" data-i="${i}"><span class="pos">${pos}</span><i class="pt" style="${h ? `background-image:url(${face(h)})` : ''}"></i><b>${q.cid ? `${esc(q.name)}（${h ? h.name : '选人中'}）` : h ? h.name : '电脑'}</b><em>${who}</em>${tag}</button>${kick}`;
     }).join('') + '</div>').join('');
@@ -108,12 +108,24 @@ export function createUI(isTouch, audio) {
     el.sub.textContent = `联机 · ${MODES[mode].team}V${MODES[mode].team} · 选好修士后准备，房主开战`;
     if (hero) showDetail(hero);
     const people = r.seats.flat().filter(q => q.cid), allSet = people.every(q => q.cid === me || (q.ready && q.hero));
-    el.goBtn.textContent = host ? '开战' : mine && mine.ready ? '取消准备' : '准备';
-    el.goBtn.classList.toggle('dim', !hero || (host && !allSet));
+    el.goBtn.textContent = mine && mine.ready ? '取消准备' : '准备';
+    el.goBtn.classList.toggle('dim', !hero);
+    // the ready row under the seats: your own 准备, and who is still being waited for, or the countdown once everyone is ready
+    // (the server starts the match ten seconds later). The host readies like everyone else; 立即开战 (host only, set apart in
+    // its own style) starts at once, ready or not, for when someone forgot to press 准备.
+    const waitFor = people.filter(q => !(q.ready && q.hero)).map(q => (q.cid === me ? '你' : esc(q.name)));
+    const rr = el.room.querySelector('.rready'), rs = el.room.querySelector('.rstart'), rw = el.room.querySelector('.rwait');
+    rs.hidden = !host; rs.classList.toggle('dim', !hero);
+    rr.hidden = !mine; rr.textContent = mine && mine.ready ? '已准备 ✓（点一下取消）' : '准备'; rr.classList.toggle('on', !!(mine && mine.ready)); rr.classList.toggle('dim', !hero);
+    clearInterval(ui.countT); ui.countT = 0;
+    if (r.countIn > 0) { const end = performance.now() + r.countIn, tick = () => { rw.innerHTML = `<b class="cd">全员准备好了，${Math.max(0, Math.ceil((end - performance.now()) / 1000))} 秒后开战</b>`; }; tick(); ui.countT = setInterval(tick, 200); }
+    else rw.innerHTML = !hero ? '先在下面选一位修士' : waitFor.length ? `等 ${waitFor.join('、')} 准备 · 全员准备后 10 秒自动开战` : '';
+    rr.onclick = () => el.goBtn.onclick();
+    rs.onclick = () => { audio.init(); if (!hero) { ui.toast('先选一位修士'); return; } act.send({ t: 'start' }); };
     el.cards.onclick = e => { const c = e.target.closest('.card'); if (!c || !mine) return; audio.init(); audio.play('click'); if (c.classList.contains('taken')) { ui.toast('这位修士已经有人选了'); return; } act.send({ t: 'hero', id: c.dataset.k }); };
     el.modeSel.onclick = e => { const c = e.target.closest('button'); if (!c) return; if (!host) { ui.toast('只有房主能换模式'); return; } act.send({ t: 'mode', mode: c.dataset.k }); };
     el.diff.onclick = e => { const c = e.target.closest('button'); if (!c) return; if (!host) { ui.toast('只有房主能定电脑强度'); return; } act.send({ t: 'diff', diff: c.dataset.k }); };
-    el.goBtn.onclick = () => { audio.init(); if (!mine) { ui.toast('先点一个空位坐下'); return; } if (!hero) { ui.toast('先选一位修士'); return; } if (host) act.send({ t: 'start' }); else act.send({ t: 'ready', on: !mine.ready }); };
+    el.goBtn.onclick = () => { audio.init(); if (!mine) { ui.toast('先点一个空位坐下'); return; } if (!hero) { ui.toast('先选一位修士'); return; } act.send({ t: 'ready', on: !mine.ready }); };
     el.netBtn.onclick = () => act.leave();
   };
   ui.roomChat = (from, text) => {

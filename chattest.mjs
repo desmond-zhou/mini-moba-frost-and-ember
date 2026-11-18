@@ -12,15 +12,19 @@ await A.click('#netBtn'); await sleep(2500); await A.click('#nCreate1'); await A
 await B.click('#netBtn'); await sleep(2500); await B.click(`.lbr[data-code="${code}"]`); await B.waitForSelector('#room .seat.mine');
 await B.click('#room .tf .seat.empty'); await sleep(800);                                    // move to the frost side, next to 小明
 await A.type('#room .rchat input', '房间里说话'); await A.keyboard.press('Enter'); await sleep(800);
-console.log('B sees room chat:', await B.$eval('#room .rchat .log', e => e.textContent.includes('房间里说话')));
+let fails = 0; const ok = (c, what) => { console.log((c ? 'ok   ' : 'FAIL ') + what); if (!c) fails++; };
+ok(await B.$eval('#room .rchat .log', e => e.textContent.includes('房间里说话')), 'room chat reaches the other player');
 await B.click('.card[data-k="mage"]'); await B.click('#goBtn'); await A.click('.card[data-k="warden"]'); await sleep(600); await A.click('#goBtn');
-await A.waitForFunction(() => window.__moba.G && window.__moba.G.net, { timeout: 15000 }); await B.waitForFunction(() => window.__moba.G && window.__moba.G.net, { timeout: 15000 }); await sleep(3000);
-console.log('same side:', await A.evaluate(() => window.__moba.G.player.team) === await B.evaluate(() => window.__moba.G.player.team));
+await A.waitForFunction(() => window.__moba.G && window.__moba.G.net, { timeout: 25000 }); await B.waitForFunction(() => window.__moba.G && window.__moba.G.net, { timeout: 25000 }); await sleep(3000);
+ok(await A.evaluate(() => window.__moba.G.player.team) === await B.evaluate(() => window.__moba.G.player.team), 'both on the same side');
 // 小明: a signal, 开团, and a line of team chat (Enter, type, Enter)
 await A.evaluate(() => { const G = window.__moba.G; G.signal('attack', G.player.x + 8, G.player.z); }); await sleep(1500);
 await A.evaluate(() => window.__moba.G.setRally(true)); await sleep(1500);
 await A.keyboard.press('Enter'); await A.keyboard.type('跟我上中路'); await A.keyboard.press('Enter'); await sleep(1500);
 const seen = await B.evaluate(() => { const G = window.__moba.G; return { pings: G.pings.map(p => p.type), rallyBy: G.rallyBy.map(h => h && h.pname), chat: document.getElementById('chat').textContent, toast: document.getElementById('toast').textContent }; });
-console.log('B sees:', JSON.stringify(seen));
+ok(seen.toast.includes('小明（韩不语）') && seen.toast.includes('进攻'), 'a signal shows to the ally as 小明（韩不语）：进攻！');
+ok(seen.rallyBy.includes('小明'), '开团 reaches the ally');
+ok(seen.chat.includes('小明（韩不语）跟我上中路'), 'team chat shows as 小明（韩不语）…');
 await B.screenshot({ path: 'runs/chat_B.png' });
-await a.close(); await b.close();
+await Promise.race([Promise.all([a.close(), b.close()]), sleep(3000)]);
+console.log(fails ? fails + ' FAILED' : 'all passed'); process.exit(fails ? 1 : 0);
