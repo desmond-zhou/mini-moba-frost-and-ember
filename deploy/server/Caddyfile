@@ -7,3 +7,11 @@ server.moba.app.desmondzhou.com:37190 {
 	respond @private 404
 	reverse_proxy 127.0.0.1:8790
 }
+
+# Other services on this box (keep these lines, or a moba deploy will switch them off):
+# Breathwork relay (HTTPS 443)
+import /etc/caddy/relay.caddy
+# Sprout Hill shared world (deployed from Mini-Server/sprout-hill, deploy/world.sh)
+import /etc/caddy/sprouthill.caddy
+# 文字RPG (InkRealm) — see /etc/caddy/rpg.caddy
+import /etc/caddy/rpg.caddy
