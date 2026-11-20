@@ -6,16 +6,19 @@ let fails = 0; const ok = (c, what) => { console.log((c ? 'ok   ' : 'FAIL ') + w
 execFileSync('node', ['build.mjs'], { stdio: 'ignore' });
 const page = fs.readFileSync('dist/frostember.html', 'utf8'), head = page.slice(0, page.indexOf('</head>'));
 const png = buf => buf.readUInt32BE(0) === 0x89504e47 ? [buf.readUInt32BE(16), buf.readUInt32BE(20)] : null;   // width, height from IHDR
-const dataOf = rel => { const m = head.match(new RegExp(`<link rel="${rel}"[^>]*href="data:([^;]+);base64,([^"]+)"`)); return m && { type: m[1], buf: Buffer.from(m[2], 'base64') }; };
+// const dataOf = rel => { const m = head.match(new RegExp(`<link rel="${rel}"[^>]*href="data:([^;]+);base64,([^"]+)"`)); return m && { type: m[1], buf: Buffer.from(m[2], 'base64') }; };
 ok(/<meta name="viewport"[^>]*maximum-scale=1[^>]*user-scalable=no/.test(head), 'built page: viewport forbids zooming');
 const svg = head.match(/<link rel="icon" type="image\/svg\+xml" href="data:image\/svg\+xml;base64,([^"]+)"/);
 ok(svg && /^<svg[\s\S]*<\/svg>$/.test(Buffer.from(svg[1], 'base64').toString()), 'built page: SVG tab icon inside');
 const p32 = head.match(/<link rel="icon" type="image\/png" sizes="32x32" href="data:image\/png;base64,([^"]+)"/);
 ok(p32 && String(png(Buffer.from(p32[1], 'base64'))) === '32,32', 'built page: 32 px PNG tab icon inside');
-const touch = dataOf('apple-touch-icon');
-ok(touch && String(png(touch.buf)) === '180,180', `built page: 180 px home-screen icon inside (${touch && png(touch.buf)})`);
+const touch = head.match(/<link rel="apple-touch-icon" href="([^"]+)">/);   // iOS ignores a data: URI here and shows a letter
+ok(touch && !touch[1].startsWith('data:'), `built page: home-screen icon is a real file, not a data: URI (${touch && touch[1].slice(0, 40)})`);
+const tf = touch && 'dist/web/' + touch[1].split('?')[0];
+ok(tf && fs.existsSync(tf) && String(png(fs.readFileSync(tf))) === '180,180', 'built page: home-screen icon file is 180 px');
+ok(/apple-touch-icon\.png\?v=\w+/.test(head), 'built page: home-screen icon link carries a version, so phones fetch a new picture');
 for (const m of ['apple-mobile-web-app-capable', 'mobile-web-app-capable', 'apple-mobile-web-app-title', 'theme-color']) ok(head.includes(`name="${m}"`), `built page: ${m}`);
-ok(head.includes('<link rel="manifest" href="manifest.webmanifest">'), 'built page: links the manifest');
+ok(/<link rel="manifest" href="manifest\.webmanifest(\?v=\w+)?">/.test(head), 'built page: links the manifest');
 const man = JSON.parse(fs.readFileSync('dist/web/manifest.webmanifest', 'utf8'));
 ok(man.name === '霜烬之争' && man.display && man.start_url, 'manifest: name, display, start_url');
 for (const i of man.icons) { const f = 'dist/web/' + i.src; ok(fs.existsSync(f) && String(png(fs.readFileSync(f))) === i.sizes.replace('x', ','), `manifest: ${i.src} is ${i.sizes}`); }
