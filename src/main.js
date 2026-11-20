@@ -13,6 +13,12 @@ import { LANES, MID, RIVER, biomeX, MODE, MODES, setMode, POS, CAMPS, EMBER } fr
 
 const fatal = document.getElementById('fatal');
 addEventListener('error', e => { fatal.textContent = '出错了：' + (e.message || e.error); });
+// The page never zooms (the author's ask, 2026-11-20): an accidental pinch, double-tap, Ctrl+scroll or Ctrl +/− zoom-in can't be undone mid-fight.
+// The viewport meta and touch-action cover most browsers; these cover iOS Safari (which ignores user-scalable) and desktop page zoom.
+for (const t of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(t, e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 || (e.scale !== undefined && e.scale !== 1)) e.preventDefault(); }, { passive: false });
+addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });
+addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && ['=', '+', '-', '_', '0'].includes(e.key)) e.preventDefault(); });
 
 function boot() {
   const qs = new URLSearchParams(location.search);

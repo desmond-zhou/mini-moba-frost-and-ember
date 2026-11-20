@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>霜烬之争</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@700;900&display=swap">
@@ -18,7 +18,7 @@
   --gl: max(16px, env(safe-area-inset-left, 0px)); --gr: max(16px, env(safe-area-inset-right, 0px));
 }
 [hidden] { display: none !important; }
-html, body { height: 100%; margin: 0; }
+html, body { height: 100%; margin: 0; touch-action: pan-x pan-y; }   /* no pinch / double-tap zoom: an accidental zoom-in mid-fight is unrecoverable */
 body { background: var(--ink); color: var(--bone); font-family: var(--f-ui); overflow: hidden; -webkit-text-size-adjust: 100%; }
 #app { position: fixed; inset: 0; overflow: hidden; background: var(--ink); -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 #app *, #app *::before, #app *::after { box-sizing: border-box; }

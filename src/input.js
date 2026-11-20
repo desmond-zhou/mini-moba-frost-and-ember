@@ -91,7 +91,7 @@ export function createInput(R, fx, ui, audio, isTouch) {
   });
   const up = e => { if (e.pointerType === 'touch') touchUp(e); else steer = false; };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-  canvas.addEventListener('wheel', e => { e.preventDefault(); I.zoom = clamp(I.zoom + Math.sign(e.deltaY) * 0.08, 0.7, 1.3); }, { passive: false });
+  canvas.addEventListener('wheel', e => e.preventDefault(), { passive: false });   // no camera zoom on scroll (the author's ask, 2026-11-20: trackpads zoomed in by accident)
   addEventListener('keydown', e => {
     if (e.key === 'Tab') { e.preventDefault(); if (I.G && !ui.menuOpen) ui.showScore(true); return; }
     if (e.repeat || !I.G || e.metaKey || e.ctrlKey) return;
