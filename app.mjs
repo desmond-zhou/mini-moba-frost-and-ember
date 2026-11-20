@@ -4,6 +4,7 @@
 // (no tabs, no address bar) with its own profile, so the window, saved settings and records stay separate from normal browsing.
 import fs from 'node:fs'; import path from 'node:path'; import { execFileSync } from 'node:child_process';
 import puppeteer from 'puppeteer-core';
+import { iconSVG } from './appicon.mjs';
 
 const NAME = '霜烬之争', APP = path.resolve('dist', NAME + '.app'), C = path.join(APP, 'Contents');
 if (!fs.existsSync('dist/frostember.html')) { console.error('build first: node build.mjs'); process.exit(1); }
@@ -36,22 +37,20 @@ fs.writeFileSync(path.join(C, 'Info.plist'), `<?xml version="1.0" encoding="UTF-
 </dict></plist>
 `);
 
-// the icon: the two characters 霜 and 烬, frost and ember, drawn in the browser and turned into an .icns
+// the icon: the same frost-and-ember taiji as the web app (appicon.mjs), on the macOS grid: a rounded square 824 of 1024 wide
+// with a soft shadow. The 16–32 px sizes get the plain taiji (the sword and whisk would only blur there).
 const b = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--no-sandbox'] });
 const page = await b.newPage(); await page.setViewport({ width: 1024, height: 1024, deviceScaleFactor: 1 });
-await page.setContent(`<body style="margin:0;background:transparent"><canvas id="c" width="1024" height="1024"></canvas><script>
-const g = c.getContext('2d'), r = 200; g.beginPath(); g.roundRect(64, 64, 896, 896, r); g.clip();
-const bg = g.createLinearGradient(64, 64, 960, 960); bg.addColorStop(0, '#0d1a2c'); bg.addColorStop(0.5, '#120f17'); bg.addColorStop(1, '#2a0e08'); g.fillStyle = bg; g.fillRect(0, 0, 1024, 1024);
-const glow = (x, y, col) => { const q = g.createRadialGradient(x, y, 0, x, y, 420); q.addColorStop(0, col); q.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = q; g.fillRect(0, 0, 1024, 1024); };
-glow(330, 360, 'rgba(110,180,255,.35)'); glow(700, 680, 'rgba(255,120,60,.35)');
-g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '900 400px "Songti SC","STSong",serif';
-g.fillStyle = '#bfe0ff'; g.shadowColor = '#6fb4ff'; g.shadowBlur = 40; g.fillText('霜', 360, 380);
-g.fillStyle = '#ffc49a'; g.shadowColor = '#ff7a3c'; g.fillText('烬', 670, 660);
-g.shadowBlur = 0; g.strokeStyle = 'rgba(223,189,120,.55)'; g.lineWidth = 10; g.beginPath(); g.roundRect(84, 84, 856, 856, r - 20); g.stroke();
-</script></body>`);
-const png = path.resolve('dist', 'icon-1024.png'); await (await page.$('#c')).screenshot({ path: png, omitBackground: true }); await b.close();
+const macIcon = async (svg, file) => {
+  await page.setContent(`<style>html,body{margin:0;background:transparent}#t{position:absolute;left:100px;top:92px;width:824px;height:824px;border-radius:185px;overflow:hidden;
+    box-shadow:0 10px 24px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.3)}#t svg{width:824px;height:824px;display:block}</style><div id="t">${svg}</div>`);
+  await page.screenshot({ path: file, omitBackground: true, clip: { x: 0, y: 0, width: 1024, height: 1024 } });
+};
+const png = path.resolve('dist', 'icon-1024.png'), small = path.resolve('dist', 'icon-1024-plain.png');
+await macIcon(iconSVG(), png); await macIcon(iconSVG({ plain: true }), small); await b.close();
 const set = path.resolve('dist', 'icon.iconset'); fs.rmSync(set, { recursive: true, force: true }); fs.mkdirSync(set);
-for (const s of [16, 32, 64, 128, 256, 512]) { execFileSync('sips', ['-z', String(s), String(s), png, '--out', path.join(set, `icon_${s}x${s}.png`)], { stdio: 'ignore' }); execFileSync('sips', ['-z', String(s * 2), String(s * 2), png, '--out', path.join(set, `icon_${s}x${s}@2x.png`)], { stdio: 'ignore' }); }
+const put = (px, name) => execFileSync('sips', ['-z', String(px), String(px), px <= 32 ? small : png, '--out', path.join(set, name)], { stdio: 'ignore' });
+for (const s of [16, 32, 128, 256, 512]) { put(s, `icon_${s}x${s}.png`); put(s * 2, `icon_${s}x${s}@2x.png`); }
 execFileSync('iconutil', ['-c', 'icns', set, '-o', path.join(C, 'Resources', 'icon.icns')]);
 fs.rmSync(set, { recursive: true, force: true });
 console.log('made', APP, '(' + version + ')');

@@ -1,6 +1,6 @@
 # 霜烬之争 — 接手说明
 
-单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v3.0.3**（V3：联机对战，单机照旧；3.0.1–3.0.3 加了不能缩放和网页图标）。V2 单机最终版存档在标签 `v2-single-final` / 分支 `v2-single`。
+单文件修仙迷你 MOBA。three.js + Yuka + 全程序化生成（没有任何图片、模型、音频文件）。当前 **v3.0.4**（V3：联机对战，单机照旧；3.0.1–3.0.4 加了不能缩放，网页和 Mac 应用换成霜烬太极图标）。V2 单机最终版存档在标签 `v2-single-final` / 分支 `v2-single`。
 
 先读这份，再读 `docs/进度.md`（现状、下一步、踩过的坑）。做新游戏时先读 `docs/做游戏的方法.md`（从本作总结的方法论：素材生成、库、电脑 AI、快速模拟、试玩、联机、测试、部署、开工清单）。其余文档按需：`docs/联机与发行笔记.md`（帧同步的理由、房主自己开服、版号、ICP）、`docs/三路策划.md`、`docs/库选型.md`、`docs/打位演算.md`、`README.md`。
 
@@ -11,7 +11,7 @@
 | 本地 | `/Users/desmondzhou/Claude Code/Mini-Server/mini-moba` |
 | 仓库 | 私有，`github.com/desmond-zhou/mini-moba-frost-and-ember`（原名 frostember，作者 2026-11-17 改名；本地 remote 还是旧地址，GitHub 会转过去），主干 `main`，每个可玩版本一个标签 |
 | 公开网站 | https://moba.app.desmondzhou.com （作者的 AWS：S3 + CloudFront + Route53，`deploy/publish.sh` 发布页面和网页图标；单机和联机都在这里玩，联机连的是下面「联机」一节的线上服务器） |
-| 线上 | https://claude.ai/artifact/GzCkDyMnCr18U1iCeTCpiC （"任何有链接的人可见"，发布即生效） |
+| 旧单机链接 | https://claude.ai/artifact/GzCkDyMnCr18U1iCeTCpiC （停在 v3.0.0；作者 2026-11-20 说不再管它，发布不用更新） |
 | 小说设定 | 《天衍》正史设定：https://claude.ai/artifact/NAtLbe59n8C8Et26Lqj9Vy （Claude Docs，project id `ab713e6f-35c7-4aea-aa3f-cb2d0b065ae0`） |
 
 ## 作者定下的规矩
@@ -53,8 +53,8 @@ node pace.mjs tri 3 24            # 节奏：每分钟的平均等级。三路�
 # 调平衡（要大样本，见下）：node tune.mjs "runs/a_s*.jsonl,runs/b_s*.jsonl" "runs/a_t*.jsonl" [--write]
 node build.mjs                    # dist/frostember.html（双击即玩）和 dist/artifact.html（发布用）
 BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mode=tri" shot.png 200   # 测打包产物
-# 发布（三处一起，V3 起有线上服务器）：公开网站 deploy/publish.sh；联机服务器 deploy/server.sh（服务器上也放一份页面，有房间时要 FORCE=1）；
-#   单机链接用 Artifact 工具，file_path = dist/artifact.html，url = 上面的线上链接（没有 Artifact 工具的会话做不了，要说明）
+# 发布（两处一起，V3 起有线上服务器）：公开网站 deploy/publish.sh；联机服务器 deploy/server.sh（服务器上也放一份页面，有房间时要 FORCE=1）。
+#   claude.ai 单机链接不再更新（作者 2026-11-20）。Mac 应用：npm run app，打包上传到 GitHub Release
 # 版本号三处一起改：index.html 的 .ver、package.json、README.md；然后 commit、tag、push
 ```
 
@@ -78,7 +78,7 @@ BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mod
 | `src/icons.js` `src/portraits.js` `src/barks.js` | 图标 / 头像 / 台词 |
 | `src/ui.js` `src/input.js` `src/main.js` | HUD 与各界面 / 键鼠触屏 / 启动、换模式、主循环 |
 | `batch.mjs` `analyze.mjs` `seats.mjs` `tune.mjs` | 批量对打 / 汇总 / 位置演算 / 按胜率算两张单人修正表（噪声内不动、守住两个模式的差距上限） |
-| `app.mjs` `frameprof.mjs` | 打成本地 Mac 应用（Chrome 应用模式）/ 整帧 CPU 剖析和每帧绘制调用数 |
+| `app.mjs` `frameprof.mjs` | 打成本地 Mac 应用（Chrome 应用模式，图标同网页的太极）/ 整帧 CPU 剖析和每帧绘制调用数 |
 | `appicon.mjs` `icon.mjs` | 网页图标（代码画的 SVG：霜烬太极加八卦）/ 渲成 PNG 到 `dist/web/`，`build.mjs` 自动调用 |
 | `builds.mjs` | 出装演算汇总：每人每种第一件法宝的胜率（配合 `HERO=` `BUILD=` 环境变量跑 batch） |
 | `mech.mjs` `pace.mjs` `prof.mjs` `gapcheck.mjs` | 单招机制的定点检查 / 各模式的升级节奏 / 模拟耗时分布 / 两张修正表是否守规矩（改表后必跑） |
