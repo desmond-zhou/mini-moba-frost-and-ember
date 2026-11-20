@@ -34,7 +34,8 @@ npm run test:all       # 约 25 分钟：再加整局长度的确定性、三路
 ```
 
 - 总入口 `tests/run.mjs`：自动起本机的开发页面（5179）和联机服务器（8790），逐项跑，最后出汇总；任何一项失败就返回失败。**从不碰线上服务器**，线上只在发布后由作者或手动检查。
-- 各项：`tests/unit.test.mjs`（不开浏览器：确定性数学、配置自洽、联机时钟的节奏与补帧、指令合并）、`gapcheck.mjs`、`tests/layout.mjs`（手机竖屏、横屏、两种电脑屏幕下标题、大厅、房间、对局里的关键按钮都在屏幕内、无横向滚动）、`dettest.mjs` 加 `CMDS=1`（两台视角不同的机器在同一步执行同一串随机真人指令，结果必须逐位相同）、`servertest.mjs`（不开浏览器，直接走协议：大厅、四位房间号、重名、版本不同被拒、准备倒数与取消、命令校验、不同步上报、断线托管与重连、同一身份第二个页面、刷屏断开、最后一人离开关房）、`test.mjs`（单机冒烟）、`dettest.mjs`（两台视角不同的机器结果逐位相同）、`tests/lobbytest.mjs`（两个浏览器像人一样用大厅和房间）、`chattest.mjs`（同门的聊天、信号、开团）、`nettest.mjs`（`HUMAN=1` 时两边都像真人一样乱点；`TOEND=1` 打到结束再回房间）。
+- 各项：`tests/unit.test.mjs`（不开浏览器：确定性数学、配置自洽、联机时钟的节奏与补帧、指令合并）、`gapcheck.mjs`、`tests/layout.mjs`（手机竖屏、横屏、两种电脑屏幕下标题、大厅、房间、对局里的关键按钮都在屏幕内、无横向滚动）、`dettest.mjs` 加 `CMDS=1`（两台视角不同的机器在同一步执行同一串随机真人指令，结果必须逐位相同）、`servertest.mjs`（不开浏览器，直接走协议：大厅、四位房间号、重名、版本不同被拒、准备倒数与取消、命令校验、不同步上报、断线托管与重连、同一身份第二个页面、刷屏断开、最后一人离开关房）、`test.mjs`（单机冒烟）、`dettest.mjs`（两台视角不同的机器结果逐位相同）、`tests/lobbytest.mjs`（两个浏览器像人一样用大厅和房间）、`chattest.mjs`（同门的聊天、信号、开团）、`nettest.mjs`（`HUMAN=1` 时两边都像真人一样乱点；`TOEND=1` 打到结束再回房间）、`tests/zoomtest.mjs`（页面不能缩放：捏合、Ctrl+滚轮、Ctrl +/−，滚轮不动镜头）、`tests/webapp.mjs`（先打包，再查打包页面的图标、manifest、不缩放的 viewport）。
+- 本机 Tailscale 在 tailnet 地址上占了 8790（`tailscale serve`），`tests/run.mjs` 起的服务器会因为端口被占起不来，服务器相关的五项全挂。先手动 `HOST=127.0.0.1 node server/server.mjs` 再跑测试即可。
 - 发布前至少跑 `npm run test:quick`；改了决定胜负的代码（game / config / dmath / util / world）要跑 `test:all`。
 
 ## 每次改完的流程
@@ -77,6 +78,7 @@ BASE="file://$PWD/dist/frostember.html" node test.mjs "auto=mage&bot=1&dyn=0&mod
 | `src/ui.js` `src/input.js` `src/main.js` | HUD 与各界面 / 键鼠触屏 / 启动、换模式、主循环 |
 | `batch.mjs` `analyze.mjs` `seats.mjs` `tune.mjs` | 批量对打 / 汇总 / 位置演算 / 按胜率算两张单人修正表（噪声内不动、守住两个模式的差距上限） |
 | `app.mjs` `frameprof.mjs` | 打成本地 Mac 应用（Chrome 应用模式）/ 整帧 CPU 剖析和每帧绘制调用数 |
+| `appicon.mjs` `icon.mjs` | 网页图标（代码画的 SVG：霜烬太极加八卦）/ 渲成 PNG 到 `dist/web/`，`build.mjs` 自动调用 |
 | `builds.mjs` | 出装演算汇总：每人每种第一件法宝的胜率（配合 `HERO=` `BUILD=` 环境变量跑 batch） |
 | `mech.mjs` `pace.mjs` `prof.mjs` `gapcheck.mjs` | 单招机制的定点检查 / 各模式的升级节奏 / 模拟耗时分布 / 两张修正表是否守规矩（改表后必跑） |
 

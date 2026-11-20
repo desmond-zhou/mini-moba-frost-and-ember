@@ -26,6 +26,7 @@ const suites = [
   ['same result with people\'s commands · 三路', 'node', ['dettest.mjs', 'tri', full ? '1500' : '300'], { CMDS: '1' }],
   ['screens: phone upright / on its side / laptop / desktop', 'node', ['tests/layout.mjs']],
   ['the page never zooms (pinch, Ctrl+scroll, Ctrl +/−)', 'node', ['tests/zoomtest.mjs']],
+  ['built page works as a web app (icons, manifest, no zoom)', 'node', ['tests/webapp.mjs']],
   ['lobby and room, as a person uses them', 'node', ['tests/lobbytest.mjs']],
   ['chat, signals and 开团 between allies', 'node', ['chattest.mjs', 'http://localhost:5179/']],
   ['online match, people clicking about, drop and rejoin · 一路', 'node', ['nettest.mjs', 'single', '45', 'runs/t_single'], { HUMAN: '1' }, out => /desync seen by client: 0/.test(out) && /after rejoin/.test(out)],

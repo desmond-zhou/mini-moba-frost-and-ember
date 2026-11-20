@@ -8,5 +8,8 @@ set -e
 cd "$(dirname "$0")/.."
 [ -f dist/frostember.html ] || { echo "build first: node build.mjs"; exit 1; }
 aws s3 cp dist/frostember.html s3://moba-app-desmondzhou-com/index.html --content-type "text/html; charset=utf-8" --cache-control "public, max-age=300" --only-show-errors
-aws cloudfront create-invalidation --distribution-id E1ZK2NAPWFUXQ1 --paths "/" "/index.html" --query Invalidation.Id --output text
+# the web-app icon and manifest (Android / desktop "install app"; iPhone uses the icon inside the page)
+aws s3 cp dist/web/manifest.webmanifest s3://moba-app-desmondzhou-com/manifest.webmanifest --content-type "application/manifest+json" --cache-control "public, max-age=300" --only-show-errors
+for f in icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png; do aws s3 cp dist/web/$f s3://moba-app-desmondzhou-com/$f --content-type image/png --cache-control "public, max-age=86400" --only-show-errors; done
+aws cloudfront create-invalidation --distribution-id E1ZK2NAPWFUXQ1 --paths "/" "/index.html" "/manifest.webmanifest" "/icon-192.png" "/icon-512.png" "/icon-maskable-512.png" "/apple-touch-icon.png" --query Invalidation.Id --output text
 echo "published: https://moba.app.desmondzhou.com/"
