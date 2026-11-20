@@ -1,6 +1,6 @@
 {
   "name": "mini-moba",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "霜烬之争 — a single-file xianxia mini MOBA: three.js, everything procedural, no asset files",
   "scripts": {
     "dev": "node vendor.mjs && node serve.mjs",
