@@ -1,5 +1,6 @@
 #!/bin/bash
-# publish.sh — put the current build on https://moba.app.desmondzhou.com (single-player; online shows "not open yet").
+# publish.sh — put the current build on https://moba.app.desmondzhou.com (single player and online; online play goes to the
+# room server, which deploy/server.sh updates: a release does both).
 #   node build.mjs && deploy/publish.sh
 # AWS (account of the author, us-east-1): S3 bucket moba-app-desmondzhou-com (private) → CloudFront E1ZK2NAPWFUXQ1 (HTTPS,
 # certificate in ACM) → Route53 desmondzhou.com, A/AAAA alias moba.app. Costs next to nothing: one 1.4 MB file, CloudFront's
